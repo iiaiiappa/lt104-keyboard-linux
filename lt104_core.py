@@ -36,9 +36,9 @@ LIGHT_MODES = [
     {"id": 17, "name": "重峦叠嶂 (Rolling Hills)"},
     {"id": 18, "name": "斜风细雨 (Gentle Rain)"},
     {"id": 19, "name": "来回穿梭 (Shuttle)"},
-    {"id": 20, "name": "关闭背光 (Backlight Off)"},
     {"id": 21, "name": "万众一心 (Solid Center)"},
     {"id": 22, "name": "流光溢彩 (Neon Glow)"},
+    {"id": 20, "name": "关闭背光 (Backlight Off)"},
 ]
 
 # Lighting modes that support custom single color (1: Static, 2: Single Light, 3: Single Off, 4: Stars, 5: Snow, 7: Breathing)

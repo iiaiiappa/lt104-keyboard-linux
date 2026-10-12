@@ -412,9 +412,31 @@ HTML_PAGE = """<!DOCTYPE html>
       }
     }
 
+    let rememberedBrightness = parseInt(localStorage.getItem('lt104_remembered_brightness')) || 4;
+    let previousModeVal = 1;
+
     function onModeChange() {
-      const mode = document.getElementById('light-mode').value;
-      updateColorVisibility(mode);
+      const modeEl = document.getElementById('light-mode');
+      const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
+      const brightInput = document.getElementById('light-brightness');
+      const currentBright = parseInt(brightInput ? brightInput.value : 4);
+
+      if (modeVal === 20) {
+        // Going to Backlight Off: remember previous brightness
+        if (previousModeVal !== 20 && currentBright > 0) {
+          rememberedBrightness = currentBright;
+          localStorage.setItem('lt104_remembered_brightness', rememberedBrightness);
+        }
+        if (brightInput) brightInput.value = 0;
+        updateRange('bright-val', 0, ['0%', '25%', '50%', '75%', '100%']);
+      } else if (previousModeVal === 20) {
+        // Coming from Backlight Off to other mode: restore remembered brightness
+        const restoreBright = (rememberedBrightness > 0 ? rememberedBrightness : 4);
+        if (brightInput) brightInput.value = restoreBright;
+        updateRange('bright-val', restoreBright, ['0%', '25%', '50%', '75%', '100%']);
+      }
+      previousModeVal = modeVal;
+      updateColorVisibility(modeVal);
       if (autoApplyLight) {
         applyLight();
       }
@@ -445,12 +467,23 @@ HTML_PAGE = """<!DOCTYPE html>
 
     function onBrightnessInput(val) {
       updateRange('bright-val', val, ['0%', '25%', '50%', '75%', '100%']);
+      const modeVal = parseInt(document.getElementById('light-mode').value) || 1;
+      if (modeVal !== 20 && parseInt(val) > 0) {
+        rememberedBrightness = parseInt(val);
+        localStorage.setItem('lt104_remembered_brightness', rememberedBrightness);
+      }
       if (autoApplyLight) {
         applyLight();
       }
     }
 
     function onBrightnessChange() {
+      const modeVal = parseInt(document.getElementById('light-mode').value) || 1;
+      const val = parseInt(document.getElementById('light-brightness').value);
+      if (modeVal !== 20 && val > 0) {
+        rememberedBrightness = val;
+        localStorage.setItem('lt104_remembered_brightness', rememberedBrightness);
+      }
       if (autoApplyLight) {
         applyLight();
       }
@@ -745,6 +778,7 @@ HTML_PAGE = """<!DOCTYPE html>
       // 1. Restore persistent user settings
       const savedMode = localStorage.getItem('lt104_light_mode') || SERVER_CONFIG.mode;
       if (savedMode) document.getElementById('light-mode').value = savedMode;
+      previousModeVal = parseInt(document.getElementById('light-mode').value) || 1;
       updateColorVisibility(savedMode);
 
       const savedColor = localStorage.getItem('lt104_light_color') || SERVER_CONFIG.color;
@@ -757,6 +791,9 @@ HTML_PAGE = """<!DOCTYPE html>
       if (savedBright !== undefined && savedBright !== null) {
         document.getElementById('light-brightness').value = savedBright;
         updateRange('bright-val', savedBright, ['0%', '25%', '50%', '75%', '100%']);
+        if (parseInt(savedBright) > 0) {
+          rememberedBrightness = parseInt(savedBright);
+        }
       }
 
       const savedSpeed = localStorage.getItem('lt104_light_speed') !== null ? localStorage.getItem('lt104_light_speed') : SERVER_CONFIG.speed;
@@ -809,12 +846,27 @@ HTML_PAGE = """<!DOCTYPE html>
     let lastAutoTapTime = 0;
     let lastAutoRippleTime = 0;
 
+    let dimStarKeys = [];
+    let nextStarChangeTime = 0;
+
+    function getKeyRow(ky) {
+      if (ky < 45) return 0;
+      if (ky < 90) return 1;
+      if (ky < 130) return 2;
+      if (ky < 172) return 3;
+      if (ky < 213) return 4;
+      return 5;
+    }
+
     let skinDark = new Image();
-    skinDark.src = '/static/keyboard_skin_dark.png';
+    skinDark.src = '/static/keyboard_skin_dark.png?v=1.0.2';
     let skinLit = new Image();
-    skinLit.src = '/static/keyboard_skin_lit.png';
+    skinLit.src = '/static/keyboard_skin_lit.png?v=1.0.2';
     let lcdGif = new Image();
-    lcdGif.src = '/static/current_lcd.gif';
+    lcdGif.src = '/static/current_lcd.gif?v=1.0.2';
+
+    skinDark.onload = () => { if (kbCtx) requestAnimationFrame(renderKeyboard); };
+    skinLit.onload = () => { if (kbCtx) requestAnimationFrame(renderKeyboard); };
 
     // Offscreen canvas for fast pixel tinting
     let tintCanvas = document.createElement('canvas');
@@ -872,13 +924,15 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 4: { // 繁星点点 (Stars)
-          const seed = (idx * 137.5) % 6.283;
-          const val = Math.max(0, (Math.sin(t * speedMult * 2.2 + seed) - 0.25) / 0.75);
-          return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
+          // All keys lit with static color, randomly turn off 2-3 keys for 0.5s when speed is 1
+          if (dimStarKeys.includes(idx)) {
+            return [0, 0, 0];
+          }
+          return baseRgb;
         }
 
         case 5: { // 漫天飞雪 (Snow)
-          const row = Math.round((k[2] - 16) / 41);
+          const row = getKeyRow(k[2]);
           const phase = (t * speedMult * 3.5 - row * 0.9 + (idx % 5) * 0.4) % 6.283;
           const val = Math.pow(Math.max(0, Math.sin(phase)), 3);
           return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
@@ -906,10 +960,14 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 10: { // 多彩纵横 (Cross Pattern)
-          const xWave = Math.sin(cx * 0.03 - t * speedMult * 3.0);
-          const yWave = Math.cos(cy * 0.05 + t * speedMult * 2.5);
-          const val = Math.max(0.15, (xWave + yWave) * 0.5);
-          const hue = (cx * 0.3 + cy * 0.5 + t * speedMult * 60) % 360;
+          const colBeam = (Math.sin(t * speedMult * 2.5) * 0.5 + 0.5) * 920 + 20;
+          const rowBeam = (Math.cos(t * speedMult * 2.2) * 0.5 + 0.5) * 250 + 20;
+          const distX = Math.abs(cx - colBeam);
+          const distY = Math.abs(cy - rowBeam);
+          const valX = Math.exp(-distX * distX / 2200);
+          const valY = Math.exp(-distY * distY / 1600);
+          const val = Math.max(0.08, Math.max(valX, valY));
+          const hue = (cx * 0.3 + cy * 0.6 + t * speedMult * 60) % 360;
           const c = hslToRgb(hue, 1.0, 0.5);
           return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
         }
@@ -925,37 +983,28 @@ HTML_PAGE = """<!DOCTYPE html>
           return hslToRgb(hue, 1.0, 0.5);
         }
 
-        case 13: { // 一触即发 (Ripple Trigger)
-          const dist = Math.hypot(cx - 475, cy - 145);
-          const ripple = Math.sin(dist * 0.08 - t * speedMult * 4.0);
-          const val = Math.max(0.1, Math.pow(Math.max(0, ripple), 2));
-          return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
-        }
-
-        case 14: { // 一石二鸟 (Dual Ripple)
-          const d1 = Math.hypot(cx - 240, cy - 145);
-          const d2 = Math.hypot(cx - 700, cy - 145);
-          const r1 = Math.sin(d1 * 0.07 - t * speedMult * 4.0);
-          const r2 = Math.sin(d2 * 0.07 - t * speedMult * 4.0 + Math.PI);
-          const hue = (d1 * 0.5 + d2 * 0.5 + t * speedMult * 50) % 360;
-          const val = Math.max(0.1, (Math.max(0, r1) + Math.max(0, r2)) * 0.5);
-          const c = hslToRgb(hue, 1.0, 0.5);
-          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
-        }
-
-        case 15: { // 涟漪扩散 (Ripple Spread)
-          const dist = Math.hypot(cx - 475, cy - 145);
-          const hue = (dist * 1.2 - t * speedMult * 90) % 360;
-          return hslToRgb(hue, 1.0, 0.5);
-        }
+        case 13: // 一触即发 (Ripple Trigger) - spread purely from pressed keys along same row
+        case 14: // 一石二鸟 (Dual Ripple) - spread horizontally from pressed keys
+        case 15: // 涟漪扩散 (Ripple Spread) - concentric rings from pressed keys
+          return [0, 0, 0];
 
         case 16: { // 川流不息 (Infinite Stream)
-          const row = Math.round((k[2] - 16) / 41);
-          const dir = (row % 2 === 0) ? 1 : -1;
-          const hue = (cx * 0.4 * dir - t * speedMult * 120 + row * 40) % 360;
-          const val = 0.5 + 0.5 * Math.sin(cx * 0.04 * dir - t * speedMult * 3.5);
-          const c = hslToRgb(hue, 1.0, 0.5);
-          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          // Swipes row by row from top to bottom (0 -> 1 -> 2 -> 3 -> 4 -> 5) then repeats
+          const rowDur = 0.55 / speedMult;
+          const totalCycle = 6 * rowDur;
+          const cycleTime = t % totalCycle;
+          const activeRow = Math.floor(cycleTime / rowDur);
+          const rowProg = (cycleTime % rowDur) / rowDur;
+          const swipeX = rowProg * 960;
+          const kRow = getKeyRow(k[2]);
+          if (kRow === activeRow) {
+            const distX = Math.abs(cx - swipeX);
+            const val = Math.max(0.04, Math.exp(-distX * distX / 2500));
+            const hue = (swipeX * 0.4 + activeRow * 50 + t * 90) % 360;
+            const c = hslToRgb(hue, 1.0, 0.5);
+            return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          }
+          return [0, 0, 0];
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
@@ -976,26 +1025,27 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 19: { // 来回穿梭 (Shuttle)
-          const beamX = (Math.sin(t * speedMult * 2.2) * 0.5 + 0.5) * 880 + 30;
-          const dist = Math.abs(cx - beamX);
-          const val = Math.max(0.08, Math.exp(-dist * dist / 5000));
-          const hue = (t * speedMult * 60) % 360;
+          // Column beam weaves back and forth horizontally across keyboard
+          const shuttleCycle = 2.2 / speedMult;
+          const p = (t % shuttleCycle) / shuttleCycle;
+          const pos = (p < 0.5 ? (p * 2.0) : (2.0 - p * 2.0));
+          const beamX = 25.0 + pos * 900.0;
+          const distX = Math.abs(cx - beamX);
+          const val = Math.max(0.04, Math.exp(-distX * distX / 1600));
+          const hue = (beamX * 0.4 + t * speedMult * 90) % 360;
           const c = hslToRgb(hue, 1.0, 0.5);
           return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
         }
 
         case 21: { // 万众一心 (Solid Center)
-          const dist = Math.hypot(cx - 475, cy - 145);
-          const pulse = Math.sin(dist * 0.04 + t * speedMult * 3.0);
-          const val = Math.max(0.15, pulse * 0.5 + 0.5);
-          const hue = (dist * 0.5 + t * speedMult * 30) % 360;
-          const c = hslToRgb(hue, 1.0, 0.5);
-          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          // All lights turned on with colorful rainbow hues across the board
+          const hue = (cx * 0.38 + cy * 0.25) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
         }
 
         case 22: { // 流光溢彩 (Neon Glow)
           const plasma = Math.sin(cx * 0.015 + t * speedMult * 1.5) + Math.sin(cy * 0.035 + t * speedMult * 1.2) + Math.sin((cx + cy) * 0.012 + t * speedMult * 1.8);
-          const hue = (plasma * 60 + 280) % 360;
+          const hue = (plasma * 60 + t * speedMult * 40 + 280) % 360;
           return hslToRgb(hue, 1.0, 0.5);
         }
 
@@ -1028,6 +1078,16 @@ HTML_PAGE = """<!DOCTYPE html>
         modeTag.innerText = modeEl.options[modeEl.selectedIndex].text;
       }
 
+      // Mode 4 Stars: randomly turn off 2 to 3 keys for 0.5s when animation speed is 1
+      if (modeVal === 4 && now >= nextStarChangeTime) {
+        const count = 2 + Math.floor(Math.random() * 2); // 2 or 3 keys
+        dimStarKeys = [];
+        for (let c = 0; c < count; c++) {
+          dimStarKeys.push(Math.floor(Math.random() * KB_KEYS.length));
+        }
+        nextStarChangeTime = now + (500 / speedMult);
+      }
+
       // Decay key flashes
       for (let i = 0; i < keyFlashes.length; i++) {
         if (keyFlashes[i] > 0.001) keyFlashes[i] *= 0.94;
@@ -1040,14 +1100,22 @@ HTML_PAGE = """<!DOCTYPE html>
         lastAutoTapTime = now;
       }
 
-      // Simulated ripple for Ripple Trigger mode
-      if (modeVal === 13 && (now - lastAutoRippleTime > 2600)) {
-        activeRipples.push({ x: 475, y: 145, t: now, color: baseRgb });
+      // Simulated ripple for Ripple Trigger / Dual Ripple / Ripple Spread modes
+      if ((modeVal === 13 || modeVal === 14 || modeVal === 15) && (now - lastAutoRippleTime > 2400)) {
+        const randKey = KB_KEYS[Math.floor(Math.random() * KB_KEYS.length)];
+        activeRipples.push({
+          x: randKey[1] + randKey[3] / 2,
+          y: randKey[2] + randKey[4] / 2,
+          row: getKeyRow(randKey[2]),
+          t: now,
+          color: baseRgb,
+          mode: modeVal
+        });
         lastAutoRippleTime = now;
       }
 
       // Filter active ripples
-      activeRipples = activeRipples.filter(r => (now - r.t) < 900);
+      activeRipples = activeRipples.filter(r => (now - r.t) < 1100);
 
       // Clear main canvas
       kbCtx.clearRect(0, 0, kbCanvas.width, kbCanvas.height);
@@ -1083,14 +1151,59 @@ HTML_PAGE = """<!DOCTYPE html>
             for (let j = 0; j < activeRipples.length; j++) {
               const rip = activeRipples[j];
               const age = (now - rip.t) / 1000;
-              const ripDist = Math.hypot(cx - rip.x, cy - rip.y);
-              const waveFront = age * 480;
-              const diff = Math.abs(ripDist - waveFront);
-              if (diff < 45) {
-                const rippleAmp = (1 - age / 0.9) * (1 - diff / 45);
-                r = Math.min(255, r + Math.round(rip.color[0] * rippleAmp));
-                g = Math.min(255, g + Math.round(rip.color[1] * rippleAmp));
-                b = Math.min(255, b + Math.round(rip.color[2] * rippleAmp));
+              const ripMode = rip.mode || modeVal;
+
+              if (ripMode === 13) {
+                // Ripple Trigger: spreads left and right on the same row ONLY
+                const kRow = getKeyRow(k[2]);
+                if (kRow === rip.row) {
+                  const dx = Math.abs(cx - rip.x);
+                  const waveFront = age * 540;
+                  const diff = Math.abs(dx - waveFront);
+                  if (diff < 36) {
+                    const amp = Math.max(0, (1 - age / 0.85) * (1 - diff / 36));
+                    r = Math.min(255, r + Math.round(rip.color[0] * amp));
+                    g = Math.min(255, g + Math.round(rip.color[1] * amp));
+                    b = Math.min(255, b + Math.round(rip.color[2] * amp));
+                  }
+                }
+              } else if (ripMode === 14) {
+                // Dual Ripple: colorful keys separate towards left and right
+                const dx = Math.abs(cx - rip.x);
+                const waveFront = age * 500;
+                const diff = Math.abs(dx - waveFront);
+                if (diff < 42) {
+                  const amp = Math.max(0, (1 - age / 0.95) * (1 - diff / 42));
+                  const hue = (dx * 0.9 + age * 180 + k[2] * 0.3) % 360;
+                  const c = hslToRgb(hue, 1.0, 0.5);
+                  r = Math.min(255, r + Math.round(c[0] * amp));
+                  g = Math.min(255, g + Math.round(c[1] * amp));
+                  b = Math.min(255, b + Math.round(c[2] * amp));
+                }
+              } else if (ripMode === 15) {
+                // Ripple Spread: colorful keys separate outward circles like a ripple, width 3 keys
+                const dist = Math.hypot(cx - rip.x, cy - rip.y);
+                const waveFront = age * 420;
+                const diff = Math.abs(dist - waveFront);
+                if (diff < 48) { // 3 keys width
+                  const amp = Math.max(0, (1 - age / 1.1) * (1 - diff / 48));
+                  const hue = (dist * 1.2 - age * 140 + Math.atan2(cy - rip.y, cx - rip.x) * 180 / Math.PI) % 360;
+                  const c = hslToRgb(hue, 1.0, 0.5);
+                  r = Math.min(255, r + Math.round(c[0] * amp));
+                  g = Math.min(255, g + Math.round(c[1] * amp));
+                  b = Math.min(255, b + Math.round(c[2] * amp));
+                }
+              } else {
+                // Generic ripple on click
+                const ripDist = Math.hypot(cx - rip.x, cy - rip.y);
+                const waveFront = age * 480;
+                const diff = Math.abs(ripDist - waveFront);
+                if (diff < 45) {
+                  const rippleAmp = Math.max(0, (1 - age / 0.9) * (1 - diff / 45));
+                  r = Math.min(255, r + Math.round(rip.color[0] * rippleAmp));
+                  g = Math.min(255, g + Math.round(rip.color[1] * rippleAmp));
+                  b = Math.min(255, b + Math.round(rip.color[2] * rippleAmp));
+                }
               }
             }
 
@@ -1237,12 +1350,16 @@ HTML_PAGE = """<!DOCTYPE html>
         const idx = findKeyAt(pos);
         const hex = (document.getElementById('light-color') ? document.getElementById('light-color').value : '#00e5ff');
         const color = hexToRgb(hex);
+        const modeEl = document.getElementById('light-mode');
+        const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];
-          activeRipples.push({ x: kx + kw / 2, y: ky + kh / 2, t: performance.now(), color });
+          const kRow = getKeyRow(ky);
+          activeRipples.push({ x: kx + kw / 2, y: ky + kh / 2, row: kRow, t: performance.now(), color, mode: modeVal });
         } else {
-          activeRipples.push({ x: pos.x, y: pos.y, t: performance.now(), color });
+          const kRow = getKeyRow(pos.y);
+          activeRipples.push({ x: pos.x, y: pos.y, row: kRow, t: performance.now(), color, mode: modeVal });
         }
       });
 
@@ -1267,6 +1384,9 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
             html = html.replace("__CONFIG_JSON__", json.dumps(load_config()))
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
 
@@ -1324,7 +1444,9 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                 mime = "image/png" if ext == "png" else ("image/gif" if ext == "gif" else "application/octet-stream")
                 self.send_response(200)
                 self.send_header("Content-Type", mime)
-                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+                self.send_header("Pragma", "no-cache")
+                self.send_header("Expires", "0")
                 self.end_headers()
                 with open(file_path, "rb") as f:
                     self.wfile.write(f.read())

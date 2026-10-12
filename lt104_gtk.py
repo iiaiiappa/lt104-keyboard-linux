@@ -41,6 +41,14 @@ def draw_round_rect(cr, x, y, w, h, r):
 def hsl_to_rgb(h, s, l):
     return colorsys.hls_to_rgb((h % 360.0) / 360.0, l, s)
 
+def get_key_row(ky):
+    if ky < 45: return 0
+    if ky < 90: return 1
+    if ky < 130: return 2
+    if ky < 172: return 3
+    if ky < 213: return 4
+    return 5
+
 
 # --------------------------------------------------------------------------- #
 #  Helpers                                                                      #
@@ -164,6 +172,11 @@ class LT104Window(Adw.ApplicationWindow):
         self._lcd_surface = None
         self._last_lcd_mtime = 0.0
         self._hud_running = False
+        init_cfg = load_config()
+        self._remembered_brightness = int(init_cfg.get("remembered_brightness", init_cfg.get("brightness", 4))) or 4
+        self._previous_mode_id = int(init_cfg.get("mode", 1))
+        self._dim_star_keys = []
+        self._next_star_change_time = 0.0
         self._load_lcd_surface()
 
     def _initial_refresh(self):
@@ -181,7 +194,12 @@ class LT104Window(Adw.ApplicationWindow):
 
         cfg = load_config()
 
-        initial_mode_idx = max(0, min(len(LIGHT_MODES)-1, int(cfg.get("mode", 1)) - 1))
+        current_mode_id = int(cfg.get("mode", 1))
+        initial_mode_idx = 0
+        for idx, m in enumerate(LIGHT_MODES):
+            if m["id"] == current_mode_id:
+                initial_mode_idx = idx
+                break
 
         # Keyboard visualizer preview container
         preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -590,8 +608,20 @@ class LT104Window(Adw.ApplicationWindow):
                 self._bright_row.set_visible(not is_off)
             if hasattr(self, '_speed_row'):
                 self._speed_row.set_visible(not is_off and not is_static)
+
+            current_bright = int(self._brightness_scale.get_value())
             if is_off:
+                # Going to Backlight Off: remember previous brightness
+                if self._previous_mode_id != 20 and current_bright > 0:
+                    self._remembered_brightness = current_bright
+                    save_config({"remembered_brightness": self._remembered_brightness})
                 self._brightness_scale.set_value(0)
+            elif self._previous_mode_id == 20:
+                # Coming from Backlight Off to other mode: restore remembered brightness
+                restore_val = self._remembered_brightness if self._remembered_brightness > 0 else 4
+                self._brightness_scale.set_value(restore_val)
+
+            self._previous_mode_id = mode_id
             if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
                 self._apply_light_silently()
 
@@ -610,6 +640,12 @@ class LT104Window(Adw.ApplicationWindow):
             self._apply_light_silently()
 
     def _on_brightness_changed(self, scale):
+        mode_idx = self._mode_row.get_selected()
+        mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
+        val = int(scale.get_value())
+        if mode_id != 20 and val > 0:
+            self._remembered_brightness = val
+            save_config({"remembered_brightness": val})
         if hasattr(self, '_preview_area') and self._preview_area:
             self._preview_area.queue_draw()
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
@@ -689,18 +725,26 @@ class LT104Window(Adw.ApplicationWindow):
         if idx >= 0:
             self._key_flashes[idx] = 1.0
             k = KB_KEYS[idx]
+            mode_idx = self._mode_row.get_selected()
+            mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
             self._active_ripples.append({
                 "x": k[1] + k[3] / 2.0,
                 "y": k[2] + k[4] / 2.0,
+                "row": get_key_row(k[2]),
                 "t": now,
-                "color": base_rgb
+                "color": base_rgb,
+                "mode": mode_id
             })
         else:
+            mode_idx = self._mode_row.get_selected()
+            mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
             self._active_ripples.append({
                 "x": canvas_x,
                 "y": canvas_y,
+                "row": get_key_row(canvas_y),
                 "t": now,
-                "color": base_rgb
+                "color": base_rgb,
+                "mode": mode_id
             })
         self._preview_area.queue_draw()
 
@@ -744,12 +788,13 @@ class LT104Window(Adw.ApplicationWindow):
             return (base_rgb[0] * f, base_rgb[1] * f, base_rgb[2] * f)
 
         elif mode == 4:  # 繁星点点 (Stars)
-            seed = (idx * 137.5) % 6.283
-            val = max(0.0, (math.sin(t * speed_mult * 2.2 + seed) - 0.25) / 0.75)
-            return (base_rgb[0] * val, base_rgb[1] * val, base_rgb[2] * val)
+            # All keys lit with static color, randomly turn off 2-3 keys
+            if idx in getattr(self, '_dim_star_keys', []):
+                return (0.0, 0.0, 0.0)
+            return base_rgb
 
         elif mode == 5:  # 漫天飞雪 (Snow)
-            row = round((k[2] - 16) / 30)
+            row = get_key_row(k[2])
             phase = (t * speed_mult * 3.5 - row * 0.9 + (idx % 5) * 0.4) % 6.283
             val = max(0.0, math.sin(phase)) ** 3
             return (base_rgb[0] * val, base_rgb[1] * val, base_rgb[2] * val)
@@ -772,10 +817,14 @@ class LT104Window(Adw.ApplicationWindow):
             return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 10:  # 多彩纵横 (Cross Pattern)
-            x_wave = math.sin(cx * 0.03 - t * speed_mult * 3.0)
-            y_wave = math.cos(cy * 0.05 + t * speed_mult * 2.5)
-            val = max(0.15, (x_wave + y_wave) * 0.5)
-            hue = (cx * 0.3 + cy * 0.5 + t * speed_mult * 60.0) % 360.0
+            col_beam = (math.sin(t * speed_mult * 2.5) * 0.5 + 0.5) * 920.0 + 20.0
+            row_beam = (math.cos(t * speed_mult * 2.2) * 0.5 + 0.5) * 250.0 + 20.0
+            dist_x = abs(cx - col_beam)
+            dist_y = abs(cy - row_beam)
+            val_x = math.exp(-dist_x * dist_x / 2200.0)
+            val_y = math.exp(-dist_y * dist_y / 1600.0)
+            val = max(0.08, max(val_x, val_y))
+            hue = (cx * 0.3 + cy * 0.6 + t * speed_mult * 60.0) % 360.0
             c = hsl_to_rgb(hue, 1.0, 0.5)
             return (c[0] * val, c[1] * val, c[2] * val)
 
@@ -788,34 +837,24 @@ class LT104Window(Adw.ApplicationWindow):
             hue = (angle * (180.0 / math.pi) + t * speed_mult * 90.0) % 360.0
             return hsl_to_rgb(hue, 1.0, 0.5)
 
-        elif mode == 13:  # 一触即发 (Ripple Trigger)
-            dist = math.hypot(cx - 475.0, cy - 145.0)
-            ripple = math.sin(dist * 0.08 - t * speed_mult * 4.0)
-            val = max(0.1, max(0.0, ripple) ** 2)
-            return (base_rgb[0] * val, base_rgb[1] * val, base_rgb[2] * val)
-
-        elif mode == 14:  # 一石二鸟 (Dual Ripple)
-            d1 = math.hypot(cx - 245.0, cy - 145.0)
-            d2 = math.hypot(cx - 705.0, cy - 145.0)
-            r1 = math.sin(d1 * 0.07 - t * speed_mult * 4.0)
-            r2 = math.sin(d2 * 0.07 - t * speed_mult * 4.0 + math.pi)
-            hue = (d1 * 0.5 + d2 * 0.5 + t * speed_mult * 50.0) % 360.0
-            val = max(0.1, (max(0.0, r1) + max(0.0, r2)) * 0.5)
-            c = hsl_to_rgb(hue, 1.0, 0.5)
-            return (c[0] * val, c[1] * val, c[2] * val)
-
-        elif mode == 15:  # 涟漪扩散 (Ripple Spread)
-            dist = math.hypot(cx - 475.0, cy - 145.0)
-            hue = (dist * 1.2 - t * speed_mult * 90.0) % 360.0
-            return hsl_to_rgb(hue, 1.0, 0.5)
+        elif mode in (13, 14, 15):  # Ripple modes: driven by active ripples
+            return (0.0, 0.0, 0.0)
 
         elif mode == 16:  # 川流不息 (Infinite Stream)
-            row = round((k[2] - 16) / 41)
-            dir_val = 1 if row % 2 == 0 else -1
-            hue = (cx * 0.4 * dir_val - t * speed_mult * 120.0 + row * 40.0) % 360.0
-            val = 0.5 + 0.5 * math.sin(cx * 0.04 * dir_val - t * speed_mult * 3.5)
-            c = hsl_to_rgb(hue, 1.0, 0.5)
-            return (c[0] * val, c[1] * val, c[2] * val)
+            row_dur = 0.55 / speed_mult
+            total_cycle = 6.0 * row_dur
+            cycle_time = t % total_cycle
+            active_row = int(cycle_time / row_dur)
+            row_prog = (cycle_time % row_dur) / row_dur
+            swipe_x = row_prog * 960.0
+            k_row = get_key_row(k[2])
+            if k_row == active_row:
+                dist_x = abs(cx - swipe_x)
+                val = max(0.04, math.exp(-dist_x * dist_x / 2500.0))
+                hue = (swipe_x * 0.4 + active_row * 50.0 + t * 90.0) % 360.0
+                c = hsl_to_rgb(hue, 1.0, 0.5)
+                return (c[0] * val, c[1] * val, c[2] * val)
+            return (0.0, 0.0, 0.0)
 
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
             wave = math.sin(cx * 0.02 + t * speed_mult * 2.5) * math.cos(cy * 0.04 + t * speed_mult * 2.0)
@@ -833,26 +872,25 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 19:  # 来回穿梭 (Shuttle)
-            beam_x = (math.sin(t * speed_mult * 2.2) * 0.5 + 0.5) * 880.0 + 30.0
-            dist = abs(cx - beam_x)
-            val = max(0.08, math.exp(-dist * dist / 5000.0))
-            hue = (t * speed_mult * 60.0) % 360.0
+            shuttle_cycle = 2.2 / speed_mult
+            p = (t % shuttle_cycle) / shuttle_cycle
+            pos = (p * 2.0) if (p < 0.5) else (2.0 - p * 2.0)
+            beam_x = 25.0 + pos * 900.0
+            dist_x = abs(cx - beam_x)
+            val = max(0.04, math.exp(-dist_x * dist_x / 1600.0))
+            hue = (beam_x * 0.4 + t * speed_mult * 90.0) % 360.0
             c = hsl_to_rgb(hue, 1.0, 0.5)
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 21:  # 万众一心 (Solid Center)
-            dist = math.hypot(cx - 475.0, cy - 145.0)
-            pulse = math.sin(dist * 0.04 + t * speed_mult * 3.0)
-            val = max(0.15, pulse * 0.5 + 0.5)
-            hue = (dist * 0.5 + t * speed_mult * 30.0) % 360.0
-            c = hsl_to_rgb(hue, 1.0, 0.5)
-            return (c[0] * val, c[1] * val, c[2] * val)
+            hue = (cx * 0.38 + cy * 0.25) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 22:  # 流光溢彩 (Neon Glow)
             plasma = (math.sin(cx * 0.015 + t * speed_mult * 1.5) +
                       math.sin(cy * 0.035 + t * speed_mult * 1.2) +
                       math.sin((cx + cy) * 0.012 + t * speed_mult * 1.8))
-            hue = (plasma * 60.0 + 280.0) % 360.0
+            hue = (plasma * 60.0 + t * speed_mult * 40.0 + 280.0) % 360.0
             return hsl_to_rgb(hue, 1.0, 0.5)
 
         return base_rgb
@@ -879,6 +917,12 @@ class LT104Window(Adw.ApplicationWindow):
         speed_val = int(self._speed_scale.get_value())
         speed_mult = [0.4, 0.7, 1.0, 1.6, 2.4][min(4, max(0, speed_val))]
 
+        # Mode 4 Stars: randomly turn off 2 to 3 keys for 0.5s when animation speed is 1
+        if mode_id == 4 and now >= getattr(self, '_next_star_change_time', 0.0):
+            count = random.randint(2, 3)
+            self._dim_star_keys = [random.randint(0, len(KB_KEYS) - 1) for _ in range(count)]
+            self._next_star_change_time = now + (0.5 / speed_mult)
+
         # Decay key flashes
         for i in range(len(self._key_flashes)):
             if self._key_flashes[i] > 0.001:
@@ -890,15 +934,21 @@ class LT104Window(Adw.ApplicationWindow):
             self._key_flashes[rand_idx] = 1.0
             self._last_auto_tap_time = now
 
-        # Simulated ripple for Ripple Trigger mode
-        if mode_id == 13 and (now - self._last_auto_ripple_time > 2.6):
+        # Simulated ripple for Ripple Trigger / Dual Ripple / Ripple Spread modes
+        if mode_id in (13, 14, 15) and (now - self._last_auto_ripple_time > 2.4):
+            rand_key = random.choice(KB_KEYS)
             self._active_ripples.append({
-                "x": 475.0, "y": 145.0, "t": now, "color": base_rgb
+                "x": rand_key[1] + rand_key[3] / 2.0,
+                "y": rand_key[2] + rand_key[4] / 2.0,
+                "row": get_key_row(rand_key[2]),
+                "t": now,
+                "color": base_rgb,
+                "mode": mode_id
             })
             self._last_auto_ripple_time = now
 
         # Filter active ripples
-        self._active_ripples = [r for r in self._active_ripples if (now - r["t"]) < 0.9]
+        self._active_ripples = [r for r in self._active_ripples if (now - r["t"]) < 1.1]
 
         cr.save()
         cr.translate(offset_x, offset_y)
@@ -944,14 +994,53 @@ class LT104Window(Adw.ApplicationWindow):
 
                     for rip in self._active_ripples:
                         age = (now - rip["t"])
-                        rip_dist = math.hypot(cx - rip["x"], cy - rip["y"])
-                        wave_front = age * 480.0
-                        diff = abs(rip_dist - wave_front)
-                        if diff < 45.0:
-                            amp = (1.0 - age / 0.9) * (1.0 - diff / 45.0)
-                            r = min(1.0, r + rip["color"][0] * amp)
-                            g = min(1.0, g + rip["color"][1] * amp)
-                            b = min(1.0, b + rip["color"][2] * amp)
+                        rip_mode = rip.get("mode", mode_id)
+
+                        if rip_mode == 13:
+                            # Ripple Trigger: spreads left and right on same row ONLY
+                            k_row = get_key_row(k[2])
+                            if k_row == rip.get("row", -1):
+                                dx = abs(cx - rip["x"])
+                                wave_front = age * 540.0
+                                diff = abs(dx - wave_front)
+                                if diff < 36.0:
+                                    amp = max(0.0, (1.0 - age / 0.85) * (1.0 - diff / 36.0))
+                                    r = min(1.0, r + rip["color"][0] * amp)
+                                    g = min(1.0, g + rip["color"][1] * amp)
+                                    b = min(1.0, b + rip["color"][2] * amp)
+                        elif rip_mode == 14:
+                            # Dual Ripple: colorful keys separate towards left and right
+                            dx = abs(cx - rip["x"])
+                            wave_front = age * 500.0
+                            diff = abs(dx - wave_front)
+                            if diff < 42.0:
+                                amp = max(0.0, (1.0 - age / 0.95) * (1.0 - diff / 42.0))
+                                hue = (dx * 0.9 + age * 180.0 + k[2] * 0.3) % 360.0
+                                c = hsl_to_rgb(hue, 1.0, 0.5)
+                                r = min(1.0, r + c[0] * amp)
+                                g = min(1.0, g + c[1] * amp)
+                                b = min(1.0, b + c[2] * amp)
+                        elif rip_mode == 15:
+                            # Ripple Spread: concentric rings width ~3 keys
+                            dist = math.hypot(cx - rip["x"], cy - rip["y"])
+                            wave_front = age * 420.0
+                            diff = abs(dist - wave_front)
+                            if diff < 48.0:
+                                amp = max(0.0, (1.0 - age / 1.1) * (1.0 - diff / 48.0))
+                                hue = (dist * 1.2 - age * 140.0 + math.atan2(cy - rip["y"], cx - rip["x"]) * 180.0 / math.pi) % 360.0
+                                c = hsl_to_rgb(hue, 1.0, 0.5)
+                                r = min(1.0, r + c[0] * amp)
+                                g = min(1.0, g + c[1] * amp)
+                                b = min(1.0, b + c[2] * amp)
+                        else:
+                            rip_dist = math.hypot(cx - rip["x"], cy - rip["y"])
+                            wave_front = age * 480.0
+                            diff = abs(rip_dist - wave_front)
+                            if diff < 45.0:
+                                amp = max(0.0, (1.0 - age / 0.9) * (1.0 - diff / 45.0))
+                                r = min(1.0, r + rip["color"][0] * amp)
+                                g = min(1.0, g + rip["color"][1] * amp)
+                                b = min(1.0, b + rip["color"][2] * amp)
 
                     r = max(0.0, min(1.0, r * bright_mult))
                     g = max(0.0, min(1.0, g * bright_mult))
