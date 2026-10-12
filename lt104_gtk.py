@@ -722,14 +722,14 @@ class LT104Window(Adw.ApplicationWindow):
         rgba = self._color_btn.get_rgba()
         base_rgb = (rgba.red, rgba.green, rgba.blue)
 
-        if mode_id == 21:
-            return  # Solid Center does not react to keypresses
+        mode_idx = self._mode_row.get_selected()
+        mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
+        if mode_id in (19, 21):
+            return  # Shuttle and Solid Center do not react to keypresses
 
         if idx >= 0:
             self._key_flashes[idx] = 1.0
             k = KB_KEYS[idx]
-            mode_idx = self._mode_row.get_selected()
-            mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
             self._active_ripples.append({
                 "x": k[1] + k[3] / 2.0,
                 "y": k[2] + k[4] / 2.0,
@@ -875,15 +875,9 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 19:  # 来回穿梭 (Shuttle)
-            shuttle_cycle = 2.2 / speed_mult
-            p = (t % shuttle_cycle) / shuttle_cycle
-            pos = (p * 2.0) if (p < 0.5) else (2.0 - p * 2.0)
-            beam_x = 25.0 + pos * 900.0
-            dist_x = abs(cx - beam_x)
-            val = max(0.04, math.exp(-dist_x * dist_x / 1600.0))
-            hue = (beam_x * 0.4 + t * speed_mult * 90.0) % 360.0
-            c = hsl_to_rgb(hue, 1.0, 0.5)
-            return (c[0] * val, c[1] * val, c[2] * val)
+            # Slow flowing harmonic wave across the whole board (does not react to keypresses)
+            hue = (cx * 0.45 - t * speed_mult * 35.0 + math.sin(cy * 0.04) * 40.0 + 360.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 21:  # 万众一心 (Solid Center)
             # Slow flowing rainbow hues across the board (does not react to keypresses)
@@ -980,7 +974,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id != 21:
+                    if mode_id not in (19, 21):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)
