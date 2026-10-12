@@ -241,12 +241,27 @@ class LT104Controller:
             pkt[3]  = 0x00            # B
             pkt[4]  = 0x00
             pkt[8]  = 0x00            # colortype = 0 (mono / off)
-            pkt[9]  = 0x05            # speed
-            pkt[10] = 0x05            # direction
-            pkt[11] = 0x00            # brightness = 0
+            pkt[9]  = 0x00            # brightness = 0 (off)
+            pkt[10] = 0x05            # speed
+            pkt[11] = 0x00            # direction
             pkt[14] = 0xAA
             pkt[15] = 0x55
         else:
+            # Hardware expects brightness levels 1 to 5 (maps 0-4 slider or direct 1-5 to 1-5)
+            b_val = int(brightness)
+            if b_val < 1:
+                b_val = 1
+            elif b_val > 5:
+                b_val = 5
+
+            s_val = int(speed)
+            if s_val < 1:
+                s_val = 1
+            elif s_val > 5:
+                s_val = 5
+
+            d_val = int(direction) & 0x03
+
             pkt[0]  = int(mode)       & 0xFF
             pkt[1]  = int(r)          & 0xFF
             pkt[2]  = int(g)          & 0xFF
@@ -254,9 +269,9 @@ class LT104Controller:
             pkt[4]  = 0x00
             # colortype: 0 = custom single color, 1 = multi-color spectrum cycle
             pkt[8]  = 0x00 if int(mode) in SINGLE_COLOR_MODES else 0x01
-            pkt[9]  = int(speed)      & 0xFF
-            pkt[10] = int(direction)  & 0xFF
-            pkt[11] = int(brightness) & 0xFF
+            pkt[9]  = b_val           # byte 9 = Hardware Brightness (1 to 5)
+            pkt[10] = s_val           # byte 10 = Hardware Animation Speed (1 to 5)
+            pkt[11] = d_val           # byte 11 = Hardware Direction (0 to 3)
             pkt[14] = 0xAA
             pkt[15] = 0x55
         self._set_feature(pkt)
