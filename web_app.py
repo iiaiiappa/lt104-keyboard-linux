@@ -1022,18 +1022,18 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
-          // Background all off, 1-key width 45° slashes.
-          // Slashes emerge from the 50% middle of keyboard, spaced 3 keys apart:
+          // Background all off, sharp 1-key width 45° slashes.
+          // Slashes emerge from the 50% middle of keyboard:
           // Backslash sweeps to the right without bouncing back.
           // Forwardslash sweeps to the left without bouncing back.
-          // No cross in the middle of keyboard.
+          // No cross in the middle of keyboard, 3 keys apart between slashes.
           const midX = 479.0;
           const midY = 141.5;
           const waveSpeed = 260.0 * speedMult;
-          const slashSpacing = 123.0; // Exactly 3 keys apart (3 * 41px pitch)
+          const slashSpacing = 164.0; // Exactly 3 unlit keys apart between slashes (4 * 41px pitch)
           const spawnInterval = slashSpacing / waveSpeed; // Delay between alternating slashes
           const travelDuration = 550.0 / waveSpeed; // Distance to edge
-          const beamWidth = 20.0; // 1 key width
+          const beamWidth = 14.0; // Crisp single key width (no bleed into adjacent keys)
 
           const spawnB = midX - midY;
           const spawnF = midX + midY;
@@ -1054,7 +1054,7 @@ HTML_PAGE = """<!DOCTYPE html>
               const coordB = cx - cy;
               const waveCoord = spawnB + distTravelled;
               const dist = Math.abs(coordB - waveCoord);
-              if (dist < beamWidth * 2.2) {
+              if (dist < beamWidth * 1.8) {
                 const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
                 if (val > maxVal) {
                   maxVal = val;
@@ -1067,7 +1067,7 @@ HTML_PAGE = """<!DOCTYPE html>
               const coordF = cx + cy;
               const waveCoord = spawnF - distTravelled;
               const dist = Math.abs(coordF - waveCoord);
-              if (dist < beamWidth * 2.2) {
+              if (dist < beamWidth * 1.8) {
                 const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
                 if (val > maxVal) {
                   maxVal = val;
@@ -1084,10 +1084,10 @@ HTML_PAGE = """<!DOCTYPE html>
 
         case 18: { // 斜风细雨 (Gentle Rain)
           // Multiple 45° backslashes (cx - cy) sweeping from left to right.
-          // Each backslash is 3 keys apart from the next/previous backslash, background keys off.
+          // Exactly 3 unlit keys apart from the next/previous backslash, background keys off.
           const waveSpeed = 240.0 * speedMult;
-          const slashSpacing = 123.0; // Exactly 3 keys apart (3 * 41px pitch)
-          const beamWidth = 20.0; // 1 key width
+          const slashSpacing = 164.0; // Exactly 3 unlit keys apart (4 * 41px pitch)
+          const beamWidth = 14.0; // Crisp single key width (no bleed into adjacent keys)
 
           const coordB = cx - cy;
           const globalPhase = t * waveSpeed;
@@ -1095,7 +1095,7 @@ HTML_PAGE = """<!DOCTYPE html>
           if (offset < 0) offset += slashSpacing;
           const dist = Math.min(offset, slashSpacing - offset);
 
-          if (dist > beamWidth * 2.2) return [0, 0, 0];
+          if (dist > beamWidth * 1.8) return [0, 0, 0];
           const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
           if (val < 0.02) return [0, 0, 0];
 
