@@ -41,6 +41,13 @@ LIGHT_MODES = [
     {"id": 22, "name": "流光溢彩 (Neon Glow)"},
 ]
 
+# Lighting modes that do NOT support a single custom color (pure multi-color, rainbow, or off)
+MULTI_COLOR_MODES = (6, 8, 20, 21, 22)
+
+def supports_single_color(mode):
+    """Check if the given lighting mode supports custom single color."""
+    return int(mode) not in MULTI_COLOR_MODES
+
 def find_lt104_usb():
     """Find the raw USB devfs path for 0c45:8009 (SONiX LT104)."""
     for dev_path in glob.glob('/sys/bus/usb/devices/*'):
@@ -220,7 +227,8 @@ class LT104Controller:
             pkt[2]  = int(g)          & 0xFF
             pkt[3]  = int(b)          & 0xFF
             pkt[4]  = 0x00
-            pkt[8]  = 0x01            # colortype: 1=spectrum/custom
+            # colortype: 0 = custom single color, 1 = multi-color spectrum cycle
+            pkt[8]  = 0x01 if int(mode) in (6, 8, 21, 22) else 0x00
             pkt[9]  = int(speed)      & 0xFF
             pkt[10] = int(direction)  & 0xFF
             pkt[11] = int(brightness) & 0xFF

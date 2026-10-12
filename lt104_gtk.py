@@ -17,7 +17,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf
 
-from lt104_core import LT104Controller, LIGHT_MODES, find_lt104_usb, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, MULTI_COLOR_MODES, find_lt104_usb, find_lt104_lcd_hidraw
 from config import load_config, save_config
 
 APP_ID = "com.theforwardway.lt104"
@@ -136,9 +136,9 @@ class LT104Window(Adw.ApplicationWindow):
         group.add(self._mode_row)
 
         # Colour button row
-        color_row = Adw.ActionRow()
-        color_row.set_title("自订颜色")
-        color_row.set_subtitle("点击色块选择")
+        self._color_row = Adw.ActionRow()
+        self._color_row.set_title("自订颜色")
+        self._color_row.set_subtitle("点击色块选择")
         self._color_btn = Gtk.ColorDialogButton()
         self._color_btn.set_valign(Gtk.Align.CENTER)
         dialog = Gtk.ColorDialog()
@@ -149,12 +149,12 @@ class LT104Window(Adw.ApplicationWindow):
         rgba = Gdk.RGBA()
         rgba.parse(cfg.get("color", "#00e5ff"))
         self._color_btn.set_rgba(rgba)
-        color_row.add_suffix(self._color_btn)
-        group.add(color_row)
+        self._color_row.add_suffix(self._color_btn)
+        group.add(self._color_row)
 
         # Colour presets
-        presets_row = Adw.ActionRow()
-        presets_row.set_title("快速颜色")
+        self._presets_row = Adw.ActionRow()
+        self._presets_row.set_title("快速颜色")
         preset_box = Gtk.Box(spacing=8)
         preset_box.set_valign(Gtk.Align.CENTER)
         preset_colors = [
@@ -178,8 +178,8 @@ class LT104Window(Adw.ApplicationWindow):
         if display:
             Gtk.StyleContext.add_provider_for_display(display, css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-        presets_row.add_suffix(preset_box)
-        group.add(presets_row)
+        self._presets_row.add_suffix(preset_box)
+        group.add(self._presets_row)
 
         # Brightness
         bright_row = Adw.ActionRow()
@@ -217,6 +217,7 @@ class LT104Window(Adw.ApplicationWindow):
         apply_btn.connect("clicked", self._on_apply_light)
         group.add(apply_btn)
 
+        self._on_mode_changed(self._mode_row, None)
         return group
 
     def _build_clock_card(self):
@@ -408,13 +409,23 @@ class LT104Window(Adw.ApplicationWindow):
 
     def _on_mode_changed(self, row, param):
         mode_idx = self._mode_row.get_selected()
-        if mode_idx < len(LIGHT_MODES) and LIGHT_MODES[mode_idx]["id"] == 20:
-            self._brightness_scale.set_value(0)
+        if mode_idx < len(LIGHT_MODES):
+            mode_id = LIGHT_MODES[mode_idx]["id"]
+            is_single = mode_id not in MULTI_COLOR_MODES
+            if hasattr(self, '_color_row'):
+                self._color_row.set_visible(is_single)
+            if hasattr(self, '_presets_row'):
+                self._presets_row.set_visible(is_single)
+            if mode_id == 20:
+                self._brightness_scale.set_value(0)
 
     def _on_preset_clicked(self, btn, hex_c):
         rgba = Gdk.RGBA()
         rgba.parse(hex_c)
         self._color_btn.set_rgba(rgba)
+        mode_idx = self._mode_row.get_selected()
+        if mode_idx < len(LIGHT_MODES) and LIGHT_MODES[mode_idx]["id"] in MULTI_COLOR_MODES:
+            self._mode_row.set_selected(0)
 
     def _on_apply_light(self, btn):
         btn.set_sensitive(False)

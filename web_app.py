@@ -112,12 +112,12 @@ HTML_PAGE = """<!DOCTYPE html>
       <div class="grid">
         <div class="form-group">
           <label id="txt-light-mode">Lighting Mode</label>
-          <select id="light-mode" onchange="applyLight()">
+          <select id="light-mode" onchange="onModeChange()">
             __LIGHT_OPTIONS__
           </select>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="group-custom-color">
           <label id="txt-custom-color">Custom Color</label>
           <div class="color-picker-wrap">
             <input type="color" id="light-color" value="#00e5ff" onchange="applyLight()">
@@ -297,7 +297,34 @@ HTML_PAGE = """<!DOCTYPE html>
       setTimeout(() => toast.style.opacity = '0', 2500);
     }
 
+    const NO_COLOR_MODES = [6, 8, 20, 21, 22];
+
+    function updateColorVisibility(mode) {
+      const modeVal = parseInt(mode !== undefined ? mode : document.getElementById('light-mode').value) || 1;
+      const colorGroup = document.getElementById('group-custom-color');
+      if (colorGroup) {
+        if (NO_COLOR_MODES.includes(modeVal)) {
+          colorGroup.style.display = 'none';
+        } else {
+          colorGroup.style.display = 'block';
+        }
+      }
+    }
+
+    function onModeChange() {
+      const mode = document.getElementById('light-mode').value;
+      updateColorVisibility(mode);
+      applyLight();
+    }
+
     function setColor(hex) {
+      let mode = parseInt(document.getElementById('light-mode').value) || 1;
+      // If currently in a mode that doesn't support single color, switch to Static (Mode 1)
+      if (NO_COLOR_MODES.includes(mode)) {
+        mode = 1;
+        document.getElementById('light-mode').value = "1";
+        updateColorVisibility(1);
+      }
       document.getElementById('light-color').value = hex;
       document.getElementById('color-hex').innerText = hex;
       applyLight();
@@ -308,7 +335,7 @@ HTML_PAGE = """<!DOCTYPE html>
     }
 
     async function applyLight() {
-      const mode = document.getElementById('light-mode').value;
+      const mode = parseInt(document.getElementById('light-mode').value) || 1;
       const hex = document.getElementById('light-color').value;
       document.getElementById('color-hex').innerText = hex;
       const r = parseInt(hex.slice(1, 3), 16);
@@ -317,11 +344,12 @@ HTML_PAGE = """<!DOCTYPE html>
       let brightness = parseInt(document.getElementById('light-brightness').value);
       const speed = parseInt(document.getElementById('light-speed').value);
 
-      if (parseInt(mode) === 20) {
+      if (mode === 20) {
         brightness = 0;
         document.getElementById('light-brightness').value = 0;
         updateRange('bright-val', 0, ['0%', '25%', '50%', '75%', '100%']);
       }
+      updateColorVisibility(mode);
 
       try {
         localStorage.setItem('lt104_light_mode', mode);
@@ -534,6 +562,7 @@ HTML_PAGE = """<!DOCTYPE html>
       // 1. Restore persistent user settings
       const savedMode = localStorage.getItem('lt104_light_mode') || SERVER_CONFIG.mode;
       if (savedMode) document.getElementById('light-mode').value = savedMode;
+      updateColorVisibility(savedMode);
 
       const savedColor = localStorage.getItem('lt104_light_color') || SERVER_CONFIG.color;
       if (savedColor) {
