@@ -105,7 +105,14 @@ HTML_PAGE = """<!DOCTYPE html>
 
     <!-- RGB Lighting Card -->
     <div class="card">
-      <div class="card-title" id="txt-rgb-title">🌈 RGB Lighting & Backlight</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div class="card-title" id="txt-rgb-title" style="margin-bottom: 0;">🌈 RGB Lighting & Backlight</div>
+        <label class="switch-wrap" style="font-size: 13px;">
+          <input type="checkbox" id="chk-auto-apply" checked onchange="toggleAutoApply(this.checked)">
+          <span class="slider"></span>
+          <span id="txt-auto-apply">Live Apply (Auto Apply on Change)</span>
+        </label>
+      </div>
       <p style="color: var(--subtext); font-size: 13px; margin-bottom: 16px;" id="txt-rgb-desc">
         Apply immediately and save permanently to keyboard EEPROM
       </p>
@@ -120,7 +127,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <div class="form-group" id="group-custom-color">
           <label id="txt-custom-color">Custom Color</label>
           <div class="color-picker-wrap">
-            <input type="color" id="light-color" value="#00e5ff" onchange="applyLight()">
+            <input type="color" id="light-color" value="#00e5ff" onchange="onColorChange()">
             <span id="color-hex" style="font-family: monospace; font-size: 14px;">#00e5ff</span>
           </div>
           <div class="presets">
@@ -136,15 +143,15 @@ HTML_PAGE = """<!DOCTYPE html>
 
         <div class="form-group" id="group-brightness">
           <label><span id="txt-brightness">Brightness</span> <span id="bright-val" class="range-val">100%</span></label>
-          <input type="range" id="light-brightness" min="0" max="4" value="4" oninput="updateRange('bright-val', this.value, ['0%', '25%', '50%', '75%', '100%'])" onchange="applyLight()">
+          <input type="range" id="light-brightness" min="0" max="4" value="4" oninput="onBrightnessInput(this.value)" onchange="onBrightnessChange()">
         </div>
 
         <div class="form-group" id="group-speed">
           <label><span id="txt-speed">Animation Speed</span> <span id="speed-val" class="range-val">3</span></label>
-          <input type="range" id="light-speed" min="0" max="4" value="3" oninput="updateRange('speed-val', this.value)" onchange="applyLight()">
+          <input type="range" id="light-speed" min="0" max="4" value="3" oninput="onSpeedInput(this.value)" onchange="onSpeedChange()">
         </div>
       </div>
-      <div style="margin-top: 20px; display: flex; gap: 12px;">
+      <div id="wrap-apply-light" style="margin-top: 20px; display: none;">
         <button class="btn" onclick="applyLight()" id="btn-apply-light">✨ Apply & Save Backlight</button>
       </div>
     </div>
@@ -273,6 +280,8 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById('txt-brightness').innerText = t('brightness');
       document.getElementById('txt-speed').innerText = t('speed');
       document.getElementById('btn-apply-light').innerText = '✨ ' + t('apply_btn');
+      const txtAutoApply = document.getElementById('txt-auto-apply');
+      if (txtAutoApply) txtAutoApply.innerText = t('auto_apply');
       
       document.getElementById('txt-clock-title').innerText = '🕒 ' + t('clock_card_title');
       document.getElementById('txt-clock-desc').innerText = t('clock_card_desc');
@@ -336,10 +345,40 @@ HTML_PAGE = """<!DOCTYPE html>
       if (speedGroup) speedGroup.style.display = isOff ? 'none' : 'block';
     }
 
+    let autoApplyLight = true;
+
+    function updateAutoApplyUI() {
+      const wrapApply = document.getElementById('wrap-apply-light');
+      if (wrapApply) {
+        wrapApply.style.display = autoApplyLight ? 'none' : 'block';
+      }
+      const chk = document.getElementById('chk-auto-apply');
+      if (chk) chk.checked = autoApplyLight;
+    }
+
+    function toggleAutoApply(enabled) {
+      autoApplyLight = Boolean(enabled);
+      localStorage.setItem('lt104_light_auto_apply', autoApplyLight);
+      updateAutoApplyUI();
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
     function onModeChange() {
       const mode = document.getElementById('light-mode').value;
       updateColorVisibility(mode);
-      applyLight();
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
+    function onColorChange() {
+      const hex = document.getElementById('light-color').value;
+      document.getElementById('color-hex').innerText = hex;
+      if (autoApplyLight) {
+        applyLight();
+      }
     }
 
     function setColor(hex) {
@@ -352,7 +391,35 @@ HTML_PAGE = """<!DOCTYPE html>
       }
       document.getElementById('light-color').value = hex;
       document.getElementById('color-hex').innerText = hex;
-      applyLight();
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
+    function onBrightnessInput(val) {
+      updateRange('bright-val', val, ['0%', '25%', '50%', '75%', '100%']);
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
+    function onBrightnessChange() {
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
+    function onSpeedInput(val) {
+      updateRange('speed-val', val);
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
+    function onSpeedChange() {
+      if (autoApplyLight) {
+        applyLight();
+      }
     }
 
     function updateRange(id, val, textMap) {
@@ -659,6 +726,16 @@ HTML_PAGE = """<!DOCTYPE html>
       if (savedRestore && document.getElementById('hud-restore-preset')) {
         document.getElementById('hud-restore-preset').value = savedRestore;
       }
+
+      const savedAutoApply = localStorage.getItem('lt104_light_auto_apply');
+      if (savedAutoApply !== null) {
+        autoApplyLight = (savedAutoApply === 'true' || savedAutoApply === true);
+      } else if (SERVER_CONFIG.light_auto_apply !== undefined) {
+        autoApplyLight = Boolean(SERVER_CONFIG.light_auto_apply);
+      } else {
+        autoApplyLight = true;
+      }
+      updateAutoApplyUI();
 
       const initialLang = detectLanguage();
       changeLanguage(initialLang);

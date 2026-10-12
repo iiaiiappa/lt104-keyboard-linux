@@ -21,6 +21,7 @@ DEFAULT_CONFIG = {
     "speed": 3,
     "hud_interval": 120.0,
     "hud_restore_preset": "lt104_sample.gif",
+    "light_auto_apply": True,
     "lang": "en"
 }
 

@@ -235,13 +235,27 @@ class LT104Window(Adw.ApplicationWindow):
         self._speed_row = speed_row
         group.add(speed_row)
 
+        # Auto Apply Switch Row
+        self._auto_apply_row = Adw.SwitchRow()
+        self._auto_apply_row.set_title("即时生效 (调整时自动应用)")
+        self._auto_apply_row.set_subtitle("开启后调整模式、颜色、亮度或速度立即应用，无需手动点击应用按钮")
+        auto_apply_val = cfg.get("light_auto_apply", True)
+        self._auto_apply_row.set_active(bool(auto_apply_val))
+        self._auto_apply_row.connect("notify::active", self._on_auto_apply_toggled)
+        group.add(self._auto_apply_row)
+
         # Apply button
-        apply_btn = Gtk.Button(label="✨  即时应用并保存灯效")
-        apply_btn.add_css_class("suggested-action")
-        apply_btn.add_css_class("pill")
-        apply_btn.set_margin_top(8)
-        apply_btn.connect("clicked", self._on_apply_light)
-        group.add(apply_btn)
+        self._apply_btn = Gtk.Button(label="✨  即时应用并保存灯效")
+        self._apply_btn.add_css_class("suggested-action")
+        self._apply_btn.add_css_class("pill")
+        self._apply_btn.set_margin_top(8)
+        self._apply_btn.connect("clicked", self._on_apply_light)
+        self._apply_btn.set_visible(not bool(auto_apply_val))
+        group.add(self._apply_btn)
+
+        self._color_btn.connect("notify::rgba", self._on_color_changed)
+        self._brightness_scale.connect("value-changed", self._on_brightness_changed)
+        self._speed_scale.connect("value-changed", self._on_speed_changed)
 
         self._on_mode_changed(self._mode_row, None)
         return group
@@ -484,6 +498,28 @@ class LT104Window(Adw.ApplicationWindow):
                 self._speed_row.set_visible(not is_off)
             if is_off:
                 self._brightness_scale.set_value(0)
+            if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
+                self._apply_light_silently()
+
+    def _on_auto_apply_toggled(self, row, param):
+        active = row.get_active()
+        save_config({"light_auto_apply": active})
+        if hasattr(self, '_apply_btn'):
+            self._apply_btn.set_visible(not active)
+        if active:
+            self._apply_light_silently()
+
+    def _on_color_changed(self, btn, param):
+        if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
+            self._apply_light_silently()
+
+    def _on_brightness_changed(self, scale):
+        if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
+            self._apply_light_silently()
+
+    def _on_speed_changed(self, scale):
+        if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
+            self._apply_light_silently()
 
     def _on_preset_clicked(self, btn, hex_c):
         rgba = Gdk.RGBA()
@@ -492,6 +528,36 @@ class LT104Window(Adw.ApplicationWindow):
         mode_idx = self._mode_row.get_selected()
         if mode_idx < len(LIGHT_MODES) and LIGHT_MODES[mode_idx]["id"] in MULTI_COLOR_MODES:
             self._mode_row.set_selected(0)
+        elif hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
+            self._apply_light_silently()
+
+    def _apply_light_silently(self):
+        mode_idx  = self._mode_row.get_selected()
+        mode_id   = LIGHT_MODES[mode_idx]["id"]
+        rgba      = self._color_btn.get_rgba()
+        r, g, b   = int(rgba.red * 255), int(rgba.green * 255), int(rgba.blue * 255)
+        brightness = int(self._brightness_scale.get_value())
+        speed      = int(self._speed_scale.get_value())
+
+        if mode_id == 20:
+            brightness = 0
+
+        def do_light():
+            try:
+                ctl = LT104Controller()
+                ctl.set_light(mode=mode_id, r=r, g=g, b=b, brightness=brightness, speed=speed)
+                ctl.close()
+                save_config({
+                    "mode": mode_id,
+                    "color": f"#{r:02x}{g:02x}{b:02x}",
+                    "r": r, "g": g, "b": b,
+                    "brightness": brightness,
+                    "speed": speed
+                })
+            except Exception:
+                pass
+
+        run_in_thread(do_light)
 
     def _on_apply_light(self, btn):
         btn.set_sensitive(False)
