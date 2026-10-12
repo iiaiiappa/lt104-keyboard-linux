@@ -54,7 +54,7 @@ class LT104Window(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title("LT-104 键盘控制中心")
-        self.set_default_size(520, 1120)
+        self.set_default_size(580, 920)
         self.set_resizable(True)
 
         # ---- Root layout ---- #
@@ -76,7 +76,7 @@ class LT104Window(Adw.ApplicationWindow):
         toolbar_view.set_content(scroll)
 
         clamp = Adw.Clamp()
-        clamp.set_maximum_size(520)
+        clamp.set_maximum_size(580)
         clamp.set_margin_top(8)
         clamp.set_margin_bottom(12)
         clamp.set_margin_start(14)
