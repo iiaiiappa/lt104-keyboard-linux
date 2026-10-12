@@ -861,43 +861,38 @@ class LT104Window(Adw.ApplicationWindow):
             return (0.0, 0.0, 0.0)
 
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
-            # Multiple slashes alternating continuously across the board, dark background.
-            # Spaced so backslash (\) and forwardslash (/) do not intersect at the keyboard center.
-            coord_b = cx - cy  # Backslash line (\)
-            coord_f = cx + cy  # Forwardslash line (/)
-            beam_width = 24.0  # Width of 1 key
-            spacing = 460.0    # Distance between parallel slashes
-            speed_b = 160.0 * speed_mult
-            speed_f = 160.0 * speed_mult
+            # Background all off, 1-key width 45-degree slashes with random/colorful lights.
+            # Alternates strictly sequentially so backslash and forwardslash NEVER exist simultaneously or form a cross:
+            # Slot 1: Backslash (\) sweeps across to the left without bouncing.
+            # Slot 2: Forwardslash (/) sweeps across to the right without bouncing.
+            slot_dur = 1.35 / speed_mult
+            cycle_dur = slot_dur * 2.0
+            cur_time = (t % cycle_dur)
+            is_slot1 = (cur_time < slot_dur)
+            prog = (cur_time / slot_dur) if is_slot1 else ((cur_time - slot_dur) / slot_dur)
 
-            # Backslash waves sweep left (decreasing coord_b)
-            shift_b = ((coord_b + t * speed_b) % spacing + spacing) % spacing
-            dist_b = min(shift_b, spacing - shift_b)
+            beam_width = 26.0  # Width of 1 key
 
-            # Forwardslash waves sweep right (increasing coord_f), staggered so they never cross in the center
-            stagger_offset = spacing * 0.5 + 85.0
-            shift_f = ((coord_f - t * speed_f + stagger_offset) % spacing + spacing) % spacing
-            dist_f = min(shift_f, spacing - shift_f)
+            if is_slot1:
+                # Backslash (\: coord_b = cx - cy), sweeps left from 1050 down to -350
+                coord_b = cx - cy
+                sweep_b = 1050.0 - prog * 1400.0
+                dist = abs(coord_b - sweep_b)
+                active_hue = (coord_b * 0.75 + t * speed_mult * 120.0 + 360.0) % 360.0
+            else:
+                # Forwardslash (/: coord_f = cx + cy), sweeps right from -50 up to 1350
+                coord_f = cx + cy
+                sweep_f = -50.0 + prog * 1400.0
+                dist = abs(coord_f - sweep_f)
+                active_hue = (coord_f * 0.75 + t * speed_mult * 120.0 + 180.0) % 360.0
 
-            max_val = 0.0
-            active_hue = 0.0
-
-            if dist_b < beam_width * 2.2:
-                val_b = math.exp(-(dist_b * dist_b) / (2.0 * beam_width * beam_width))
-                if val_b > max_val:
-                    max_val = val_b
-                    active_hue = (coord_b * 0.8 + t * speed_mult * 110.0 + 360.0) % 360.0
-
-            if dist_f < beam_width * 2.2:
-                val_f = math.exp(-(dist_f * dist_f) / (2.0 * beam_width * beam_width))
-                if val_f > max_val:
-                    max_val = val_f
-                    active_hue = (coord_f * 0.8 + t * speed_mult * 110.0 + 175.0) % 360.0
-
-            if max_val < 0.02:
+            if dist > beam_width * 2.4:
+                return (0.0, 0.0, 0.0)
+            val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
+            if val < 0.02:
                 return (0.0, 0.0, 0.0)
             c = hsl_to_rgb(active_hue, 1.0, 0.5)
-            return (c[0] * max_val, c[1] * max_val, c[2] * max_val)
+            return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 18:  # 斜风细雨 (Gentle Rain)
             # 45 degree (backslash shape: cx - cy) colored keys sweeping left to right, other keys off

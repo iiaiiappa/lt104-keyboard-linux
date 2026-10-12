@@ -1022,46 +1022,39 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
-          // Multiple slashes alternating continuously across the board, dark background.
-          // Spaced so backslash (\) and forwardslash (/) do not intersect at the keyboard center.
-          const coordB = cx - cy; // Backslash line (\)
-          const coordF = cx + cy; // Forwardslash line (/)
-          const beamWidth = 24.0; // Width of 1 key
-          const spacing = 460.0;  // Distance between parallel slashes
-          const speedB = 160.0 * speedMult;
-          const speedF = 160.0 * speedMult;
+          // Background all off, 1-key width 45-degree slashes with random/colorful lights.
+          // Alternates strictly sequentially so backslash and forwardslash NEVER exist simultaneously or form a cross:
+          // Slot 1: Backslash (\) sweeps across to the left without bouncing.
+          // Slot 2: Forwardslash (/) sweeps across to the right without bouncing.
+          const slotDur = 1.35 / speedMult;
+          const cycleDur = slotDur * 2.0;
+          const curTime = (t % cycleDur);
+          const isSlot1 = (curTime < slotDur);
+          const prog = (isSlot1 ? (curTime / slotDur) : ((curTime - slotDur) / slotDur));
 
-          // Backslash waves sweep left (decreasing coordB), offset by 0
-          const shiftB = ((coordB + t * speedB) % spacing + spacing) % spacing;
-          const distB = Math.min(shiftB, spacing - shiftB);
-
-          // Forwardslash waves sweep right (increasing coordF), staggered by half spacing + offset so they never cross in the center
-          const staggerOffset = spacing * 0.5 + 85.0;
-          const shiftF = ((coordF - t * speedF + staggerOffset) % spacing + spacing) % spacing;
-          const distF = Math.min(shiftF, spacing - shiftF);
-
-          let maxVal = 0.0;
+          const beamWidth = 26.0; // Width of 1 key
+          let dist = 9999.0;
           let activeHue = 0;
 
-          if (distB < beamWidth * 2.2) {
-            const valB = Math.exp(-(distB * distB) / (2 * beamWidth * beamWidth));
-            if (valB > maxVal) {
-              maxVal = valB;
-              activeHue = (coordB * 0.8 + t * speedMult * 110.0 + 360) % 360;
-            }
+          if (isSlot1) {
+            // Backslash (\: coordB = cx - cy), sweeps left from 1050 down to -350
+            const coordB = cx - cy;
+            const sweepB = 1050.0 - prog * 1400.0;
+            dist = Math.abs(coordB - sweepB);
+            activeHue = (coordB * 0.75 + t * speedMult * 120.0 + 360) % 360;
+          } else {
+            // Forwardslash (/: coordF = cx + cy), sweeps right from -50 up to 1350
+            const coordF = cx + cy;
+            const sweepF = -50.0 + prog * 1400.0;
+            dist = Math.abs(coordF - sweepF);
+            activeHue = (coordF * 0.75 + t * speedMult * 120.0 + 180) % 360;
           }
 
-          if (distF < beamWidth * 2.2) {
-            const valF = Math.exp(-(distF * distF) / (2 * beamWidth * beamWidth));
-            if (valF > maxVal) {
-              maxVal = valF;
-              activeHue = (coordF * 0.8 + t * speedMult * 110.0 + 175) % 360;
-            }
-          }
-
-          if (maxVal < 0.02) return [0, 0, 0];
+          if (dist > beamWidth * 2.4) return [0, 0, 0];
+          const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
+          if (val < 0.02) return [0, 0, 0];
           const c = hslToRgb(activeHue, 1.0, 0.5);
-          return [Math.round(c[0] * maxVal), Math.round(c[1] * maxVal), Math.round(c[2] * maxVal)];
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)
