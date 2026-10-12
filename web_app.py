@@ -1086,12 +1086,14 @@ HTML_PAGE = """<!DOCTYPE html>
 
         case 18: { // 斜风细雨 (Gentle Rain)
           // Multiple 45° backslashes (cx - cy) sweeping continuously from left to right.
-          // Spacing: Exactly 4 keys apart from middle of backslash to middle of next backslash (4 * 41px = 164px).
-          // Width: 1.8 keys width with Gaussian blur (sigma = 19.0px).
+          // Spacing: Exactly 5 keys apart from middle of backslash to middle of next backslash (5 * 41px = 205px).
+          // Width: 1.8 keys width with Gaussian blur (sigma = 20.0px).
+          // Color: For each key, it assigns itself a random color sustained for each backslash,
+          //        using another random color for other backslashes.
           // Seamless fade-in and fade-out transitions; slashes flow continuously without on/off popping.
           const waveSpeed = 180.0 * speedMult;
-          const slashSpacing = 164.0; // 4 keys pitch from middle of backslash to next middle
-          const sigma = 19.0;         // 1.8 keys Gaussian blur width
+          const slashSpacing = 205.0; // 5 keys pitch from middle of backslash to next middle
+          const sigma = 20.0;         // 1.8 keys Gaussian blur width
           const coordB = cx - cy;
           const globalPhase = t * waveSpeed;
 
@@ -1107,10 +1109,16 @@ HTML_PAGE = """<!DOCTYPE html>
           for (let k = kMin; k <= kMax; k++) {
             const linePos = k * slashSpacing + globalPhase;
             const dist = Math.abs(coordB - linePos);
-            // Gaussian blur falloff
+            // Gaussian blur falloff across 1.8 keys width
             const val = Math.exp(-(dist * dist) / (2.0 * sigma * sigma));
             if (val > 0.005) {
-              const hue = ((k * 67) % 360 + 360) % 360;
+              // Deterministic random hue unique to this (key, slash) combination,
+              // sustained continuously throughout the entire passage of this backslash
+              let h = ((idx * 0x1f1f1f1f + k * 0x3d3d3d3d) >>> 0);
+              h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+              h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+              const hue = ((h ^ (h >>> 16)) >>> 0) % 360;
+
               const c = hslToRgb(hue, 1.0, 0.5);
               totalR += c[0] * val;
               totalG += c[1] * val;
