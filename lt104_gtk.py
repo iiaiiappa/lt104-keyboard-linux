@@ -7,6 +7,11 @@ import sys
 import os
 import threading
 import tempfile
+import time
+import math
+import colorsys
+import random
+import cairo
 
 # Make sure we can import lt104_core from the same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -22,6 +27,19 @@ from config import load_config, save_config
 
 APP_ID = "com.theforwardway.lt104"
 CLI_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.py")
+
+KB_KEYS = [["esc",16,16,24,24],["F1",75,16,24,24],["F2",105,16,24,24],["F3",135,16,24,24],["F4",165,16,24,24],["F5",211,16,24,24],["F6",241,16,24,24],["F7",271,16,24,24],["F8",301,16,24,24],["F9",346,16,24,24],["F10",376,16,24,24],["F11",406,16,24,24],["F12",437,16,24,24],["Prt",474,16,24,24],["Scr",505,16,24,24],["Pau",536,16,24,24],["~",16,55,24,24],["1",46,55,24,24],["2",76,55,24,24],["3",106,55,24,24],["4",136,55,24,24],["5",166,55,24,24],["6",196,55,24,24],["7",226,55,24,24],["8",256,55,24,24],["9",286,55,24,24],["0",316,55,24,24],["-",346,55,24,24],["=",376,55,24,24],["\u232b",406,55,57,24],["Ins",474,55,24,24],["Hm",505,55,24,24],["PgU",536,55,24,24],["Num",573,55,24,24],["/",604,55,24,24],["*",635,55,24,24],["-",666,55,24,24],["Tab",16,85,38,24],["Q",60,85,24,24],["W",90,85,24,24],["E",120,85,24,24],["R",150,85,24,24],["T",181,85,24,24],["Y",211,85,24,24],["U",241,85,24,24],["I",271,85,24,24],["O",301,85,24,24],["P",331,85,24,24],["[",361,85,24,24],["]",391,85,24,24],["|",422,85,40,24],["Del",474,85,24,24],["End",505,85,24,24],["PgD",536,85,24,24],["7",573,85,24,24],["8",604,85,24,24],["9",635,85,24,24],["+",666,85,24,53],["Caps",16,115,45,24],["A",67,115,24,24],["S",97,115,24,24],["D",127,115,24,24],["F",158,115,24,24],["G",188,115,24,24],["H",218,115,24,24],["J",248,115,24,24],["K",278,115,24,24],["L",308,115,24,24],[";",338,115,24,24],["'",368,115,24,24],["Enter",398,115,65,24],["4",573,115,24,24],["5",604,115,24,24],["6",635,115,24,24],["Shift",16,145,61,24],["Z",83,145,24,24],["X",113,145,24,24],["C",144,145,24,24],["V",174,145,24,24],["B",204,145,24,24],["N",234,145,24,24],["M",264,145,24,24],["<",294,145,24,24],[">",324,145,24,24],["?",354,145,24,24],["Shift",384,145,79,24],["\u25b2",505,145,24,24],["1",573,145,24,24],["2",604,145,24,24],["3",635,145,24,24],["Enter",666,145,24,53],["Ctrl",16,175,32,24],["Win",53,175,32,24],["Alt",91,175,32,24],["",129,175,180,24],["Alt",316,175,32,24],["Fn",354,175,32,24],["App",392,175,32,24],["Ctrl",430,175,32,24],["\u25c4",474,175,24,24],["\u25bc",505,175,24,24],["\u25ba",536,175,24,24],["0",573,175,54,24],[".",635,175,24,24]]
+
+def draw_round_rect(cr, x, y, w, h, r):
+    cr.new_sub_path()
+    cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+    cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+    cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+    cr.arc(x + r, y + r, r, math.pi, 3 * math.pi / 2)
+    cr.close_path()
+
+def hsl_to_rgb(h, s, l):
+    return colorsys.hls_to_rgb((h % 360.0) / 360.0, l, s)
 
 
 # --------------------------------------------------------------------------- #
@@ -129,6 +147,14 @@ class LT104Window(Adw.ApplicationWindow):
         GLib.idle_add(self._initial_refresh)
         GLib.timeout_add_seconds(2, self._refresh_status)
 
+        # Keyboard visualizer preview state
+        self._key_flashes = [0.0] * len(KB_KEYS)
+        self._active_ripples = []
+        self._hovered_key_idx = -1
+        self._last_auto_tap_time = 0.0
+        self._last_auto_ripple_time = 0.0
+        self._preview_timer_id = GLib.timeout_add(33, self._tick_preview)
+
     def _initial_refresh(self):
         self._refresh_status()
         return False
@@ -144,13 +170,64 @@ class LT104Window(Adw.ApplicationWindow):
 
         cfg = load_config()
 
+        initial_mode_idx = max(0, min(len(LIGHT_MODES)-1, int(cfg.get("mode", 1)) - 1))
+
+        # Keyboard visualizer preview container
+        preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        preview_box.set_margin_bottom(12)
+
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        header_box.set_margin_start(4)
+        header_box.set_margin_end(4)
+
+        dot = Gtk.Label(label="●")
+        dot.add_css_class("accent")
+        header_box.append(dot)
+
+        title_lbl = Gtk.Label(label="即时键盘灯效动画预览")
+        title_lbl.add_css_class("heading")
+        header_box.append(title_lbl)
+
+        self._preview_mode_badge = Gtk.Label(label=LIGHT_MODES[initial_mode_idx]["name"])
+        self._preview_mode_badge.add_css_class("pill")
+        header_box.append(self._preview_mode_badge)
+
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        header_box.append(spacer)
+
+        hint_lbl = Gtk.Label(label="💡 点击按键触发灯光反馈")
+        hint_lbl.add_css_class("dim-label")
+        hint_lbl.set_halign(Gtk.Align.END)
+        header_box.append(hint_lbl)
+
+        preview_box.append(header_box)
+
+        # Drawing Area
+        self._preview_area = Gtk.DrawingArea()
+        self._preview_area.set_content_height(142)
+        self._preview_area.set_hexpand(True)
+        self._preview_area.set_draw_func(self._on_draw_keyboard_preview)
+
+        # Gesture & motion controllers
+        click_gesture = Gtk.GestureClick()
+        click_gesture.connect("pressed", self._on_preview_clicked)
+        self._preview_area.add_controller(click_gesture)
+
+        motion_ctrl = Gtk.EventControllerMotion()
+        motion_ctrl.connect("motion", self._on_preview_motion)
+        motion_ctrl.connect("leave", self._on_preview_leave)
+        self._preview_area.add_controller(motion_ctrl)
+
+        preview_box.append(self._preview_area)
+        group.add(preview_box)
+
         # Mode selector
         self._mode_row = Adw.ComboRow()
         self._mode_row.set_title("灯光模式")
         mode_strings = Gtk.StringList.new([m["name"] for m in LIGHT_MODES])
         self._mode_row.set_model(mode_strings)
         self._mode_row.set_list_factory(make_wide_list_factory())
-        initial_mode_idx = max(0, min(len(LIGHT_MODES)-1, int(cfg.get("mode", 1)) - 1))
         self._mode_row.set_selected(initial_mode_idx)
         self._mode_row.connect("notify::selected", self._on_mode_changed)
         group.add(self._mode_row)
@@ -486,6 +563,10 @@ class LT104Window(Adw.ApplicationWindow):
         mode_idx = self._mode_row.get_selected()
         if mode_idx < len(LIGHT_MODES):
             mode_id = LIGHT_MODES[mode_idx]["id"]
+            if hasattr(self, '_preview_mode_badge'):
+                self._preview_mode_badge.set_text(LIGHT_MODES[mode_idx]["name"])
+            if hasattr(self, '_preview_area') and self._preview_area:
+                self._preview_area.queue_draw()
             is_single = mode_id not in MULTI_COLOR_MODES
             if hasattr(self, '_color_row'):
                 self._color_row.set_visible(is_single)
@@ -511,14 +592,20 @@ class LT104Window(Adw.ApplicationWindow):
             self._apply_light_silently()
 
     def _on_color_changed(self, btn, param):
+        if hasattr(self, '_preview_area') and self._preview_area:
+            self._preview_area.queue_draw()
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
             self._apply_light_silently()
 
     def _on_brightness_changed(self, scale):
+        if hasattr(self, '_preview_area') and self._preview_area:
+            self._preview_area.queue_draw()
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
             self._apply_light_silently()
 
     def _on_speed_changed(self, scale):
+        if hasattr(self, '_preview_area') and self._preview_area:
+            self._preview_area.queue_draw()
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
             self._apply_light_silently()
 
@@ -526,11 +613,410 @@ class LT104Window(Adw.ApplicationWindow):
         rgba = Gdk.RGBA()
         rgba.parse(hex_c)
         self._color_btn.set_rgba(rgba)
+        if hasattr(self, '_preview_area') and self._preview_area:
+            self._preview_area.queue_draw()
         mode_idx = self._mode_row.get_selected()
         if mode_idx < len(LIGHT_MODES) and LIGHT_MODES[mode_idx]["id"] in MULTI_COLOR_MODES:
             self._mode_row.set_selected(0)
         elif hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
             self._apply_light_silently()
+
+    # ------------------------------------------------------------------ #
+    #  Keyboard Visualizer Preview Engine (Cairo 30fps)                 #
+    # ------------------------------------------------------------------ #
+
+    def _tick_preview(self):
+        if hasattr(self, '_preview_area') and self._preview_area and self.get_visible():
+            self._preview_area.queue_draw()
+        return True
+
+    def _find_key_at(self, cx, cy):
+        for i, k in enumerate(KB_KEYS):
+            _, kx, ky, kw, kh = k
+            if kx <= cx <= kx + kw and ky <= cy <= ky + kh:
+                return i
+        return -1
+
+    def _on_preview_clicked(self, gesture, n_press, x, y):
+        w = self._preview_area.get_width()
+        h = self._preview_area.get_height()
+        scale_x = w / 706.0
+        scale_y = h / 214.0
+        scale = min(scale_x, scale_y)
+        offset_x = (w - 706.0 * scale) / 2.0
+        offset_y = (h - 214.0 * scale) / 2.0
+
+        canvas_x = (x - offset_x) / scale
+        canvas_y = (y - offset_y) / scale
+
+        idx = self._find_key_at(canvas_x, canvas_y)
+        now = time.time()
+        rgba = self._color_btn.get_rgba()
+        base_rgb = (rgba.red, rgba.green, rgba.blue)
+
+        if idx >= 0:
+            self._key_flashes[idx] = 1.0
+            k = KB_KEYS[idx]
+            self._active_ripples.append({
+                "x": k[1] + k[3] / 2.0,
+                "y": k[2] + k[4] / 2.0,
+                "t": now,
+                "color": base_rgb
+            })
+        else:
+            self._active_ripples.append({
+                "x": canvas_x,
+                "y": canvas_y,
+                "t": now,
+                "color": base_rgb
+            })
+        self._preview_area.queue_draw()
+
+    def _on_preview_motion(self, controller, x, y):
+        w = self._preview_area.get_width()
+        h = self._preview_area.get_height()
+        scale_x = w / 706.0
+        scale_y = h / 214.0
+        scale = min(scale_x, scale_y)
+        offset_x = (w - 706.0 * scale) / 2.0
+        offset_y = (h - 214.0 * scale) / 2.0
+
+        canvas_x = (x - offset_x) / scale
+        canvas_y = (y - offset_y) / scale
+
+        old_idx = self._hovered_key_idx
+        self._hovered_key_idx = self._find_key_at(canvas_x, canvas_y)
+        if old_idx != self._hovered_key_idx:
+            self._preview_area.queue_draw()
+
+    def _on_preview_leave(self, controller):
+        self._hovered_key_idx = -1
+        self._preview_area.queue_draw()
+
+    def _calc_key_color(self, mode, k, idx, t, base_rgb, speed_mult, bright_mult):
+        if mode == 20 or bright_mult <= 0:
+            return (0.0, 0.0, 0.0)
+
+        cx = k[1] + k[3] / 2.0
+        cy = k[2] + k[4] / 2.0
+
+        if mode == 1:
+            return base_rgb
+
+        elif mode == 2:  # 单点亮 (Single Light)
+            f = max(0.04, self._key_flashes[idx])
+            return (base_rgb[0] * f, base_rgb[1] * f, base_rgb[2] * f)
+
+        elif mode == 3:  # 单熄灭 (Single Off)
+            f = max(0.05, 1.0 - self._key_flashes[idx])
+            return (base_rgb[0] * f, base_rgb[1] * f, base_rgb[2] * f)
+
+        elif mode == 4:  # 繁星点点 (Stars)
+            seed = (idx * 137.5) % 6.283
+            val = max(0.0, (math.sin(t * speed_mult * 2.2 + seed) - 0.25) / 0.75)
+            return (base_rgb[0] * val, base_rgb[1] * val, base_rgb[2] * val)
+
+        elif mode == 5:  # 漫天飞雪 (Snow)
+            row = round((k[2] - 16) / 30)
+            phase = (t * speed_mult * 3.5 - row * 0.9 + (idx % 5) * 0.4) % 6.283
+            val = max(0.0, math.sin(phase)) ** 3
+            return (base_rgb[0] * val, base_rgb[1] * val, base_rgb[2] * val)
+
+        elif mode == 6:  # 百花争艳 (Blossom)
+            cluster = math.sin(cx * 0.015 + t * speed_mult * 1.5) + math.cos(cy * 0.03 + t * speed_mult * 1.2)
+            hue = (cluster * 90.0 + t * speed_mult * 40.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
+
+        elif mode == 7:  # 动态呼吸 (Breathing)
+            factor = 0.12 + 0.88 * (0.5 + 0.5 * math.sin(t * speed_mult * 2.5))
+            return (base_rgb[0] * factor, base_rgb[1] * factor, base_rgb[2] * factor)
+
+        elif mode == 8:  # 光谱循环 (Spectrum Cycle)
+            hue = (t * speed_mult * 50.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
+
+        elif mode == 9:  # 彩泉涌动 (Rainbow Wave)
+            hue = (cx * 0.5 - t * speed_mult * 90.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
+
+        elif mode == 10:  # 多彩纵横 (Cross Pattern)
+            x_wave = math.sin(cx * 0.03 - t * speed_mult * 3.0)
+            y_wave = math.cos(cy * 0.05 + t * speed_mult * 2.5)
+            val = max(0.15, (x_wave + y_wave) * 0.5)
+            hue = (cx * 0.3 + cy * 0.5 + t * speed_mult * 60.0) % 360.0
+            c = hsl_to_rgb(hue, 1.0, 0.5)
+            return (c[0] * val, c[1] * val, c[2] * val)
+
+        elif mode == 11:  # 随波逐流 (River Stream)
+            hue = ((cx + cy * 1.6) * 0.38 - t * speed_mult * 80.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
+
+        elif mode == 12:  # 峰回路转 (Rotary Wave)
+            angle = math.atan2(cy - 105.0, cx - 350.0)
+            hue = (angle * (180.0 / math.pi) + t * speed_mult * 90.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
+
+        elif mode == 13:  # 一触即发 (Ripple Trigger)
+            dist = math.hypot(cx - 350.0, cy - 105.0)
+            ripple = math.sin(dist * 0.08 - t * speed_mult * 4.0)
+            val = max(0.1, max(0.0, ripple) ** 2)
+            return (base_rgb[0] * val, base_rgb[1] * val, base_rgb[2] * val)
+
+        elif mode == 14:  # 一石二鸟 (Dual Ripple)
+            d1 = math.hypot(cx - 180.0, cy - 105.0)
+            d2 = math.hypot(cx - 520.0, cy - 105.0)
+            r1 = math.sin(d1 * 0.07 - t * speed_mult * 4.0)
+            r2 = math.sin(d2 * 0.07 - t * speed_mult * 4.0 + math.pi)
+            hue = (d1 * 0.5 + d2 * 0.5 + t * speed_mult * 50.0) % 360.0
+            val = max(0.1, (max(0.0, r1) + max(0.0, r2)) * 0.5)
+            c = hsl_to_rgb(hue, 1.0, 0.5)
+            return (c[0] * val, c[1] * val, c[2] * val)
+
+        elif mode == 15:  # 涟漪扩散 (Ripple Spread)
+            dist = math.hypot(cx - 350.0, cy - 105.0)
+            hue = (dist * 1.2 - t * speed_mult * 90.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
+
+        elif mode == 16:  # 川流不息 (Infinite Stream)
+            row = round((k[2] - 16) / 30)
+            dir_val = 1 if row % 2 == 0 else -1
+            hue = (cx * 0.4 * dir_val - t * speed_mult * 120.0 + row * 40.0) % 360.0
+            val = 0.5 + 0.5 * math.sin(cx * 0.04 * dir_val - t * speed_mult * 3.5)
+            c = hsl_to_rgb(hue, 1.0, 0.5)
+            return (c[0] * val, c[1] * val, c[2] * val)
+
+        elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
+            wave = math.sin(cx * 0.02 + t * speed_mult * 2.5) * math.cos(cy * 0.04 + t * speed_mult * 2.0)
+            val = 0.3 + 0.7 * (wave * 0.5 + 0.5)
+            hue = (cx * 0.3 + t * speed_mult * 40.0) % 360.0
+            c = hsl_to_rgb(hue, 1.0, 0.5)
+            return (c[0] * val, c[1] * val, c[2] * val)
+
+        elif mode == 18:  # 斜风细雨 (Gentle Rain)
+            slant = cx * 0.8 + cy * 1.4
+            drop = math.sin(slant * 0.06 - t * speed_mult * 5.0 + (idx % 7) * 1.1)
+            val = max(0.1, max(0.0, drop) ** 4)
+            hue = (slant * 0.2 + 180.0) % 360.0
+            c = hsl_to_rgb(hue, 0.85, 0.5)
+            return (c[0] * val, c[1] * val, c[2] * val)
+
+        elif mode == 19:  # 来回穿梭 (Shuttle)
+            beam_x = (math.sin(t * speed_mult * 2.2) * 0.5 + 0.5) * 650.0 + 20.0
+            dist = abs(cx - beam_x)
+            val = max(0.08, math.exp(-dist * dist / 3000.0))
+            hue = (t * speed_mult * 60.0) % 360.0
+            c = hsl_to_rgb(hue, 1.0, 0.5)
+            return (c[0] * val, c[1] * val, c[2] * val)
+
+        elif mode == 21:  # 万众一心 (Solid Center)
+            dist = math.hypot(cx - 350.0, cy - 105.0)
+            pulse = math.sin(dist * 0.04 + t * speed_mult * 3.0)
+            val = max(0.15, pulse * 0.5 + 0.5)
+            hue = (dist * 0.5 + t * speed_mult * 30.0) % 360.0
+            c = hsl_to_rgb(hue, 1.0, 0.5)
+            return (c[0] * val, c[1] * val, c[2] * val)
+
+        elif mode == 22:  # 流光溢彩 (Neon Glow)
+            plasma = (math.sin(cx * 0.015 + t * speed_mult * 1.5) +
+                      math.sin(cy * 0.035 + t * speed_mult * 1.2) +
+                      math.sin((cx + cy) * 0.012 + t * speed_mult * 1.8))
+            hue = (plasma * 60.0 + 280.0) % 360.0
+            return hsl_to_rgb(hue, 1.0, 0.5)
+
+        return base_rgb
+
+    def _on_draw_keyboard_preview(self, area, cr, width, height):
+        now = time.time()
+        t = now
+
+        scale_x = width / 706.0
+        scale_y = height / 214.0
+        scale = min(scale_x, scale_y)
+        offset_x = (width - 706.0 * scale) / 2.0
+        offset_y = (height - 214.0 * scale) / 2.0
+
+        mode_idx = self._mode_row.get_selected()
+        mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
+
+        rgba = self._color_btn.get_rgba()
+        base_rgb = (rgba.red, rgba.green, rgba.blue)
+
+        bright_val = int(self._brightness_scale.get_value())
+        bright_mult = 0.0 if mode_id == 20 else [0.25, 0.45, 0.65, 0.85, 1.0][min(4, max(0, bright_val))]
+
+        speed_val = int(self._speed_scale.get_value())
+        speed_mult = [0.4, 0.7, 1.0, 1.6, 2.4][min(4, max(0, speed_val))]
+
+        # Decay key flashes
+        for i in range(len(self._key_flashes)):
+            if self._key_flashes[i] > 0.001:
+                self._key_flashes[i] *= 0.94
+
+        # Simulated auto-tap for Single Light / Single Off modes
+        if mode_id in (2, 3) and (now - self._last_auto_tap_time > 1.3):
+            rand_idx = random.randint(0, len(KB_KEYS) - 1)
+            self._key_flashes[rand_idx] = 1.0
+            self._last_auto_tap_time = now
+
+        # Simulated ripple for Ripple Trigger mode
+        if mode_id == 13 and (now - self._last_auto_ripple_time > 2.6):
+            self._active_ripples.append({
+                "x": 350.0, "y": 105.0, "t": now, "color": base_rgb
+            })
+            self._last_auto_ripple_time = now
+
+        # Filter active ripples
+        self._active_ripples = [r for r in self._active_ripples if (now - r["t"]) < 0.9]
+
+        cr.save()
+        cr.translate(offset_x, offset_y)
+        cr.scale(scale, scale)
+
+        # 1. Keyboard Chassis
+        draw_round_rect(cr, 4, 4, 698, 206, 12)
+        chassis_pat = cairo.LinearGradient(4, 4, 4, 210)
+        chassis_pat.add_color_stop_rgb(0, 0.075, 0.082, 0.14)
+        chassis_pat.add_color_stop_rgb(1, 0.047, 0.055, 0.094)
+        cr.set_source(chassis_pat)
+        cr.fill_preserve()
+        cr.set_source_rgba(1, 1, 1, 0.08)
+        cr.set_line_width(1.5)
+        cr.stroke()
+
+        # 2. Plate Bezel
+        draw_round_rect(cr, 10, 10, 686, 194, 8)
+        cr.set_source_rgba(0, 0, 0, 0.6)
+        cr.set_line_width(2)
+        cr.stroke()
+
+        # 3. Mini TFT Color LCD Screen (X=573, Y=14, W=68, H=28)
+        draw_round_rect(cr, 573, 14, 68, 28, 4)
+        cr.set_source_rgb(0.012, 0.031, 0.075)
+        cr.fill_preserve()
+        cr.set_source_rgb(0.15, 0.17, 0.24)
+        cr.set_line_width(1)
+        cr.stroke()
+
+        cr.save()
+        draw_round_rect(cr, 574, 15, 66, 26, 3)
+        cr.clip()
+        time_str = time.strftime("LT %H:%M:%S")
+        cr.select_font_face("monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        cr.set_font_size(7.0)
+        cr.set_source_rgb(0.22, 0.74, 0.97)
+        cr.move_to(578, 25)
+        cr.show_text(time_str)
+
+        # Telemetry equalizer bars
+        for bi in range(7):
+            bar_h = 3 + abs(math.sin(t * 3.5 + bi * 0.9)) * 6.5
+            bx = 578 + bi * 9
+            if bi % 2 == 0:
+                cr.set_source_rgb(0.06, 0.72, 0.5)
+            else:
+                cr.set_source_rgb(0.02, 0.71, 0.83)
+            cr.rectangle(bx, 38 - bar_h, 6, bar_h)
+            cr.fill()
+        cr.restore()
+
+        # 4. Rotary Knob (CX=668, CY=28, R=13)
+        knob_cx, knob_cy, knob_r = 668.0, 28.0, 13.0
+        knob_pat = cairo.RadialGradient(knob_cx - 3, knob_cy - 3, 2, knob_cx, knob_cy, knob_r)
+        knob_pat.add_color_stop_rgb(0, 0.39, 0.44, 0.55)
+        knob_pat.add_color_stop_rgb(0.7, 0.20, 0.25, 0.33)
+        knob_pat.add_color_stop_rgb(1, 0.12, 0.16, 0.23)
+        cr.arc(knob_cx, knob_cy, knob_r, 0, math.pi * 2)
+        cr.set_source(knob_pat)
+        cr.fill_preserve()
+        cr.set_source_rgba(1, 1, 1, 0.2)
+        cr.set_line_width(1)
+        cr.stroke()
+
+        knob_angle = (t * 0.8) % (math.pi * 2)
+        cr.set_source_rgb(1.0, 1.0, 1.0)
+        cr.set_line_width(2)
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        cr.move_to(knob_cx + math.cos(knob_angle) * 5, knob_cy + math.sin(knob_angle) * 5)
+        cr.line_to(knob_cx + math.cos(knob_angle) * 11, knob_cy + math.sin(knob_angle) * 11)
+        cr.stroke()
+
+        # 5. Keys Layer
+        for i, k in enumerate(KB_KEYS):
+            label, x, y, w, h = k
+            cx = x + w / 2.0
+            cy = y + h / 2.0
+
+            r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
+
+            # Ripple waves
+            for rip in self._active_ripples:
+                age = (now - rip["t"])
+                rip_dist = math.hypot(cx - rip["x"], cy - rip["y"])
+                wave_front = age * 380.0
+                diff = abs(rip_dist - wave_front)
+                if diff < 35.0:
+                    amp = (1.0 - age / 0.9) * (1.0 - diff / 35.0)
+                    r = min(1.0, r + rip["color"][0] * amp)
+                    g = min(1.0, g + rip["color"][1] * amp)
+                    b = min(1.0, b + rip["color"][2] * amp)
+
+            # Underglow
+            if bright_mult > 0 and (r > 0.02 or g > 0.02 or b > 0.02):
+                rad = max(w, h) * 0.72
+                glow_pat = cairo.RadialGradient(cx, cy, 2, cx, cy, rad)
+                glow_pat.add_color_stop_rgba(0, r, g, b, 0.48 * bright_mult)
+                glow_pat.add_color_stop_rgba(0.65, r, g, b, 0.16 * bright_mult)
+                glow_pat.add_color_stop_rgba(1, 0, 0, 0, 0)
+                cr.set_source(glow_pat)
+                cr.rectangle(cx - rad, cy - rad, rad * 2, rad * 2)
+                cr.fill()
+
+            # Keycap Base
+            draw_round_rect(cr, x, y, w, h, 3.5)
+            cr.set_source_rgb(0.09, 0.098, 0.15)
+            cr.fill_preserve()
+            cr.set_source_rgba(1, 1, 1, 0.08)
+            cr.set_line_width(1)
+            cr.stroke()
+
+            # Inset Dish
+            draw_round_rect(cr, x + 1.5, y + 1.5, w - 3, h - 3, 2.5)
+            top_pat = cairo.LinearGradient(x, y, x, y + h)
+            top_pat.add_color_stop_rgb(0, 0.15, 0.16, 0.23)
+            top_pat.add_color_stop_rgb(1, 0.08, 0.09, 0.14)
+            cr.set_source(top_pat)
+            cr.fill()
+
+            # Legend
+            if label:
+                cr.save()
+                cr.select_font_face("sans-serif", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+                font_size = 7.0 if len(label) > 3 else 8.5
+                cr.set_font_size(font_size)
+                ext = cr.text_extents(label)
+                tx = cx - ext.width / 2.0 - ext.x_bearing
+                ty = cy - ext.height / 2.0 - ext.y_bearing
+
+                if bright_mult > 0 and (r > 0.02 or g > 0.02 or b > 0.02):
+                    lr = min(1.0, r * 0.75 + 0.25 * bright_mult)
+                    lg = min(1.0, g * 0.75 + 0.25 * bright_mult)
+                    lb = min(1.0, b * 0.75 + 0.25 * bright_mult)
+                    cr.set_source_rgb(lr, lg, lb)
+                else:
+                    cr.set_source_rgb(0.39, 0.45, 0.55)
+
+                cr.move_to(tx, ty)
+                cr.show_text(label)
+                cr.restore()
+
+            # Hover ring highlight
+            if i == self._hovered_key_idx:
+                draw_round_rect(cr, x, y, w, h, 3.5)
+                cr.set_source_rgba(1, 1, 1, 0.5)
+                cr.set_line_width(1.5)
+                cr.stroke()
+
+        cr.restore()
 
     def _apply_light_silently(self):
         mode_idx  = self._mode_row.get_selected()
