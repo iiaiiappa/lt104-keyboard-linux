@@ -725,8 +725,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (16, 17, 18, 19):
-            return  # Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
+        if mode_id in (10, 16, 17, 18, 19):
+            return  # Cross Pattern, Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
 
         if idx >= 0:
             self._key_flashes[idx] = 1.0
@@ -821,16 +821,33 @@ class LT104Window(Adw.ApplicationWindow):
             return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 10:  # 多彩纵横 (Cross Pattern)
-            col_beam = (math.sin(t * speed_mult * 2.5) * 0.5 + 0.5) * 920.0 + 20.0
-            row_beam = (math.cos(t * speed_mult * 2.2) * 0.5 + 0.5) * 250.0 + 20.0
-            dist_x = abs(cx - col_beam)
-            dist_y = abs(cy - row_beam)
-            val_x = math.exp(-dist_x * dist_x / 2200.0)
-            val_y = math.exp(-dist_y * dist_y / 1600.0)
-            val = max(0.08, max(val_x, val_y))
-            hue = (cx * 0.3 + cy * 0.6 + t * speed_mult * 60.0) % 360.0
-            c = hsl_to_rgb(hue, 1.0, 0.5)
-            return (c[0] * val, c[1] * val, c[2] * val)
+            # 7 rainbow colors alternating on 5 rows in the keyboard.
+            # Each row uses different colors from 7 rainbow colors.
+            # Each row changes its own color slowly without using color from other rows.
+            # At Animation Speed 2 -> changes to another color every 0.5s.
+            # Pressing keyboard has no reaction.
+            RAINBOW_7 = (
+                (1.0, 0.0, 0.0),      # Red
+                (1.0, 0.48, 0.0),     # Orange
+                (1.0, 0.95, 0.0),     # Yellow
+                (0.0, 0.88, 0.0),     # Green
+                (0.0, 0.88, 1.0),     # Cyan
+                (0.0, 0.22, 1.0),     # Blue
+                (0.68, 0.0, 1.0),     # Purple
+            )
+            step_dur = 0.5 / speed_mult
+            step = int(t / step_dur)
+            prog = (t % step_dur) / step_dur
+
+            # 5 rows: F-keys(0), Numbers(1), QWERTY(2), ASDF(3), ZXCV+Space(4)
+            k_row = min(4, get_key_row(k[2]))
+
+            c1 = RAINBOW_7[(step + k_row) % 7]
+            c2 = RAINBOW_7[(step + 1 + k_row) % 7]
+            r = (1.0 - prog) * c1[0] + prog * c2[0]
+            g = (1.0 - prog) * c1[1] + prog * c2[1]
+            b = (1.0 - prog) * c1[2] + prog * c2[2]
+            return (r, g, b)
 
         elif mode == 11:  # 随波逐流 (River Stream)
             hue = ((cx + cy * 1.6) * 0.38 - t * speed_mult * 80.0) % 360.0
@@ -1082,7 +1099,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (16, 17, 18, 19):
+                    if mode_id not in (10, 16, 17, 18, 19):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)

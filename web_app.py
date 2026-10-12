@@ -120,25 +120,27 @@ HTML_PAGE = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --bg: #0f111a;
-      --card: #1a1d2e;
-      --accent: #00e5ff;
-      --accent-hover: #00b4d8;
+      --bg: #1e1e1e;
+      --card: #282828;
+      --card-inner: #323232;
+      --accent: #3584e4;
+      --accent-hover: #1c71d8;
       --text: #ffffff;
-      --subtext: #8e9bb0;
-      --border: #2a2f45;
+      --subtext: #9a9996;
+      --border: #383838;
+      --success: #2ec27e;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Cantarell, Ubuntu, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
     .container { max-width: 1280px; width: 100%; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-    .header h1 { font-size: 24px; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+    .header h1 { font-size: 22px; color: #ffffff; font-weight: 700; display: flex; align-items: center; gap: 10px; }
     .header-right { display: flex; align-items: center; gap: 12px; }
-    .lang-select { background: #121420; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 6px 12px; font-size: 13px; outline: none; cursor: pointer; }
-    .status-badge { background: #00c85322; color: #00e676; border: 1px solid #00e67644; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-    .status-badge.error { background: #d5000022; color: #ff5252; border-color: #ff525244; }
-    .update-badge { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
-    .update-badge:hover { background: rgba(56, 189, 248, 0.25); transform: translateY(-1px); }
+    .lang-select { background: var(--card-inner); border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 6px 12px; font-size: 13px; outline: none; cursor: pointer; }
+    .status-badge { background: rgba(46, 194, 126, 0.15); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.35); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .status-badge.error { background: rgba(224, 27, 36, 0.15); color: #e01b24; border-color: rgba(224, 27, 36, 0.35); }
+    .update-badge { background: rgba(53, 132, 228, 0.15); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
+    .update-badge:hover { background: rgba(53, 132, 228, 0.25); transform: translateY(-1px); }
     
     .main-layout { display: flex; flex-direction: column; gap: 20px; }
     @media (min-width: 1024px) {
@@ -146,13 +148,13 @@ HTML_PAGE = """<!DOCTYPE html>
     }
     .col-left, .col-right { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
     
-    .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 24px; margin-bottom: 0px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    .card-title { font-size: 18px; margin-bottom: 18px; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 22px; margin-bottom: 0px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
+    .card-title { font-size: 17px; margin-bottom: 16px; color: #fff; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 8px; }
     label { font-size: 13px; color: var(--subtext); font-weight: 500; }
-    select, input[type="range"], input[type="file"] { background: #121420; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 10px 14px; font-size: 14px; outline: none; width: 100%; }
+    select, input[type="range"], input[type="file"] { background: var(--card-inner); border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 10px 14px; font-size: 14px; outline: none; width: 100%; transition: border 0.15s; }
     select:focus { border-color: var(--accent); }
     
     .color-picker-wrap { display: flex; align-items: center; gap: 14px; }
@@ -160,25 +162,34 @@ HTML_PAGE = """<!DOCTYPE html>
     input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     input[type="color"]::-webkit-color-swatch { border-radius: 8px; border: 2px solid var(--border); }
     
-    .btn { background: var(--accent); color: #050b14; border: none; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn { background: var(--accent); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
     .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
-    .btn-secondary { background: #252a40; color: #fff; }
-    .btn-secondary:hover { background: #323955; }
+    .btn-secondary { background: var(--card-inner); color: #fff; border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #3d3d3d; }
     
     .presets { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-    .preset-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff3; cursor: pointer; transition: transform 0.15s; }
+    .preset-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff3; cursor: pointer; transition: transform 0.15s; }
     .preset-btn:hover { transform: scale(1.15); border-color: #fff; }
+
+    /* GNOME Shell Extension Presets Section */
+    .ext-presets-section { background: var(--card-inner); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+    .ext-presets-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .ext-presets-title { font-size: 13px; font-weight: 600; color: #deddda; display: flex; align-items: center; gap: 6px; }
+    .ext-presets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+    .ext-preset-pill { background: #242424; border: 1px solid #3c3c3c; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 500; color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease; text-align: left; }
+    .ext-preset-pill:hover { background: #3584e4; border-color: #3584e4; color: #ffffff; transform: translateY(-1px); }
+    .ext-preset-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 4px rgba(0,0,0,0.4); }
     
     .range-val { font-size: 13px; color: var(--accent); float: right; }
-    .toast { position: fixed; bottom: 24px; right: 24px; background: #00e676; color: #000; padding: 12px 20px; border-radius: 8px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
-    .progress-bar-wrap { width: 100%; height: 8px; background: #121420; border-radius: 4px; overflow: hidden; margin-top: 12px; display: none; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--success); color: #000; padding: 12px 20px; border-radius: 8px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+    .progress-bar-wrap { width: 100%; height: 8px; background: var(--card-inner); border-radius: 4px; overflow: hidden; margin-top: 12px; display: none; }
     .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.1s ease; }
 
-    .switch-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; color: var(--text); user-select: none; }
+    .switch-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; color: var(--text); user-select: none; }
     .switch-wrap input { display: none; }
-    .slider { position: relative; width: 44px; height: 24px; background-color: #252a40; border-radius: 24px; transition: .3s; display: inline-block; }
-    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .3s; }
-    input:checked + .slider { background-color: #00e676; }
+    .slider { position: relative; width: 42px; height: 22px; background-color: #3c3c3c; border-radius: 22px; transition: .25s; display: inline-block; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .25s; }
+    input:checked + .slider { background-color: var(--success); }
     input:checked + .slider:before { transform: translateX(20px); }
   </style>
 </head>
@@ -220,17 +231,66 @@ HTML_PAGE = """<!DOCTYPE html>
           </p>
 
           <!-- Keyboard Animation Visualizer Preview -->
-          <div class="kb-preview-wrap" style="background: #090b14; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 20px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);">
+          <div class="kb-preview-wrap" style="background: #141414; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--subtext); flex-wrap: wrap; gap: 8px;">
               <div style="display: flex; align-items: center; gap: 7px;">
-                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00e676; box-shadow: 0 0 8px #00e676;"></span>
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2ec27e; box-shadow: 0 0 8px #2ec27e;"></span>
                 <strong id="txt-kb-preview-title" style="color: var(--text);">Live Keyboard Animation Preview</strong>
-                <span id="kb-preview-mode-tag" style="background: rgba(99, 102, 241, 0.18); border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 8px; border-radius: 10px; font-size: 11px; color: #c7d2fe;">静态恒亮 (Static)</span>
+                <span id="kb-preview-mode-tag" style="background: rgba(53, 132, 228, 0.2); border: 1px solid rgba(53, 132, 228, 0.4); padding: 1px 8px; border-radius: 10px; font-size: 11px; color: #78aeed;">静态恒亮 (Static)</span>
               </div>
-              <span id="txt-kb-preview-hint" style="font-size: 11px; opacity: 0.85; color: #94a3b8;">💡 Click any key to trigger lighting reaction</span>
+              <span id="txt-kb-preview-hint" style="font-size: 11px; opacity: 0.85; color: #9a9996;">💡 Click any key to trigger lighting reaction</span>
             </div>
             <div style="width: 100%; display: flex; justify-content: center; overflow: hidden;">
               <canvas id="kb-preview" width="954" height="297" style="width: 100%; max-width: 954px; height: auto; display: block; border-radius: 8px; cursor: pointer;"></canvas>
+            </div>
+          </div>
+
+          <!-- GNOME Extension Quick Backlight Presets Bar -->
+          <div class="ext-presets-section">
+            <div class="ext-presets-header">
+              <div class="ext-presets-title">
+                <span>🌈</span>
+                <span id="txt-ext-presets-title">GNOME Extension Quick Presets</span>
+              </div>
+              <span style="font-size: 11px; color: var(--subtext);" id="txt-ext-presets-hint">1-Click Lighting Preset</span>
+            </div>
+            <div class="ext-presets-grid">
+              <button class="ext-preset-pill" onclick="applyPreset('breathing_cyan')" title="Breathing Cyan">
+                <span class="ext-preset-dot" style="background: #00e5ff;"></span>
+                <span id="ext-preset-breathing-cyan">Breathing Cyan</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('static_white')" title="Static White">
+                <span class="ext-preset-dot" style="background: #ffffff;"></span>
+                <span id="ext-preset-static-white">Static White</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('static_cyan')" title="Static Cyan">
+                <span class="ext-preset-dot" style="background: #00e5ff;"></span>
+                <span id="ext-preset-static-cyan">Static Cyan</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('static_magenta')" title="Static Magenta">
+                <span class="ext-preset-dot" style="background: #ff0055;"></span>
+                <span id="ext-preset-static-magenta">Static Magenta</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('static_green')" title="Static Green">
+                <span class="ext-preset-dot" style="background: #00e676;"></span>
+                <span id="ext-preset-static-green">Static Green</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('spectrum')" title="Spectrum Cycle">
+                <span class="ext-preset-dot" style="background: linear-gradient(135deg, #ff0055, #00e5ff);"></span>
+                <span id="ext-preset-spectrum">Spectrum Cycle</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('rainbow')" title="Rainbow Wave">
+                <span class="ext-preset-dot" style="background: linear-gradient(135deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff);"></span>
+                <span id="ext-preset-rainbow">Rainbow Wave</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('stream')" title="River Stream">
+                <span class="ext-preset-dot" style="background: linear-gradient(135deg, #00b4d8, #0077b6);"></span>
+                <span id="ext-preset-stream">River Stream</span>
+              </button>
+              <button class="ext-preset-pill" onclick="applyPreset('off')" title="Turn Off Backlight">
+                <span class="ext-preset-dot" style="background: #555555;"></span>
+                <span id="ext-preset-off">Turn Off Backlight</span>
+              </button>
             </div>
           </div>
 
@@ -442,12 +502,67 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById('txt-lcd-title').innerText = '📺 ' + t('lcd_card_title');
       document.getElementById('txt-lcd-desc').innerText = t('lcd_card_desc');
       document.getElementById('btn-upload-lcd').innerText = '🚀 ' + t('upload_btn');
+
+      // Localize GNOME Extension Quick Presets Bar
+      const txtExtPresets = document.getElementById('txt-ext-presets-title');
+      if (txtExtPresets) txtExtPresets.innerText = t('ext_presets') || 'Backlight Presets';
+      const extPresetsMap = {
+        'breathing-cyan': 'breathing_cyan',
+        'static-white': 'static_white',
+        'static-cyan': 'static_cyan',
+        'static-magenta': 'static_magenta',
+        'static-green': 'static_green',
+        'spectrum': 'spectrum',
+        'rainbow': 'rainbow',
+        'stream': 'stream',
+        'off': 'off'
+      };
+      const curBundle = I18N[currentLang] || I18N['en'];
+      const curPresets = (curBundle && curBundle.presets) || (I18N['en'] && I18N['en'].presets) || {};
+      for (const [domId, pKey] of Object.entries(extPresetsMap)) {
+        const el = document.getElementById('ext-preset-' + domId);
+        if (el && curPresets[pKey]) {
+          el.innerText = curPresets[pKey];
+        }
+      }
+
       if (latestUpdateData && latestUpdateData.has_update) {
         const ver = latestUpdateData.latest_version || ('commit ' + latestUpdateData.latest_commit);
         const txt = document.getElementById('update-text');
         if (txt) txt.innerText = t('update_available', { ver });
       }
       updateHudUI();
+    }
+
+    const GNOME_PRESETS = {
+      'breathing_cyan': { mode: 7, hex: '#00e5ff', brightness: 4, speed: 3 },
+      'static_white':   { mode: 1, hex: '#ffffff', brightness: 4, speed: 3 },
+      'static_cyan':    { mode: 1, hex: '#00e5ff', brightness: 4, speed: 3 },
+      'static_magenta': { mode: 1, hex: '#ff0055', brightness: 4, speed: 3 },
+      'static_green':   { mode: 1, hex: '#00e676', brightness: 4, speed: 3 },
+      'spectrum':       { mode: 8, hex: '#00e5ff', brightness: 4, speed: 3 },
+      'rainbow':        { mode: 9, hex: '#00e5ff', brightness: 4, speed: 3 },
+      'stream':         { mode: 11, hex: '#00e5ff', brightness: 4, speed: 3 },
+      'off':            { mode: 20, hex: '#000000', brightness: 0, speed: 0 }
+    };
+
+    function applyPreset(presetKey) {
+      const cfg = GNOME_PRESETS[presetKey];
+      if (!cfg) return;
+      document.getElementById('light-mode').value = String(cfg.mode);
+      document.getElementById('light-color').value = cfg.hex;
+      document.getElementById('color-hex').innerText = cfg.hex;
+      document.getElementById('light-brightness').value = cfg.brightness;
+      updateRange('bright-val', cfg.brightness, ['0%', '25%', '50%', '75%', '100%']);
+      document.getElementById('light-speed').value = cfg.speed;
+      updateRange('speed-val', cfg.speed);
+      updateColorVisibility(cfg.mode);
+
+      const curBundle = I18N[currentLang] || I18N['en'];
+      const pName = (curBundle && curBundle.presets && curBundle.presets[presetKey]) || presetKey;
+      showToast('🌈 ' + pName);
+
+      applyLight();
     }
 
     function showToast(msg) {
@@ -1090,16 +1205,33 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 10: { // 多彩纵横 (Cross Pattern)
-          const colBeam = (Math.sin(t * speedMult * 2.5) * 0.5 + 0.5) * 920 + 20;
-          const rowBeam = (Math.cos(t * speedMult * 2.2) * 0.5 + 0.5) * 250 + 20;
-          const distX = Math.abs(cx - colBeam);
-          const distY = Math.abs(cy - rowBeam);
-          const valX = Math.exp(-distX * distX / 2200);
-          const valY = Math.exp(-distY * distY / 1600);
-          const val = Math.max(0.08, Math.max(valX, valY));
-          const hue = (cx * 0.3 + cy * 0.6 + t * speedMult * 60) % 360;
-          const c = hslToRgb(hue, 1.0, 0.5);
-          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          // 7 rainbow colors alternating on 5 rows in the keyboard.
+          // Each row uses different colors from 7 rainbow colors.
+          // Each row changes its own color slowly without using color from other rows.
+          // At Animation Speed 2 -> changes to another color every 0.5s.
+          // Pressing keyboard has no reaction.
+          const RAINBOW_7 = [
+            [255, 0, 0],      // Red
+            [255, 122, 0],    // Orange
+            [255, 242, 0],    // Yellow
+            [0, 224, 0],      // Green
+            [0, 224, 255],    // Cyan
+            [0, 56, 255],     // Blue
+            [173, 0, 255]     // Purple
+          ];
+          const stepDur = 0.5 / speedMult;
+          const step = Math.floor(t / stepDur);
+          const prog = (t % stepDur) / stepDur;
+
+          // 5 rows: F-keys(0), Numbers(1), QWERTY(2), ASDF(3), ZXCV+Space(4)
+          const kRow = Math.min(4, getKeyRow(k[2]));
+          const c1 = RAINBOW_7[(step + kRow) % 7];
+          const c2 = RAINBOW_7[(step + 1 + kRow) % 7];
+
+          const r = Math.round((1.0 - prog) * c1[0] + prog * c2[0]);
+          const g = Math.round((1.0 - prog) * c1[1] + prog * c2[1]);
+          const b = Math.round((1.0 - prog) * c1[2] + prog * c2[2]);
+          return [r, g, b];
         }
 
         case 11: { // 随波逐流 (River Stream)
@@ -1381,8 +1513,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
-            if (modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
+            // Active ripples overlay (Modes 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
+            if (modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1581,7 +1713,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
+        if (modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Cross Pattern, Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];
