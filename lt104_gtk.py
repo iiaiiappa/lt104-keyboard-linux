@@ -863,23 +863,23 @@ class LT104Window(Adw.ApplicationWindow):
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
             # Background all off, 1-key width 45° slashes.
             # Spawns from middle of keyboard:
-            # Wave 1: Backslash (\) starts at 55% (~525px) and sweeps right to end of keyboard.
-            # Immediately as previous finished appearing from 50%, spawn next:
-            # Wave 2: Forwardslash (/) starts at 45% (~429px) and sweeps left to end of keyboard.
-            # Multiple slashes can coexist while traveling outwards without bouncing back.
-            spawn_interval = 0.85 / speed_mult
-            travel_duration = 1.9 / speed_mult
-            wave_speed = 560.0 * speed_mult
+            # Wave 1: Backslash (\) starts at 55% and sweeps right to end of keyboard.
+            # Once finished appearing from 50%, spawn next:
+            # Wave 2: Forwardslash (/) starts at 45% and sweeps left to end of keyboard.
+            # Sweeps reach edges without bouncing back and are discarded.
+            spawn_interval = 0.55 / speed_mult
+            travel_duration = 2.4 / speed_mult
+            wave_speed = 380.0 * speed_mult
 
-            mid_b = 377.0  # 525 - 148
-            mid_f = 577.0  # 429 + 148
-            beam_width = 26.0
+            spawn_b = 377.0  # 525 - 148
+            spawn_f = 577.0  # 429 + 148
+            beam_width = 24.0
 
             max_val = 0.0
             active_hue = 0.0
 
             current_wave_idx = int(t / spawn_interval)
-            for w in range(current_wave_idx - 3, current_wave_idx + 1):
+            for w in range(current_wave_idx - 4, current_wave_idx + 1):
                 if w < 0:
                     continue
                 wave_age = t - w * spawn_interval
@@ -889,28 +889,28 @@ class LT104Window(Adw.ApplicationWindow):
                 dist_travelled = wave_age * wave_speed
                 if w % 2 == 0:
                     # Backslash starts at 55% and sweeps right
-                    wave_coord = mid_b + dist_travelled
+                    wave_coord = spawn_b + dist_travelled
                     coord_b = cx - cy
-                    if coord_b < mid_b - beam_width * 1.5:
+                    if coord_b < spawn_b - beam_width:
                         continue
                     dist = abs(coord_b - wave_coord)
-                    if dist < beam_width * 2.4:
+                    if dist < beam_width * 2.2:
                         val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
                         if val > max_val:
                             max_val = val
-                            active_hue = (w * 77.0 + coord_b * 0.7 + 360.0) % 360.0
+                            active_hue = ((w % 12) * 65.0 + coord_b * 0.4 + 360.0) % 360.0
                 else:
                     # Forwardslash starts at 45% and sweeps left
-                    wave_coord = mid_f - dist_travelled
+                    wave_coord = spawn_f - dist_travelled
                     coord_f = cx + cy
-                    if coord_f > mid_f + beam_width * 1.5:
+                    if coord_f > spawn_f + beam_width:
                         continue
                     dist = abs(coord_f - wave_coord)
-                    if dist < beam_width * 2.4:
+                    if dist < beam_width * 2.2:
                         val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
                         if val > max_val:
                             max_val = val
-                            active_hue = (w * 77.0 + coord_f * 0.7 + 180.0 + 360.0) % 360.0
+                            active_hue = ((w % 12) * 65.0 + coord_f * 0.4 + 180.0 + 360.0) % 360.0
 
             if max_val < 0.02:
                 return (0.0, 0.0, 0.0)

@@ -1024,59 +1024,61 @@ HTML_PAGE = """<!DOCTYPE html>
         case 17: { // 重峦叠嶂 (Rolling Hills)
           // Background all off, 1-key width 45° slashes.
           // Spawns from middle of keyboard:
-          // Wave 1: Backslash (\) starts at 55% (~525px) and sweeps right to end of keyboard.
-          // Immediately as previous finished appearing from 50%, spawn next:
-          // Wave 2: Forwardslash (/) starts at 45% (~429px) and sweeps left to end of keyboard.
-          // Multiple slashes can coexist while traveling outwards without bouncing back.
-          const spawnInterval = 0.85 / speedMult; // Interval between successive wave spawns from middle
-          const travelDuration = 1.9 / speedMult; // Total duration a wave travels before leaving keyboard
-          const waveSpeed = 560.0 * speedMult;    // Movement speed in px/s
+          // Wave 1: Backslash (\) starts at 55% and sweeps right to end of keyboard.
+          // Once finished appearing from 50%, spawn next:
+          // Wave 2: Forwardslash (/) starts at 45% and sweeps left to end of keyboard.
+          // Sweeps reach edges without bouncing back and are discarded.
+          const spawnInterval = 0.55 / speedMult; // Period between alternating slash births
+          const travelDuration = 2.4 / speedMult; // Lifespan of each outgoing slash
+          const waveSpeed = 380.0 * speedMult;    // Propagation velocity across keyboard in px/s
 
-          // Backslash line: coordB = cx - cy. Center midB = 525 - 148 = 377px
-          const midB = 377.0;
-          // Forwardslash line: coordF = cx + cy. Center midF = 429 + 148 = 577px
-          const midF = 577.0;
+          // 55% of width: cx = 525. For backslash line (cx - cy = const), center midB = 525 - 148 = 377
+          const spawnB = 377.0;
+          // 45% of width: cx = 429. For forwardslash line (cx + cy = const), center midF = 429 + 148 = 577
+          const spawnF = 577.0;
 
-          const beamWidth = 26.0; // Width of 1 key
+          const beamWidth = 24.0; // Sharp 1-key width
           let maxVal = 0.0;
           let activeHue = 0;
 
-          // Check last 4 waves to account for all concurrent outgoing slashes
+          // Check all active overlapping waves traveling outwards
           const currentWaveIndex = Math.floor(t / spawnInterval);
-          for (let w = currentWaveIndex - 3; w <= currentWaveIndex; w++) {
+          for (let w = currentWaveIndex - 4; w <= currentWaveIndex; w++) {
             if (w < 0) continue;
             const waveAge = t - w * spawnInterval;
-            if (waveAge < 0 || waveAge > travelDuration) continue; // Out of bounds or not spawned yet
+            if (waveAge < 0 || waveAge > travelDuration) continue;
 
-            const waveType = (w % 2 === 0 ? 'backslash' : 'forwardslash');
+            const isBackslash = (w % 2 === 0);
             const distTravelled = waveAge * waveSpeed;
 
-            if (waveType === 'backslash') {
-              // Backslash starts at 55% and sweeps to the RIGHT (increasing coordB)
-              const waveCoord = midB + distTravelled;
+            if (isBackslash) {
+              // Backslash starts at 55% and sweeps right (increasing cx - cy)
+              const waveCoord = spawnB + distTravelled;
               const coordB = cx - cy;
-              // Only illuminate keys at or beyond spawn point (traveling rightwards)
-              if (coordB < midB - beamWidth * 1.5) continue;
+              // Only illuminate keys to the right of 55% spawn origin
+              if (coordB < spawnB - beamWidth) continue;
               const dist = Math.abs(coordB - waveCoord);
-              if (dist < beamWidth * 2.4) {
+              if (dist < beamWidth * 2.2) {
                 const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
                 if (val > maxVal) {
                   maxVal = val;
-                  activeHue = (w * 77 + coordB * 0.7 + 360) % 360; // Random/colorful unique hue per wave
+                  // Random/distinct vibrant color per slash wave based on wave index & slant
+                  activeHue = ((w % 12) * 65 + coordB * 0.4 + 360) % 360;
                 }
               }
             } else {
-              // Forwardslash starts at 45% and sweeps to the LEFT (decreasing coordF)
-              const waveCoord = midF - distTravelled;
+              // Forwardslash starts at 45% and sweeps left (decreasing cx + cy)
+              const waveCoord = spawnF - distTravelled;
               const coordF = cx + cy;
-              // Only illuminate keys at or beyond spawn point (traveling leftwards)
-              if (coordF > midF + beamWidth * 1.5) continue;
+              // Only illuminate keys to the left of 45% spawn origin
+              if (coordF > spawnF + beamWidth) continue;
               const dist = Math.abs(coordF - waveCoord);
-              if (dist < beamWidth * 2.4) {
+              if (dist < beamWidth * 2.2) {
                 const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
                 if (val > maxVal) {
                   maxVal = val;
-                  activeHue = (w * 77 + coordF * 0.7 + 180 + 360) % 360; // Random/colorful unique hue per wave
+                  // Random/distinct vibrant color per slash wave based on wave index & slant
+                  activeHue = ((w % 12) * 65 + coordF * 0.4 + 180 + 360) % 360;
                 }
               }
             }
