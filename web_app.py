@@ -1284,18 +1284,6 @@ HTML_PAGE = """<!DOCTYPE html>
           return hslToRgb(hue, 1.0, 0.5);
         }
 
-        case 21: { // 万众一心 (Solid Center)
-          // Slow flowing rainbow hues across the whole board (does not react to keypresses)
-          const hue = (cx * 0.35 + cy * 0.2 + t * speedMult * 25.0) % 360;
-          return hslToRgb(hue, 1.0, 0.5);
-        }
-
-        case 22: { // 流光溢彩 (Neon Glow)
-          const plasma = Math.sin(cx * 0.015 + t * speedMult * 1.5) + Math.sin(cy * 0.035 + t * speedMult * 1.2) + Math.sin((cx + cy) * 0.012 + t * speedMult * 1.8);
-          const hue = (plasma * 60 + t * speedMult * 40 + 280) % 360;
-          return hslToRgb(hue, 1.0, 0.5);
-        }
-
         default:
           return baseRgb;
       }
@@ -1393,8 +1381,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle, 21 Solid Center do not react to keypresses)
-            if (modeVal !== 17 && modeVal !== 18 && modeVal !== 19 && modeVal !== 21) {
+            // Active ripples overlay (Modes 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
+            if (modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1593,7 +1581,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19 || modeVal === 21) return; // Infinite Stream, Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
+        if (modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];

@@ -36,8 +36,6 @@ LIGHT_MODES = [
     {"id": 17, "name": "重峦叠嶂 (Rolling Hills)"},
     {"id": 18, "name": "斜风细雨 (Gentle Rain)"},
     {"id": 19, "name": "来回穿梭 (Shuttle)"},
-    {"id": 21, "name": "万众一心 (Solid Center)"},
-    {"id": 22, "name": "流光溢彩 (Neon Glow)"},
     {"id": 20, "name": "关闭背光 (Backlight Off)"},
 ]
 
@@ -224,7 +222,7 @@ class LT104Controller:
           5. [0x04, 0xF0]             → ACK  (save to EEPROM)
 
         Args:
-            mode:       1-22  (see LIGHT_MODES)
+            mode:       1-19, or 20 for Backlight Off (see LIGHT_MODES)
             r, g, b:    0-255 colour
             brightness: 0-4
             speed:      0-4

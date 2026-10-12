@@ -725,8 +725,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (16, 17, 18, 19, 21):
-            return  # Infinite Stream, Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
+        if mode_id in (16, 17, 18, 19):
+            return  # Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
 
         if idx >= 0:
             self._key_flashes[idx] = 1.0
@@ -999,18 +999,6 @@ class LT104Window(Adw.ApplicationWindow):
             hue = (cx * 0.45 - t * speed_mult * 35.0 + math.sin(cy * 0.04) * 40.0 + 360.0) % 360.0
             return hsl_to_rgb(hue, 1.0, 0.5)
 
-        elif mode == 21:  # 万众一心 (Solid Center)
-            # Slow flowing rainbow hues across the board (does not react to keypresses)
-            hue = (cx * 0.35 + cy * 0.2 + t * speed_mult * 25.0) % 360.0
-            return hsl_to_rgb(hue, 1.0, 0.5)
-
-        elif mode == 22:  # 流光溢彩 (Neon Glow)
-            plasma = (math.sin(cx * 0.015 + t * speed_mult * 1.5) +
-                      math.sin(cy * 0.035 + t * speed_mult * 1.2) +
-                      math.sin((cx + cy) * 0.012 + t * speed_mult * 1.8))
-            hue = (plasma * 60.0 + t * speed_mult * 40.0 + 280.0) % 360.0
-            return hsl_to_rgb(hue, 1.0, 0.5)
-
         return base_rgb
 
     def _on_draw_keyboard_preview(self, area, cr, width, height):
@@ -1094,7 +1082,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (17, 18, 19, 21):
+                    if mode_id not in (16, 17, 18, 19):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)
