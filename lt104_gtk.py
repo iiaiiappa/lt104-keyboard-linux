@@ -868,11 +868,11 @@ class LT104Window(Adw.ApplicationWindow):
             # No cross in the middle of keyboard, 3 keys apart between slashes.
             mid_x = 479.0
             mid_y = 141.5
-            wave_speed = 260.0 * speed_mult
+            wave_speed = 220.0 * speed_mult
             slash_spacing = 164.0  # Exactly 3 unlit keys apart between slashes (4 * 41px pitch)
             spawn_interval = slash_spacing / wave_speed
             travel_duration = 550.0 / wave_speed
-            beam_width = 14.0  # Crisp single key width (no bleed into adjacent keys)
+            max_dist = 26.0  # Smooth 1-key window (neighbor key at 41px is strictly 0)
 
             spawn_b = mid_x - mid_y
             spawn_f = mid_x + mid_y
@@ -896,8 +896,8 @@ class LT104Window(Adw.ApplicationWindow):
                     coord_b = cx - cy
                     wave_coord = spawn_b + dist_travelled
                     dist = abs(coord_b - wave_coord)
-                    if dist < beam_width * 1.8:
-                        val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
+                    if dist <= max_dist:
+                        val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
                         if val > max_val:
                             max_val = val
                             active_hue = ((w * 67.0) + 360.0) % 360.0
@@ -908,38 +908,36 @@ class LT104Window(Adw.ApplicationWindow):
                     coord_f = cx + cy
                     wave_coord = spawn_f - dist_travelled
                     dist = abs(coord_f - wave_coord)
-                    if dist < beam_width * 1.8:
-                        val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
+                    if dist <= max_dist:
+                        val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
                         if val > max_val:
                             max_val = val
                             active_hue = ((w * 67.0) + 180.0 + 360.0) % 360.0
 
-            if max_val < 0.02:
+            if max_val < 0.01:
                 return (0.0, 0.0, 0.0)
             c = hsl_to_rgb(active_hue, 1.0, 0.5)
             return (c[0] * max_val, c[1] * max_val, c[2] * max_val)
 
         elif mode == 18:  # 斜风细雨 (Gentle Rain)
-            # Multiple 45° backslashes (cx - cy) sweeping from left to right.
+            # Multiple 45° backslashes (cx - cy) sweeping smoothly from left to right.
             # Exactly 3 unlit keys apart from the next/previous backslash, background keys off.
-            wave_speed = 240.0 * speed_mult
+            wave_speed = 200.0 * speed_mult
             slash_spacing = 164.0  # Exactly 3 unlit keys apart (4 * 41px pitch)
-            beam_width = 14.0  # Crisp single key width (no bleed into adjacent keys)
+            max_dist = 26.0  # Smooth 1-key window (neighbor key at 41px is strictly 0)
 
             coord_b = cx - cy
             global_phase = t * wave_speed
-            offset = (coord_b - global_phase) % slash_spacing
-            if offset < 0:
-                offset += slash_spacing
-            dist = min(offset, slash_spacing - offset)
+            slash_idx = int(round((coord_b - global_phase) / slash_spacing))
+            slash_center = slash_idx * slash_spacing + global_phase
+            dist = abs(coord_b - slash_center)
 
-            if dist > beam_width * 1.8:
+            if dist > max_dist:
                 return (0.0, 0.0, 0.0)
-            val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
-            if val < 0.02:
+            val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
+            if val < 0.01:
                 return (0.0, 0.0, 0.0)
 
-            slash_idx = int(math.floor((coord_b - global_phase) / slash_spacing))
             hue = ((slash_idx * 67.0) % 360.0 + 360.0) % 360.0
             c = hsl_to_rgb(hue, 1.0, 0.5)
             return (c[0] * val, c[1] * val, c[2] * val)

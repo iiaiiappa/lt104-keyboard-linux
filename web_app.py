@@ -1029,11 +1029,11 @@ HTML_PAGE = """<!DOCTYPE html>
           // No cross in the middle of keyboard, 3 keys apart between slashes.
           const midX = 479.0;
           const midY = 141.5;
-          const waveSpeed = 260.0 * speedMult;
+          const waveSpeed = 220.0 * speedMult;
           const slashSpacing = 164.0; // Exactly 3 unlit keys apart between slashes (4 * 41px pitch)
           const spawnInterval = slashSpacing / waveSpeed; // Delay between alternating slashes
           const travelDuration = 550.0 / waveSpeed; // Distance to edge
-          const beamWidth = 14.0; // Crisp single key width (no bleed into adjacent keys)
+          const maxDist = 26.0; // Smooth 1-key window (neighbor key at 41px is strictly 0)
 
           const spawnB = midX - midY;
           const spawnF = midX + midY;
@@ -1054,8 +1054,9 @@ HTML_PAGE = """<!DOCTYPE html>
               const coordB = cx - cy;
               const waveCoord = spawnB + distTravelled;
               const dist = Math.abs(coordB - waveCoord);
-              if (dist < beamWidth * 1.8) {
-                const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
+              if (dist <= maxDist) {
+                // Continuous smooth cosine window (1.0 at center, seamlessly 0.0 at maxDist without hard cutoff pop)
+                const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
                 if (val > maxVal) {
                   maxVal = val;
                   activeHue = ((w * 67) + 360) % 360;
@@ -1067,8 +1068,9 @@ HTML_PAGE = """<!DOCTYPE html>
               const coordF = cx + cy;
               const waveCoord = spawnF - distTravelled;
               const dist = Math.abs(coordF - waveCoord);
-              if (dist < beamWidth * 1.8) {
-                const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
+              if (dist <= maxDist) {
+                // Continuous smooth cosine window (1.0 at center, seamlessly 0.0 at maxDist without hard cutoff pop)
+                const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
                 if (val > maxVal) {
                   maxVal = val;
                   activeHue = ((w * 67) + 180 + 360) % 360;
@@ -1077,29 +1079,32 @@ HTML_PAGE = """<!DOCTYPE html>
             }
           }
 
-          if (maxVal < 0.02) return [0, 0, 0];
+          if (maxVal < 0.01) return [0, 0, 0];
           const c = hslToRgb(activeHue, 1.0, 0.5);
           return [Math.round(c[0] * maxVal), Math.round(c[1] * maxVal), Math.round(c[2] * maxVal)];
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)
-          // Multiple 45° backslashes (cx - cy) sweeping from left to right.
+          // Multiple 45° backslashes (cx - cy) sweeping smoothly from left to right.
           // Exactly 3 unlit keys apart from the next/previous backslash, background keys off.
-          const waveSpeed = 240.0 * speedMult;
+          // Smooth continuous motion without any flashing or abrupt color switching.
+          const waveSpeed = 200.0 * speedMult;
           const slashSpacing = 164.0; // Exactly 3 unlit keys apart (4 * 41px pitch)
-          const beamWidth = 14.0; // Crisp single key width (no bleed into adjacent keys)
+          const maxDist = 26.0; // Smooth 1-key window (neighbor key at 41px is strictly 0)
 
           const coordB = cx - cy;
           const globalPhase = t * waveSpeed;
-          let offset = (coordB - globalPhase) % slashSpacing;
-          if (offset < 0) offset += slashSpacing;
-          const dist = Math.min(offset, slashSpacing - offset);
+          // Use round() so the slash index center is locked at the peak of the beam,
+          // ensuring the key never flips hue while illuminated!
+          const slashIdx = Math.round((coordB - globalPhase) / slashSpacing);
+          const slashCenter = slashIdx * slashSpacing + globalPhase;
+          const dist = Math.abs(coordB - slashCenter);
 
-          if (dist > beamWidth * 1.8) return [0, 0, 0];
-          const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
-          if (val < 0.02) return [0, 0, 0];
+          if (dist > maxDist) return [0, 0, 0];
+          // Continuous smooth cosine window (1.0 at center, seamlessly 0.0 at maxDist without hard cutoff pop)
+          const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
+          if (val < 0.01) return [0, 0, 0];
 
-          const slashIdx = Math.floor((coordB - globalPhase) / slashSpacing);
           const hue = ((slashIdx * 67) % 360 + 360) % 360;
           const c = hslToRgb(hue, 1.0, 0.5);
           return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
