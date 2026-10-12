@@ -188,6 +188,14 @@ HTML_PAGE = """<!DOCTYPE html>
               <option value="300" id="opt-300s">300s (5 min - Power Saving)</option>
             </select>
           </div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
+            <span id="txt-hud-restore">Stop Restore:</span>
+            <select id="hud-restore-preset" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onRestorePresetChanged()">
+              <option value="lt104_sample.gif" id="opt-restore-sample" selected>lt104_sample.gif (Default Factory)</option>
+              <option value="0_perfect36.gif" id="opt-restore-p36">0_perfect36.gif</option>
+              <option value="none" id="opt-restore-none">Restore None</option>
+            </select>
+          </div>
         </div>
         <div id="hud-status-text" style="font-size: 13px; color: var(--subtext);">
           <span id="txt-hud-status-label">System HUD Status:</span> <span id="hud-badge" style="color: #94a3b8; font-weight: 600;">Stopped</span> (<span id="txt-hud-note">Direct RAM streaming, zero SPI Flash wear, typing 100% responsive</span>)
@@ -283,6 +291,15 @@ HTML_PAGE = """<!DOCTYPE html>
         const el = document.getElementById('opt-' + s + 's');
         if (el) el.innerText = t('opt_' + s + 's');
       }
+
+      const txtRestore = document.getElementById('txt-hud-restore');
+      if (txtRestore) txtRestore.innerText = t('hud_restore') + ':';
+      const optSample = document.getElementById('opt-restore-sample');
+      if (optSample) optSample.innerText = t('opt_restore_sample');
+      const optP36 = document.getElementById('opt-restore-p36');
+      if (optP36) optP36.innerText = t('opt_restore_p36');
+      const optNone = document.getElementById('opt-restore-none');
+      if (optNone) optNone.innerText = t('opt_restore_none');
 
       document.getElementById('txt-lcd-title').innerText = '📺 ' + t('lcd_card_title');
       document.getElementById('txt-lcd-desc').innerText = t('lcd_card_desc');
@@ -553,6 +570,19 @@ HTML_PAGE = """<!DOCTYPE html>
       }
     }
 
+    async function onRestorePresetChanged() {
+      const preset = document.getElementById('hud-restore-preset').value;
+      localStorage.setItem('lt104_hud_restore_preset', preset);
+      try {
+        await fetch('/api/hud-restore-preset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preset })
+        });
+        showToast('💾 ' + t('hud_restore') + ': ' + preset);
+      } catch (e) {}
+    }
+
     async function checkDeviceStatus() {
       try {
         const res = await fetch('/api/status');
@@ -596,6 +626,11 @@ HTML_PAGE = """<!DOCTYPE html>
       if (savedInterval) {
         currentHudInterval = parseFloat(savedInterval);
         document.getElementById('hud-interval').value = String(savedInterval);
+      }
+
+      const savedRestore = localStorage.getItem('lt104_hud_restore_preset') || SERVER_CONFIG.hud_restore_preset || 'lt104_sample.gif';
+      if (savedRestore && document.getElementById('hud-restore-preset')) {
+        document.getElementById('hud-restore-preset').value = savedRestore;
       }
 
       const initialLang = detectLanguage();
@@ -830,6 +865,22 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode())
+
+        elif self.path == "/api/hud-restore-preset":
+            try:
+                content_len = int(self.headers.get("Content-Length", 0))
+                req_data = json.loads(self.rfile.read(content_len).decode())
+                preset = req_data.get("preset", "lt104_sample.gif")
+                save_config({"hud_restore_preset": preset})
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "preset": preset}).encode())
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")

@@ -77,7 +77,11 @@ TRANSLATIONS = {
         "opt_30s": "30s (Power Saving)",
         "opt_60s": "60s (Slow)",
         "opt_120s": "120s (2 min - Default)",
-        "opt_300s": "300s (5 min - Power Saving)"
+        "opt_300s": "300s (5 min - Power Saving)",
+        "hud_restore": "Stop Restore",
+        "opt_restore_sample": "lt104_sample.gif (Default Factory)",
+        "opt_restore_p36": "0_perfect36.gif",
+        "opt_restore_none": "Restore None"
     },
     "zh-CN": {
         "title": "LT-104 键盘控制中心 (Linux 原生)",
@@ -150,7 +154,11 @@ TRANSLATIONS = {
         "opt_30s": "30 秒 (省电)",
         "opt_60s": "60 秒 (超慢)",
         "opt_120s": "120 秒 (2分钟 - 默认)",
-        "opt_300s": "300 秒 (5分钟 - 省电)"
+        "opt_300s": "300 秒 (5分钟 - 省电)",
+        "hud_restore": "停止恢复动画",
+        "opt_restore_sample": "lt104_sample.gif (出厂小循环预设 - 默认)",
+        "opt_restore_p36": "0_perfect36.gif (动态预设动画)",
+        "opt_restore_none": "不恢复 (保持最后画面)"
     },
     "zh-TW": {
         "title": "LT-104 鍵盤控制中心 (Linux 原生)",
@@ -223,7 +231,11 @@ TRANSLATIONS = {
         "opt_30s": "30 秒 (省電)",
         "opt_60s": "60 秒 (超慢)",
         "opt_120s": "120 秒 (2分鐘 - 預設)",
-        "opt_300s": "300 秒 (5分鐘 - 省電)"
+        "opt_300s": "300 秒 (5分鐘 - 省電)",
+        "hud_restore": "停止恢復動畫",
+        "opt_restore_sample": "lt104_sample.gif (原廠小循環預設 - 預設)",
+        "opt_restore_p36": "0_perfect36.gif (動態預設動畫)",
+        "opt_restore_none": "不恢復 (保持最後畫面)"
     },
     "ja": {
         "title": "LT-104 キーボードコントロールセンター",
@@ -296,7 +308,11 @@ TRANSLATIONS = {
         "opt_30s": "30秒 (省電力)",
         "opt_60s": "60秒 (低速)",
         "opt_120s": "120秒 (2分 - デフォルト)",
-        "opt_300s": "300秒 (5分 - 省電力)"
+        "opt_300s": "300秒 (5分 - 省電力)",
+        "hud_restore": "停止時復元アニメ",
+        "opt_restore_sample": "lt104_sample.gif (出荷時ループ - デフォルト)",
+        "opt_restore_p36": "0_perfect36.gif (プリセットアニメ)",
+        "opt_restore_none": "復元しない (最後の画面を保持)"
     },
     "ko": {
         "title": "LT-104 키보드 제어 센터",
@@ -369,7 +385,11 @@ TRANSLATIONS = {
         "opt_30s": "30초 (절전)",
         "opt_60s": "60초 (느림)",
         "opt_120s": "120초 (2분 - 기본값)",
-        "opt_300s": "300초 (5분 - 절전)"
+        "opt_300s": "300초 (5분 - 절전)",
+        "hud_restore": "HUD 중지 시 복원 애니메이션",
+        "opt_restore_sample": "lt104_sample.gif (출하 기본 루프 - 기본값)",
+        "opt_restore_p36": "0_perfect36.gif (사전 설정 애니메이션)",
+        "opt_restore_none": "복원 안 함 (마지막 화면 유지)"
     },
     "de": {
         "title": "LT-104 Tastatur-Kontrollzentrum",
@@ -442,7 +462,11 @@ TRANSLATIONS = {
         "opt_30s": "30s (Energiesparend)",
         "opt_60s": "60s (Langsam)",
         "opt_120s": "120s (2 Min. - Standard)",
-        "opt_300s": "300s (5 Min. - Energiesparend)"
+        "opt_300s": "300s (5 Min. - Energiesparend)",
+        "hud_restore": "Stopp-Wiederherstellung",
+        "opt_restore_sample": "lt104_sample.gif (Werksschleife - Standard)",
+        "opt_restore_p36": "0_perfect36.gif (Voreinstellung)",
+        "opt_restore_none": "Keine Wiederherstellung"
     },
     "fr": {
         "title": "Centre de Contrôle Clavier LT-104",
@@ -515,7 +539,11 @@ TRANSLATIONS = {
         "opt_30s": "30s (Économie)",
         "opt_60s": "60s (Lent)",
         "opt_120s": "120s (2 min - Par défaut)",
-        "opt_300s": "300s (5 min - Économie)"
+        "opt_300s": "300s (5 min - Économie)",
+        "hud_restore": "Restauration à l arrêt",
+        "opt_restore_sample": "lt104_sample.gif (Boucle d usine - Défaut)",
+        "opt_restore_p36": "0_perfect36.gif (Préréglage)",
+        "opt_restore_none": "Aucune restauration"
     },
     "es": {
         "title": "Centro de Control del Teclado LT-104",
@@ -588,7 +616,11 @@ TRANSLATIONS = {
         "opt_30s": "30s (Ahorro)",
         "opt_60s": "60s (Lento)",
         "opt_120s": "120s (2 min - Predeterminado)",
-        "opt_300s": "300s (5 min - Ahorro)"
+        "opt_300s": "300s (5 min - Ahorro)",
+        "hud_restore": "Restauración al detener",
+        "opt_restore_sample": "lt104_sample.gif (Bucle de fábrica - Predeterminado)",
+        "opt_restore_p36": "0_perfect36.gif (Ajuste preestablecido)",
+        "opt_restore_none": "No restaurar"
     },
     "ru": {
         "title": "Центр управления клавиатурой LT-104",
@@ -661,7 +693,11 @@ TRANSLATIONS = {
         "opt_30s": "30с (Энергосбережение)",
         "opt_60s": "60с (Медленно)",
         "opt_120s": "120с (2 мин - По умолчанию)",
-        "opt_300s": "300с (5 мин - Энергосбережение)"
+        "opt_300s": "300с (5 мин - Энергосбережение)",
+        "hud_restore": "Восстановление при остановке",
+        "opt_restore_sample": "lt104_sample.gif (Заводской цикл - По умолчанию)",
+        "opt_restore_p36": "0_perfect36.gif (Предустановка)",
+        "opt_restore_none": "Не восстанавливать"
     }
 }
 

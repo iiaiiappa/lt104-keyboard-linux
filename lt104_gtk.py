@@ -15,7 +15,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf
+from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf, Pango
 
 from lt104_core import LT104Controller, LIGHT_MODES, MULTI_COLOR_MODES, find_lt104_usb, find_lt104_lcd_hidraw
 from config import load_config, save_config
@@ -27,6 +27,25 @@ CLI_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.p
 # --------------------------------------------------------------------------- #
 #  Helpers                                                                      #
 # --------------------------------------------------------------------------- #
+
+def make_wide_list_factory():
+    """Create a SignalListItemFactory that displays full text without ellipsis (...)"""
+    factory = Gtk.SignalListItemFactory()
+    def setup(f, item):
+        lbl = Gtk.Label(xalign=0)
+        lbl.set_ellipsize(Pango.EllipsizeMode.NONE)
+        lbl.set_margin_start(12)
+        lbl.set_margin_end(16)
+        lbl.set_margin_top(6)
+        lbl.set_margin_bottom(6)
+        item.set_child(lbl)
+    def bind(f, item):
+        obj = item.get_item()
+        if obj and hasattr(obj, 'get_string'):
+            item.get_child().set_text(obj.get_string())
+    factory.connect("setup", setup)
+    factory.connect("bind", bind)
+    return factory
 
 def hex_to_rgb(hex_str):
     h = hex_str.lstrip("#")
@@ -130,6 +149,7 @@ class LT104Window(Adw.ApplicationWindow):
         self._mode_row.set_title("灯光模式")
         mode_strings = Gtk.StringList.new([m["name"] for m in LIGHT_MODES])
         self._mode_row.set_model(mode_strings)
+        self._mode_row.set_list_factory(make_wide_list_factory())
         initial_mode_idx = max(0, min(len(LIGHT_MODES)-1, int(cfg.get("mode", 1)) - 1))
         self._mode_row.set_selected(initial_mode_idx)
         self._mode_row.connect("notify::selected", self._on_mode_changed)
@@ -163,7 +183,11 @@ class LT104Window(Adw.ApplicationWindow):
             ("#ffffff", "纯白"),
         ]
         css = Gtk.CssProvider()
-        css_rules = []
+        css_rules = [
+            "popover, popover.menu { min-width: 340px; }",
+            "popover listview { min-width: 320px; }",
+            "popover listview row { min-width: 320px; }",
+        ]
         for idx, (hex_c, name) in enumerate(preset_colors):
             btn = Gtk.Button()
             btn.set_tooltip_text(name)
@@ -268,6 +292,7 @@ class LT104Window(Adw.ApplicationWindow):
             "300 秒 (5分钟 - 省电)"
         ])
         self._interval_row.set_model(model)
+        self._interval_row.set_list_factory(make_wide_list_factory())
         cfg = load_config()
         initial_inv = float(cfg.get("hud_interval", 120.0))
         sel_idx = 6  # Index 6 is 120s default
@@ -278,6 +303,26 @@ class LT104Window(Adw.ApplicationWindow):
         self._interval_row.set_selected(sel_idx)
         self._interval_row.connect("notify::selected", self._on_interval_changed)
         group.add(self._interval_row)
+
+        # Stop HUD Restore Preset Row
+        self._restore_presets = ["lt104_sample.gif", "0_perfect36.gif", "none"]
+        self._restore_row = Adw.ComboRow()
+        self._restore_row.set_title("停止 HUD 恢复动画")
+        self._restore_row.set_subtitle("停止监控后恢复出厂或预设动画，避免画面停留在最后静态遥测")
+        restore_model = Gtk.StringList.new([
+            "lt104_sample.gif (出厂小循环预设 - 默认)",
+            "0_perfect36.gif (动态预设动画)",
+            "不恢复 (保持最后画面)"
+        ])
+        self._restore_row.set_model(restore_model)
+        self._restore_row.set_list_factory(make_wide_list_factory())
+        current_restore = cfg.get("hud_restore_preset", "lt104_sample.gif")
+        restore_idx = 0
+        if current_restore in self._restore_presets:
+            restore_idx = self._restore_presets.index(current_restore)
+        self._restore_row.set_selected(restore_idx)
+        self._restore_row.connect("notify::selected", self._on_restore_changed)
+        group.add(self._restore_row)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         box.set_margin_top(4)
@@ -412,6 +457,11 @@ class LT104Window(Adw.ApplicationWindow):
         sec = self._interval_intervals[idx] if idx < len(self._interval_intervals) else 20
         save_config({"hud_interval": sec})
         self._check_hud_status()
+
+    def _on_restore_changed(self, row, param):
+        idx = self._restore_row.get_selected()
+        preset = self._restore_presets[idx] if idx < len(self._restore_presets) else "lt104_sample.gif"
+        save_config({"hud_restore_preset": preset})
 
     def _on_mode_changed(self, row, param):
         mode_idx = self._mode_row.get_selected()

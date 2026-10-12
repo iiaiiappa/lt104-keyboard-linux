@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "brightness": 4,
     "speed": 3,
     "hud_interval": 120.0,
+    "hud_restore_preset": "lt104_sample.gif",
     "lang": "en"
 }
 

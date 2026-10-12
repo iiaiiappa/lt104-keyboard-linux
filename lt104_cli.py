@@ -9,6 +9,9 @@ Usage:
 import sys
 import argparse
 import os
+import time
+import subprocess
+import signal
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lt104_core import LT104Controller
@@ -54,7 +57,8 @@ def main():
     # hud-start, hud-stop, hud-status
     p_hud_start = subparsers.add_parser("hud-start")
     p_hud_start.add_argument("--interval", type=float, default=120.0)
-    subparsers.add_parser("hud-stop")
+    p_hud_stop = subparsers.add_parser("hud-stop")
+    p_hud_stop.add_argument("--restore", choices=["lt104_sample.gif", "0_perfect36.gif", "none"], default=None, help="Preset GIF to restore after stopping HUD")
     subparsers.add_parser("hud-status")
     subparsers.add_parser("hud-once")
 
@@ -110,6 +114,23 @@ def main():
                     stopped = True
         except Exception:
             pass
+        # Give daemon process a moment to exit and release descriptors
+        time.sleep(0.3)
+
+        # Restore preset GIF if configured (prevents stale telemetry frozen on screen)
+        cfg = load_config()
+        restore_preset = args.restore if getattr(args, 'restore', None) else cfg.get("hud_restore_preset", "lt104_sample.gif")
+        if restore_preset and restore_preset != "none":
+            gif_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), restore_preset)
+            if os.path.exists(gif_path):
+                try:
+                    ctl = LT104Controller()
+                    ctl.upload_lcd_image(gif_path, slot=1)
+                    ctl.close()
+                    print(f"OK: Restored preset animation ({restore_preset})")
+                except Exception as e:
+                    print(f"Warning: Failed to restore preset animation: {e}", file=sys.stderr)
+
         print("OK: HUD stopped" if stopped else "OK: HUD was not running")
         return
 
