@@ -725,8 +725,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (19, 21):
-            return  # Shuttle and Solid Center do not react to keypresses
+        if mode_id in (18, 19, 21):
+            return  # Gentle Rain, Shuttle, Solid Center do not react to keypresses
 
         if idx >= 0:
             self._key_flashes[idx] = 1.0
@@ -868,11 +868,20 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 18:  # 斜风细雨 (Gentle Rain)
-            slant = cx * 0.8 + cy * 1.4
-            drop = math.sin(slant * 0.06 - t * speed_mult * 5.0 + (idx % 7) * 1.1)
-            val = max(0.1, max(0.0, drop) ** 4)
-            hue = (slant * 0.2 + 180.0) % 360.0
-            c = hsl_to_rgb(hue, 0.85, 0.5)
+            # 45 degree (backslash shape: cx - cy) colored keys sweeping left to right, other keys off
+            sweep_cycle = 2.4 / speed_mult
+            sweep_prog = (t % sweep_cycle) / sweep_cycle
+            sweep_coord = -320.0 + sweep_prog * 1350.0  # Sweeps from left (-320) to right (1030)
+            slant_coord = cx - cy  # Backslash line: higher cx as cy increases
+            dist = abs(slant_coord - sweep_coord)
+            beam_width = 48.0
+            if dist > beam_width * 2.5:
+                return (0.0, 0.0, 0.0)
+            val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
+            if val < 0.02:
+                return (0.0, 0.0, 0.0)
+            hue = (slant_coord * 0.4 + t * speed_mult * 120.0 + 360.0) % 360.0
+            c = hsl_to_rgb(hue, 1.0, 0.5)
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 19:  # 来回穿梭 (Shuttle)
@@ -975,7 +984,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (19, 21):
+                    if mode_id not in (18, 19, 21):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)

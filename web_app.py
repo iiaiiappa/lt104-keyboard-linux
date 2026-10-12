@@ -1030,11 +1030,18 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)
-          const slant = cx * 0.8 + cy * 1.4;
-          const drop = Math.sin(slant * 0.06 - t * speedMult * 5.0 + (idx % 7) * 1.1);
-          const val = Math.max(0.1, Math.pow(Math.max(0, drop), 4));
-          const hue = (slant * 0.2 + 180) % 360;
-          const c = hslToRgb(hue, 0.85, 0.5);
+          // 45 degree (backslash shape: cx - cy) colored keys sweeping left to right, other keys off
+          const sweepCycle = 2.4 / speedMult;
+          const sweepProg = (t % sweepCycle) / sweepCycle;
+          const sweepCoord = -320.0 + sweepProg * 1350.0; // Sweeps from left (-320) to right (1030)
+          const slantCoord = cx - cy; // Backslash line: higher cx as cy increases
+          const dist = Math.abs(slantCoord - sweepCoord);
+          const beamWidth = 48.0;
+          if (dist > beamWidth * 2.5) return [0, 0, 0];
+          const val = Math.exp(-(dist * dist) / (2 * beamWidth * beamWidth));
+          if (val < 0.02) return [0, 0, 0];
+          const hue = (slantCoord * 0.4 + t * speedMult * 120.0 + 360) % 360;
+          const c = hslToRgb(hue, 1.0, 0.5);
           return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
         }
 
@@ -1153,8 +1160,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 19 Shuttle and 21 Solid Center do not react to keypresses)
-            if (modeVal !== 19 && modeVal !== 21) {
+            // Active ripples overlay (Modes 18 Gentle Rain, 19 Shuttle, 21 Solid Center do not react to keypresses)
+            if (modeVal !== 18 && modeVal !== 19 && modeVal !== 21) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1353,7 +1360,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 19 || modeVal === 21) return; // Shuttle and Solid Center do not react to keypresses
+        if (modeVal === 18 || modeVal === 19 || modeVal === 21) return; // Gentle Rain, Shuttle, Solid Center do not react to keypresses
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];
