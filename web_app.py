@@ -1119,22 +1119,50 @@ HTML_PAGE = """<!DOCTYPE html>
           return [0, 0, 0];
 
         case 16: { // 川流不息 (Infinite Stream)
-          // Swipes row by row from top to bottom (0 -> 1 -> 2 -> 3 -> 4 -> 5) then repeats
-          const rowDur = 0.55 / speedMult;
-          const totalCycle = 6 * rowDur;
-          const cycleTime = t % totalCycle;
-          const activeRow = Math.floor(cycleTime / rowDur);
-          const rowProg = (cycleTime % rowDur) / rowDur;
-          const swipeX = rowProg * 960;
+          // Speed slowed down in half: row duration doubled (1.10s base per row)
+          // Stream object width: increased from 1 key to 5.4 keys in a row (sigma = 60.0px)
+          // Motion: moving smoothly from left to right with Gaussian blur
+          // Color: For each key, it assigns itself a random color sustained for each stream;
+          //        each key uses another random color for other streams.
+          const rowInterval = 1.10 / speedMult;
+          const travelDur = 1.15 * rowInterval;
+          const sigma = 60.0; // 5.4 keys Gaussian blur width (5.4 * 41px = 221.4px)
+          const xStart = -140.0;
+          const xEnd = 1098.0;
+
           const kRow = getKeyRow(k[2]);
-          if (kRow === activeRow) {
-            const distX = Math.abs(cx - swipeX);
-            const val = Math.max(0.04, Math.exp(-distX * distX / 2500));
-            const hue = (swipeX * 0.4 + activeRow * 50 + t * 90) % 360;
-            const c = hslToRgb(hue, 1.0, 0.5);
-            return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          const sBase = Math.floor(t / rowInterval);
+
+          let totalR = 0.0;
+          let totalG = 0.0;
+          let totalB = 0.0;
+
+          // Check nearby stream passes for this row (at most 1 is active on this row)
+          for (let s = sBase - 1; s <= sBase + 1; s++) {
+            if (s < 0 || (((s % 6) + 6) % 6) !== kRow) continue;
+            const tEl = t - s * rowInterval;
+            if (tEl >= 0.0 && tEl <= travelDur) {
+              const prog = tEl / travelDur;
+              const swipeX = xStart + prog * (xEnd - xStart);
+              const distX = Math.abs(cx - swipeX);
+              const val = Math.exp(-(distX * distX) / (2.0 * sigma * sigma));
+              if (val > 0.005) {
+                // Deterministic random hue unique to this (key, stream) combination,
+                // sustained continuously throughout the entire passage of this stream
+                let h = ((idx * 0x1f1f1f1f + s * 0x3d3d3d3d) >>> 0);
+                h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+                h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+                const hue = ((h ^ (h >>> 16)) >>> 0) % 360;
+
+                const c = hslToRgb(hue, 1.0, 0.5);
+                totalR += c[0] * val;
+                totalG += c[1] * val;
+                totalB += c[2] * val;
+              }
+            }
           }
-          return [0, 0, 0];
+
+          return [Math.min(255, Math.round(totalR)), Math.min(255, Math.round(totalG)), Math.min(255, Math.round(totalB))];
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
@@ -1565,7 +1593,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 17 || modeVal === 18 || modeVal === 19 || modeVal === 21) return; // Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
+        if (modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19 || modeVal === 21) return; // Infinite Stream, Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];

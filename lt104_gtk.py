@@ -725,8 +725,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (17, 18, 19, 21):
-            return  # Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
+        if mode_id in (16, 17, 18, 19, 21):
+            return  # Infinite Stream, Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
 
         if idx >= 0:
             self._key_flashes[idx] = 1.0
@@ -845,20 +845,48 @@ class LT104Window(Adw.ApplicationWindow):
             return (0.0, 0.0, 0.0)
 
         elif mode == 16:  # 川流不息 (Infinite Stream)
-            row_dur = 0.55 / speed_mult
-            total_cycle = 6.0 * row_dur
-            cycle_time = t % total_cycle
-            active_row = int(cycle_time / row_dur)
-            row_prog = (cycle_time % row_dur) / row_dur
-            swipe_x = row_prog * 960.0
+            # Speed slowed down in half: row duration doubled (1.10s base per row)
+            # Stream object width: increased from 1 key to 5.4 keys in a row (sigma = 60.0px)
+            # Motion: moving smoothly from left to right with Gaussian blur
+            # Color: For each key, it assigns itself a random color sustained for each stream;
+            #        each key uses another random color for other streams.
+            row_interval = 1.10 / speed_mult
+            travel_dur = 1.15 * row_interval
+            sigma = 60.0  # 5.4 keys Gaussian blur width (5.4 * 41px = 221.4px)
+            x_start = -140.0
+            x_end = 1098.0
+
             k_row = get_key_row(k[2])
-            if k_row == active_row:
-                dist_x = abs(cx - swipe_x)
-                val = max(0.04, math.exp(-dist_x * dist_x / 2500.0))
-                hue = (swipe_x * 0.4 + active_row * 50.0 + t * 90.0) % 360.0
-                c = hsl_to_rgb(hue, 1.0, 0.5)
-                return (c[0] * val, c[1] * val, c[2] * val)
-            return (0.0, 0.0, 0.0)
+            s_base = int(t / row_interval)
+
+            total_r = 0.0
+            total_g = 0.0
+            total_b = 0.0
+
+            # Check nearby stream passes for this row (at most 1 is active on this row)
+            for s in (s_base - 1, s_base, s_base + 1):
+                if s < 0 or (s % 6) != k_row:
+                    continue
+                t_el = t - s * row_interval
+                if 0.0 <= t_el <= travel_dur:
+                    prog = t_el / travel_dur
+                    swipe_x = x_start + prog * (x_end - x_start)
+                    dist_x = abs(cx - swipe_x)
+                    val = math.exp(-(dist_x * dist_x) / (2.0 * sigma * sigma))
+                    if val > 0.005:
+                        # Deterministic random hue unique to this (key, stream) combination,
+                        # sustained continuously throughout the entire passage of this stream
+                        h = (idx * 0x1f1f1f1f + s * 0x3d3d3d3d) & 0xffffffff
+                        h = ((h >> 16) ^ h) * 0x45d9f3b & 0xffffffff
+                        h = ((h >> 16) ^ h) * 0x45d9f3b & 0xffffffff
+                        hue = ((h >> 16) ^ h) % 360.0
+
+                        c = hsl_to_rgb(hue, 1.0, 0.5)
+                        total_r += c[0] * val
+                        total_g += c[1] * val
+                        total_b += c[2] * val
+
+            return (min(1.0, total_r), min(1.0, total_g), min(1.0, total_b))
 
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
             # Background all off, sharp 1-key width 45° slashes.
