@@ -616,10 +616,11 @@ class LT104Window(Adw.ApplicationWindow):
                     self._remembered_brightness = current_bright
                     save_config({"remembered_brightness": self._remembered_brightness})
                 self._brightness_scale.set_value(0)
-            elif self._previous_mode_id == 20:
-                # Coming from Backlight Off to other mode: restore remembered brightness
-                restore_val = self._remembered_brightness if self._remembered_brightness > 0 else 4
-                self._brightness_scale.set_value(restore_val)
+            else:
+                # Coming to other mode: guarantee non-zero brightness
+                if self._previous_mode_id == 20 or current_bright <= 0:
+                    restore_val = self._remembered_brightness if (self._remembered_brightness and self._remembered_brightness > 0) else 4
+                    self._brightness_scale.set_value(restore_val)
 
             self._previous_mode_id = mode_id
             if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
@@ -1128,6 +1129,9 @@ class LT104Window(Adw.ApplicationWindow):
 
         if mode_id == 20:
             brightness = 0
+        elif brightness <= 0:
+            brightness = self._remembered_brightness if (self._remembered_brightness and self._remembered_brightness > 0) else 4
+            self._brightness_scale.set_value(brightness)
 
         def do_light():
             try:
@@ -1160,6 +1164,9 @@ class LT104Window(Adw.ApplicationWindow):
         if mode_id == 20:
             brightness = 0
             self._brightness_scale.set_value(0)
+        elif brightness <= 0:
+            brightness = self._remembered_brightness if (self._remembered_brightness and self._remembered_brightness > 0) else 4
+            self._brightness_scale.set_value(brightness)
 
         def do_light():
             ctl = LT104Controller()

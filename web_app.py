@@ -413,6 +413,7 @@ HTML_PAGE = """<!DOCTYPE html>
     }
 
     let rememberedBrightness = parseInt(localStorage.getItem('lt104_remembered_brightness')) || 4;
+    if (rememberedBrightness <= 0) rememberedBrightness = 4;
     let previousModeVal = 1;
 
     function onModeChange() {
@@ -429,11 +430,13 @@ HTML_PAGE = """<!DOCTYPE html>
         }
         if (brightInput) brightInput.value = 0;
         updateRange('bright-val', 0, ['0%', '25%', '50%', '75%', '100%']);
-      } else if (previousModeVal === 20) {
-        // Coming from Backlight Off to other mode: restore remembered brightness
-        const restoreBright = (rememberedBrightness > 0 ? rememberedBrightness : 4);
-        if (brightInput) brightInput.value = restoreBright;
-        updateRange('bright-val', restoreBright, ['0%', '25%', '50%', '75%', '100%']);
+      } else {
+        // Any non-off mode: guarantee a non-zero brightness level (at least level 1-4)
+        if (previousModeVal === 20 || currentBright <= 0) {
+          const restoreBright = (rememberedBrightness > 0 ? rememberedBrightness : 4);
+          if (brightInput) brightInput.value = restoreBright;
+          updateRange('bright-val', restoreBright, ['0%', '25%', '50%', '75%', '100%']);
+        }
       }
       previousModeVal = modeVal;
       updateColorVisibility(modeVal);
@@ -520,6 +523,10 @@ HTML_PAGE = """<!DOCTYPE html>
         brightness = 0;
         document.getElementById('light-brightness').value = 0;
         updateRange('bright-val', 0, ['0%', '25%', '50%', '75%', '100%']);
+      } else if (isNaN(brightness) || brightness <= 0) {
+        brightness = (rememberedBrightness > 0 ? rememberedBrightness : 4);
+        document.getElementById('light-brightness').value = brightness;
+        updateRange('bright-val', brightness, ['0%', '25%', '50%', '75%', '100%']);
       }
       updateColorVisibility(mode);
 
@@ -787,7 +794,11 @@ HTML_PAGE = """<!DOCTYPE html>
         document.getElementById('color-hex').innerText = savedColor;
       }
 
-      const savedBright = localStorage.getItem('lt104_light_brightness') !== null ? localStorage.getItem('lt104_light_brightness') : SERVER_CONFIG.brightness;
+      let savedBright = localStorage.getItem('lt104_light_brightness') !== null ? localStorage.getItem('lt104_light_brightness') : SERVER_CONFIG.brightness;
+      const currentModeInt = parseInt(document.getElementById('light-mode').value) || 1;
+      if (currentModeInt !== 20 && (savedBright === null || savedBright === undefined || parseInt(savedBright) <= 0)) {
+        savedBright = (rememberedBrightness > 0 ? rememberedBrightness : 4);
+      }
       if (savedBright !== undefined && savedBright !== null) {
         document.getElementById('light-brightness').value = savedBright;
         updateRange('bright-val', savedBright, ['0%', '25%', '50%', '75%', '100%']);
@@ -1028,9 +1039,16 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 19: { // 来回穿梭 (Shuttle)
-          // Slow flowing harmonic wave across the whole board (does not react to keypresses)
-          const hue = (cx * 0.45 - t * speedMult * 35.0 + Math.sin(cy * 0.04) * 40.0 + 360) % 360;
-          return hslToRgb(hue, 1.0, 0.5);
+          // Column beam weaves back and forth horizontally across keyboard
+          const shuttleCycle = 2.2 / speedMult;
+          const p = (t % shuttleCycle) / shuttleCycle;
+          const pos = (p < 0.5 ? (p * 2.0) : (2.0 - p * 2.0));
+          const beamX = 25.0 + pos * 900.0;
+          const distX = Math.abs(cx - beamX);
+          const val = Math.max(0.04, Math.exp(-distX * distX / 1600));
+          const hue = (beamX * 0.4 + t * speedMult * 90) % 360;
+          const c = hslToRgb(hue, 1.0, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
         }
 
         case 21: { // 万众一心 (Solid Center)
@@ -1142,8 +1160,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 19 Shuttle and 21 Solid Center do not react to keypresses)
-            if (modeVal !== 19 && modeVal !== 21) {
+            // Active ripples overlay (Mode 21 Solid Center does not react to keypresses)
+            if (modeVal !== 21) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1342,7 +1360,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 19 || modeVal === 21) return; // Shuttle and Solid Center do not react to keypresses
+        if (modeVal === 21) return; // Solid Center does not react to keypresses
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];
