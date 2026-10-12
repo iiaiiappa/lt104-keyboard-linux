@@ -210,14 +210,30 @@ function runCliAsync(args) {
 
 function launchApp() {
     try {
-        let appInfo = Gio.AppInfo.create_from_commandline(
-            `/usr/bin/python3 ${APP_PATH}`,
-            'LT-104 Keyboard',
-            Gio.AppInfoCreateFlags.NONE
+        // Strategy 1: Direct subprocess spawn (guaranteed to launch under GNOME Wayland/X11)
+        let proc = Gio.Subprocess.new(
+            ['/usr/bin/python3', APP_PATH],
+            Gio.SubprocessFlags.NONE
         );
-        appInfo.launch([], null);
+        proc.wait_async(null, null);
     } catch (e) {
-        console.error(`[LT104-Indicator] Failed to launch GTK App: ${e}`);
+        console.error(`[LT104-Indicator] Failed to launch GTK App via Subprocess: ${e}`);
+        try {
+            // Strategy 2: Fallback to desktop app info
+            let app = Gio.DesktopAppInfo.new('lt104.desktop');
+            if (app) {
+                app.launch([], null);
+            } else {
+                let appInfo = Gio.AppInfo.create_from_commandline(
+                    `/usr/bin/python3 ${APP_PATH}`,
+                    'LT-104 Keyboard',
+                    Gio.AppInfoCreateFlags.NONE
+                );
+                appInfo.launch([], null);
+            }
+        } catch (e2) {
+            console.error(`[LT104-Indicator] Fallback launch failed: ${e2}`);
+        }
     }
 }
 
