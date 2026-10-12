@@ -861,33 +861,23 @@ class LT104Window(Adw.ApplicationWindow):
             return (0.0, 0.0, 0.0)
 
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
-            # Background all off, slashes width one key (45 deg) with colorful lights.
-            # Phase 1: backslash (\) sweeps left, forwardslash (/) sweeps right from center (477)
-            # Phase 2: backslash (\) sweeps right, forwardslash (/) sweeps left from center (477)
-            mid_x = 477.0
-            mid_y = 148.0
-            mid_b = mid_x - mid_y  # 329.0
-            mid_f = mid_x + mid_y  # 625.0
-            max_travel = 620.0
-            cycle_duration = 3.6 / speed_mult
-            half_cycle = cycle_duration / 2.0
-            cur_time = (t % cycle_duration)
-            is_phase1 = (cur_time < half_cycle)
-            phase_prog = (cur_time / half_cycle) if is_phase1 else ((cur_time - half_cycle) / half_cycle)
-            travel = phase_prog * max_travel
+            # Multiple slashes alternating continuously across the board, dark background.
+            # Spaced so backslash (\) and forwardslash (/) do not intersect at the keyboard center.
+            coord_b = cx - cy  # Backslash line (\)
+            coord_f = cx + cy  # Forwardslash line (/)
+            beam_width = 24.0  # Width of 1 key
+            spacing = 460.0    # Distance between parallel slashes
+            speed_b = 160.0 * speed_mult
+            speed_f = 160.0 * speed_mult
 
-            if is_phase1:
-                target_b = mid_b - travel
-                target_f = mid_f + travel
-            else:
-                target_b = mid_b + travel
-                target_f = mid_f - travel
+            # Backslash waves sweep left (decreasing coord_b)
+            shift_b = ((coord_b + t * speed_b) % spacing + spacing) % spacing
+            dist_b = min(shift_b, spacing - shift_b)
 
-            coord_b = cx - cy
-            coord_f = cx + cy
-            dist_b = abs(coord_b - target_b)
-            dist_f = abs(coord_f - target_f)
-            beam_width = 26.0
+            # Forwardslash waves sweep right (increasing coord_f), staggered so they never cross in the center
+            stagger_offset = spacing * 0.5 + 85.0
+            shift_f = ((coord_f - t * speed_f + stagger_offset) % spacing + spacing) % spacing
+            dist_f = min(shift_f, spacing - shift_f)
 
             max_val = 0.0
             active_hue = 0.0
@@ -896,13 +886,13 @@ class LT104Window(Adw.ApplicationWindow):
                 val_b = math.exp(-(dist_b * dist_b) / (2.0 * beam_width * beam_width))
                 if val_b > max_val:
                     max_val = val_b
-                    active_hue = (coord_b * 0.7 + (0.0 if is_phase1 else 180.0) + t * speed_mult * 140.0 + 360.0) % 360.0
+                    active_hue = (coord_b * 0.8 + t * speed_mult * 110.0 + 360.0) % 360.0
 
             if dist_f < beam_width * 2.2:
                 val_f = math.exp(-(dist_f * dist_f) / (2.0 * beam_width * beam_width))
                 if val_f > max_val:
                     max_val = val_f
-                    active_hue = (coord_f * 0.7 + (120.0 if is_phase1 else 300.0) + t * speed_mult * 140.0 + 360.0) % 360.0
+                    active_hue = (coord_f * 0.8 + t * speed_mult * 110.0 + 175.0) % 360.0
 
             if max_val < 0.02:
                 return (0.0, 0.0, 0.0)

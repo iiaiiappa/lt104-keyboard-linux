@@ -1022,37 +1022,23 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
-          // Background all off, slashes width one key (45 deg) with colorful lights.
-          // Phase 1: backslash (\) sweeps left, forwardslash (/) sweeps right from center (477)
-          // Phase 2: backslash (\) sweeps right, forwardslash (/) sweeps left from center (477)
-          const midX = 477.0;
-          const midY = 148.0;
-          const midB = midX - midY; // 329.0
-          const midF = midX + midY; // 625.0
-          const maxTravel = 620.0;
-          const cycleDuration = 3.6 / speedMult;
-          const halfCycle = cycleDuration / 2.0;
-          const curTime = (t % cycleDuration);
-          const isPhase1 = (curTime < halfCycle);
-          const phaseProg = (isPhase1 ? (curTime / halfCycle) : ((curTime - halfCycle) / halfCycle));
-          const travel = phaseProg * maxTravel;
+          // Multiple slashes alternating continuously across the board, dark background.
+          // Spaced so backslash (\) and forwardslash (/) do not intersect at the keyboard center.
+          const coordB = cx - cy; // Backslash line (\)
+          const coordF = cx + cy; // Forwardslash line (/)
+          const beamWidth = 24.0; // Width of 1 key
+          const spacing = 460.0;  // Distance between parallel slashes
+          const speedB = 160.0 * speedMult;
+          const speedF = 160.0 * speedMult;
 
-          // Backslash line: coordB = cx - cy
-          // Forwardslash line: coordF = cx + cy
-          let targetB, targetF;
-          if (isPhase1) {
-            targetB = midB - travel; // Backslash sweeps left
-            targetF = midF + travel; // Forwardslash sweeps right
-          } else {
-            targetB = midB + travel; // Backslash sweeps right
-            targetF = midF - travel; // Forwardslash sweeps left
-          }
+          // Backslash waves sweep left (decreasing coordB), offset by 0
+          const shiftB = ((coordB + t * speedB) % spacing + spacing) % spacing;
+          const distB = Math.min(shiftB, spacing - shiftB);
 
-          const coordB = cx - cy;
-          const coordF = cx + cy;
-          const distB = Math.abs(coordB - targetB);
-          const distF = Math.abs(coordF - targetF);
-          const beamWidth = 26.0; // Width of approximately one key
+          // Forwardslash waves sweep right (increasing coordF), staggered by half spacing + offset so they never cross in the center
+          const staggerOffset = spacing * 0.5 + 85.0;
+          const shiftF = ((coordF - t * speedF + staggerOffset) % spacing + spacing) % spacing;
+          const distF = Math.min(shiftF, spacing - shiftF);
 
           let maxVal = 0.0;
           let activeHue = 0;
@@ -1061,8 +1047,7 @@ HTML_PAGE = """<!DOCTYPE html>
             const valB = Math.exp(-(distB * distB) / (2 * beamWidth * beamWidth));
             if (valB > maxVal) {
               maxVal = valB;
-              // Colorful hue based on slash coordinate and time
-              activeHue = (coordB * 0.7 + (isPhase1 ? 0 : 180) + t * speedMult * 140.0 + 360) % 360;
+              activeHue = (coordB * 0.8 + t * speedMult * 110.0 + 360) % 360;
             }
           }
 
@@ -1070,8 +1055,7 @@ HTML_PAGE = """<!DOCTYPE html>
             const valF = Math.exp(-(distF * distF) / (2 * beamWidth * beamWidth));
             if (valF > maxVal) {
               maxVal = valF;
-              // Distinct colorful hue for forwardslash
-              activeHue = (coordF * 0.7 + (isPhase1 ? 120 : 300) + t * speedMult * 140.0 + 360) % 360;
+              activeHue = (coordF * 0.8 + t * speedMult * 110.0 + 175) % 360;
             }
           }
 
