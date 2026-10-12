@@ -259,16 +259,16 @@ class LT104Window(Adw.ApplicationWindow):
             "2 秒 (高频)",
             "5 秒 (快速)",
             "10 秒 (适中)",
-            "20 秒 (默认推荐)",
+            "20 秒",
             "30 秒 (省电)",
             "60 秒 (超慢)",
-            "120 秒 (2分钟)",
-            "300 秒 (5分钟)"
+            "120 秒 (2分钟 - 默认)",
+            "300 秒 (5分钟 - 省电)"
         ])
         self._interval_row.set_model(model)
         cfg = load_config()
-        initial_inv = float(cfg.get("hud_interval", 20.0))
-        sel_idx = 3  # Index 3 is 20s default
+        initial_inv = float(cfg.get("hud_interval", 120.0))
+        sel_idx = 6  # Index 6 is 120s default
         for idx, inv in enumerate(self._interval_intervals):
             if abs(inv - initial_inv) < 0.1:
                 sel_idx = idx
@@ -282,7 +282,7 @@ class LT104Window(Adw.ApplicationWindow):
 
         # Buttons Row: Toggle & Once
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        self._hud_btn = Gtk.Button(label="📊  开启即时系统 HUD (每20秒更新)")
+        self._hud_btn = Gtk.Button(label=f"📊  开启即时系统 HUD (每{int(initial_inv)}秒更新)")
         self._hud_btn.add_css_class("pill")
         self._hud_btn.set_hexpand(True)
         self._hud_btn.connect("clicked", self._on_toggle_hud)
@@ -349,6 +349,7 @@ class LT104Window(Adw.ApplicationWindow):
         group.add(upload_btn)
 
         self._selected_file = None
+        self._lcd_group = group
         return group
 
     # ------------------------------------------------------------------ #
@@ -385,7 +386,7 @@ class LT104Window(Adw.ApplicationWindow):
                     pass
 
             idx = self._interval_row.get_selected()
-            sec = self._interval_intervals[idx] if idx < len(self._interval_intervals) else 20
+            sec = self._interval_intervals[idx] if idx < len(self._interval_intervals) else 120
             if running:
                 self._hud_btn.set_label(f"⏹️  停止系统 HUD (运行中，每{sec}秒更新)")
                 self._hud_btn.remove_css_class("suggested-action")
@@ -394,6 +395,9 @@ class LT104Window(Adw.ApplicationWindow):
                 self._hud_btn.set_label(f"📊  开启即时系统 HUD (每{sec}秒更新)")
                 self._hud_btn.remove_css_class("destructive-action")
                 self._hud_btn.add_css_class("suggested-action")
+
+            if hasattr(self, '_lcd_group'):
+                self._lcd_group.set_visible(not running)
         except Exception:
             pass
 

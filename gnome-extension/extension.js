@@ -401,7 +401,7 @@ class LT104Indicator extends PanelMenu.Button {
         this.menu.addMenuItem(schedItem);
 
         // Toggle Real-time System HUD
-        let currentInterval = 20;
+        let currentInterval = 120;
         let hudItem = new PopupMenu.PopupMenuItem('📊 ' + t('hud_toggle', {sec: currentInterval}));
 
         hudItem.connect('activate', () => {
@@ -434,11 +434,11 @@ class LT104Indicator extends PanelMenu.Button {
         const intervals = [
             {label: '5s', val: 5},
             {label: '10s', val: 10},
-            {label: '20s (Default)', val: 20},
+            {label: '20s', val: 20},
             {label: '30s', val: 30},
             {label: '60s', val: 60},
-            {label: '120s (2 min - Recommended)', val: 120},
-            {label: '300s (5 min - Recommended)', val: 300},
+            {label: '120s (2 min - Default)', val: 120},
+            {label: '300s (5 min - Power Saving)', val: 300},
         ];
 
         intervals.forEach(inv => {

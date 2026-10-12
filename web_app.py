@@ -19,7 +19,7 @@ from config import load_config, save_config
 
 CFG = load_config()
 HUD_PROC = None
-HUD_INTERVAL = float(CFG.get("hud_interval", 20.0))
+HUD_INTERVAL = float(CFG.get("hud_interval", 120.0))
 
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -181,11 +181,11 @@ HTML_PAGE = """<!DOCTYPE html>
             <select id="hud-interval" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onIntervalChanged()">
               <option value="5" id="opt-5s">5s (Fast)</option>
               <option value="10" id="opt-10s">10s (Moderate)</option>
-              <option value="20" id="opt-20s" selected>20s (Default)</option>
+              <option value="20" id="opt-20s">20s</option>
               <option value="30" id="opt-30s">30s (Power Saving)</option>
               <option value="60" id="opt-60s">60s (Slow)</option>
-              <option value="120" id="opt-120s">120s (2 min - Recommended)</option>
-              <option value="300" id="opt-300s">300s (5 min - Recommended)</option>
+              <option value="120" id="opt-120s" selected>120s (2 min - Default)</option>
+              <option value="300" id="opt-300s">300s (5 min - Power Saving)</option>
             </select>
           </div>
         </div>
@@ -199,7 +199,7 @@ HTML_PAGE = """<!DOCTYPE html>
     </div>
 
     <!-- LCD Image / GIF Upload Card -->
-    <div class="card">
+    <div class="card" id="card-lcd-upload">
       <div class="card-title" id="txt-lcd-title">📺 LCD Image & GIF Upload</div>
       <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-lcd-desc">
         Automatically scaled to 160 × 80 RGB565, multi-frame GIF supported.
@@ -452,12 +452,12 @@ HTML_PAGE = """<!DOCTYPE html>
     }
 
     let hudRunning = false;
-    let currentHudInterval = 20;
+    let currentHudInterval = 120;
 
     function updateHudUI() {
       const badge = document.getElementById('hud-badge');
       const btn = document.getElementById('btn-toggle-hud');
-      const sec = currentHudInterval || 20;
+      const sec = currentHudInterval || 120;
       if (hudRunning) {
         badge.innerText = t('running') + ' (' + sec + 's)';
         badge.style.color = '#34d399';
@@ -468,6 +468,11 @@ HTML_PAGE = """<!DOCTYPE html>
         badge.style.color = '#94a3b8';
         btn.innerText = '📊 ' + t('hud_start', { sec: sec });
         btn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+      }
+
+      const lcdCard = document.getElementById('card-lcd-upload');
+      if (lcdCard) {
+        lcdCard.style.display = hudRunning ? 'none' : 'block';
       }
     }
 
@@ -582,7 +587,7 @@ HTML_PAGE = """<!DOCTYPE html>
         updateRange('speed-val', savedSpeed);
       }
 
-      const savedInterval = localStorage.getItem('lt104_hud_interval') || SERVER_CONFIG.hud_interval;
+      const savedInterval = localStorage.getItem('lt104_hud_interval') || SERVER_CONFIG.hud_interval || 120;
       if (savedInterval) {
         currentHudInterval = parseFloat(savedInterval);
         document.getElementById('hud-interval').value = String(savedInterval);

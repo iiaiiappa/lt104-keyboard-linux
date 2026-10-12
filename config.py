@@ -19,7 +19,7 @@ DEFAULT_CONFIG = {
     "b": 255,
     "brightness": 4,
     "speed": 3,
-    "hud_interval": 20.0,
+    "hud_interval": 120.0,
     "lang": "en"
 }
 

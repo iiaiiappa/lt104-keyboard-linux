@@ -73,11 +73,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 Note: The 48MHz keyboard MCU dedicates 100% bandwidth to transfer 28KB frame over SPI, pausing software LED PWM for ~0.5s. Recommended interval: 2 to 5 minutes (or use single-shot update).",
         "opt_5s": "5s (Fast)",
         "opt_10s": "10s (Moderate)",
-        "opt_20s": "20s (Default)",
+        "opt_20s": "20s",
         "opt_30s": "30s (Power Saving)",
         "opt_60s": "60s (Slow)",
-        "opt_120s": "120s (2 min - Recommended)",
-        "opt_300s": "300s (5 min - Recommended)"
+        "opt_120s": "120s (2 min - Default)",
+        "opt_300s": "300s (5 min - Power Saving)"
     },
     "zh-CN": {
         "title": "LT-104 键盘控制中心 (Linux 原生)",
@@ -146,11 +146,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 说明：键盘 48MHz 单片机在通过 SPI 总线刷入 28KB 画面时会满载占用，期间硬件会暂停软件 PWM 约半秒。推荐更新间隔：2 至 5 分钟（或使用单次刷新）。",
         "opt_5s": "5 秒 (快速)",
         "opt_10s": "10 秒 (适中)",
-        "opt_20s": "20 秒 (默认)",
+        "opt_20s": "20 秒",
         "opt_30s": "30 秒 (省电)",
         "opt_60s": "60 秒 (超慢)",
-        "opt_120s": "120 秒 (2分钟 - 推荐)",
-        "opt_300s": "300 秒 (5分钟 - 推荐)"
+        "opt_120s": "120 秒 (2分钟 - 默认)",
+        "opt_300s": "300 秒 (5分钟 - 省电)"
     },
     "zh-TW": {
         "title": "LT-104 鍵盤控制中心 (Linux 原生)",
@@ -219,11 +219,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 說明：鍵盤 48MHz 單片機在透過 SPI 總線刷入 28KB 畫面時會滿載佔用，期間硬體會暫停軟體 PWM 約半秒。推薦更新間隔：2 至 5 分鐘（或使用單次重新整理）。",
         "opt_5s": "5 秒 (快速)",
         "opt_10s": "10 秒 (適中)",
-        "opt_20s": "20 秒 (預設)",
+        "opt_20s": "20 秒",
         "opt_30s": "30 秒 (省電)",
         "opt_60s": "60 秒 (超慢)",
-        "opt_120s": "120 秒 (2分鐘 - 推薦)",
-        "opt_300s": "300 秒 (5分鐘 - 推薦)"
+        "opt_120s": "120 秒 (2分鐘 - 預設)",
+        "opt_300s": "300 秒 (5分鐘 - 省電)"
     },
     "ja": {
         "title": "LT-104 キーボードコントロールセンター",
@@ -292,11 +292,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 注記: キーボードの48MHz MCUがSPI経由で28KBの画面を転送する際、CPUが専有されるためソフトウェアLED PWMが約0.5秒間一時停止します。推奨更新間隔: 2〜5分（または単発更新をご利用ください）。",
         "opt_5s": "5秒 (高速)",
         "opt_10s": "10秒 (標準)",
-        "opt_20s": "20秒 (デフォルト)",
+        "opt_20s": "20秒",
         "opt_30s": "30秒 (省電力)",
         "opt_60s": "60秒 (低速)",
-        "opt_120s": "120秒 (2分 - 推奨)",
-        "opt_300s": "300秒 (5分 - 推奨)"
+        "opt_120s": "120秒 (2分 - デフォルト)",
+        "opt_300s": "300秒 (5分 - 省電力)"
     },
     "ko": {
         "title": "LT-104 키보드 제어 센터",
@@ -365,11 +365,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 안내: 48MHz 키보드 MCU가 SPI로 28KB 화면을 전송할 때 CPU가 전담되므로 소프트웨어 LED PWM이 약 0.5초 동안 일시 중지됩니다. 권장 갱신 주기: 2~5분(또는 1회 갱신 사용 권장).",
         "opt_5s": "5초 (빠름)",
         "opt_10s": "10초 (보통)",
-        "opt_20s": "20초 (기본값)",
+        "opt_20s": "20초",
         "opt_30s": "30초 (절전)",
         "opt_60s": "60초 (느림)",
-        "opt_120s": "120초 (2분 - 권장)",
-        "opt_300s": "300초 (5분 - 권장)"
+        "opt_120s": "120초 (2분 - 기본값)",
+        "opt_300s": "300초 (5분 - 절전)"
     },
     "de": {
         "title": "LT-104 Tastatur-Kontrollzentrum",
@@ -438,11 +438,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 Hinweis: Die 48MHz-Tastatur-MCU benötigt die volle CPU-Bandbreite für die 28KB-SPI-Übertragung, wodurch das Software-LED-PWM für ca. 0,5s pausiert wird. Empfohlenes Intervall: 2 bis 5 Minuten (oder Einmal-Aktualisierung).",
         "opt_5s": "5s (Schnell)",
         "opt_10s": "10s (Mittel)",
-        "opt_20s": "20s (Standard)",
+        "opt_20s": "20s",
         "opt_30s": "30s (Energiesparend)",
         "opt_60s": "60s (Langsam)",
-        "opt_120s": "120s (2 Min. - Empfohlen)",
-        "opt_300s": "300s (5 Min. - Empfohlen)"
+        "opt_120s": "120s (2 Min. - Standard)",
+        "opt_300s": "300s (5 Min. - Energiesparend)"
     },
     "fr": {
         "title": "Centre de Contrôle Clavier LT-104",
@@ -511,11 +511,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 Remarque : Le microcontrôleur 48MHz dédie tout son processeur au transfert SPI de 28Ko, suspendant le PWM logiciel des LED pendant environ 0,5s. Intervalle recommandé : 2 à 5 minutes (ou mise à jour ponctuelle).",
         "opt_5s": "5s (Rapide)",
         "opt_10s": "10s (Modéré)",
-        "opt_20s": "20s (Par défaut)",
+        "opt_20s": "20s",
         "opt_30s": "30s (Économie)",
         "opt_60s": "60s (Lent)",
-        "opt_120s": "120s (2 min - Recommandé)",
-        "opt_300s": "300s (5 min - Recommandé)"
+        "opt_120s": "120s (2 min - Par défaut)",
+        "opt_300s": "300s (5 min - Économie)"
     },
     "es": {
         "title": "Centro de Control del Teclado LT-104",
@@ -584,11 +584,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 Nota: El microcontrolador de 48MHz dedica toda la CPU a transferir 28KB por SPI, pausando el PWM de los LED durante ~0,5s. Intervalo recomendado: 2 a 5 minutos (o actualización puntual).",
         "opt_5s": "5s (Rápido)",
         "opt_10s": "10s (Moderado)",
-        "opt_20s": "20s (Predeterminado)",
+        "opt_20s": "20s",
         "opt_30s": "30s (Ahorro)",
         "opt_60s": "60s (Lento)",
-        "opt_120s": "120s (2 min - Recomendado)",
-        "opt_300s": "300s (5 min - Recomendado)"
+        "opt_120s": "120s (2 min - Predeterminado)",
+        "opt_300s": "300s (5 min - Ahorro)"
     },
     "ru": {
         "title": "Центр управления клавиатурой LT-104",
@@ -657,11 +657,11 @@ TRANSLATIONS = {
         "hud_hardware_note": "💡 Примечание: 48МГц микроконтроллер полностью загружен при передаче 28КБ кадра по SPI, временно отключая программный ШИМ подсветки на ~0,5с. Рекомендуемый интервал: от 2 до 5 минут (или разовое обновление).",
         "opt_5s": "5с (Быстро)",
         "opt_10s": "10с (Умеренно)",
-        "opt_20s": "20с (По умолчанию)",
+        "opt_20s": "20с",
         "opt_30s": "30с (Энергосбережение)",
         "opt_60s": "60с (Медленно)",
-        "opt_120s": "120с (2 мин - Рекомендуется)",
-        "opt_300s": "300с (5 мин - Рекомендуется)"
+        "opt_120s": "120с (2 мин - По умолчанию)",
+        "opt_300s": "300с (5 мин - Энергосбережение)"
     }
 }
 

@@ -102,7 +102,7 @@ def image_to_rgb565(im):
 
 PID_FILE = "/tmp/lt104_indicator.pid"
 
-def run_indicator(interval=3.0, once=False):
+def run_indicator(interval=120.0, once=False):
     print(f"[LT-104 HUD] Starting Real-time System HUD (Interval: {interval}s)...")
     running = True
     wake_event = False
@@ -206,7 +206,7 @@ def run_indicator(interval=3.0, once=False):
     print("[LT-104 HUD] Daemon stopped.")
 
 if __name__ == '__main__':
-    interval = 20.0
+    interval = 120.0
     once = '--once' in sys.argv
     if '--interval' in sys.argv:
         try:

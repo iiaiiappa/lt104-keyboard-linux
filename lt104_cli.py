@@ -53,7 +53,7 @@ def main():
 
     # hud-start, hud-stop, hud-status
     p_hud_start = subparsers.add_parser("hud-start")
-    p_hud_start.add_argument("--interval", type=float, default=20.0)
+    p_hud_start.add_argument("--interval", type=float, default=120.0)
     subparsers.add_parser("hud-stop")
     subparsers.add_parser("hud-status")
     subparsers.add_parser("hud-once")
