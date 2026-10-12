@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary & Log files
+*.log
+*.tmp
+*.pid
+/tmp/
+
+# System and user configuration
+.config/
+local_test/
+
+# Videos and large trace dumps
+*.mp4
+*.mkv
+*.mov
+*.pcapng
+*.pcap
+
+# OS generated files
+.DS_Store
+Thumbs.db
+

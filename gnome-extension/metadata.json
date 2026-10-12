@@ -1,0 +1,16 @@
+{
+  "name": "LT-104 Keyboard Indicator",
+  "description": "Quick panel controls for LangTu LT-104 RGB keyboard (clock sync, RGB presets, and launcher).",
+  "uuid": "lt104-indicator@theforwardway.com",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "url": "https://github.com/theforwardway/lt104-linux",
+  "version": 1
+}
+
