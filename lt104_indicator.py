@@ -174,6 +174,12 @@ def run_indicator(interval=120.0, once=False):
                 print("[LT-104 HUD] Single frame rendered and pushed successfully.")
                 break
 
+            # Release USB descriptors during interval sleep so clock sync and lighting never hit EBUSY
+            if ctl:
+                try: ctl.close()
+                except: pass
+                ctl = None
+
         except (OSError, RuntimeError) as e:
             print(f"[LT-104 HUD] Connection error: {e}. Reconnecting in 3s...")
             if ctl:

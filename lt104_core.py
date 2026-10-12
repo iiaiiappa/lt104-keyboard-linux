@@ -82,7 +82,16 @@ class LT104Controller:
         self.usb_path = usb_path or find_lt104_usb()
         if not self.usb_path:
             raise RuntimeError("未检测到 狼途 LT-104 键盘 (VID 0C45, PID 8009)。请确认 USB 连线已插好！")
-        self.fd = os.open(self.usb_path, os.O_RDWR)
+        self.fd = None
+        for attempt in range(5):
+            try:
+                self.fd = os.open(self.usb_path, os.O_RDWR)
+                break
+            except OSError as e:
+                if e.errno in (16, 11) and attempt < 4:
+                    time.sleep(0.05 * (attempt + 1))
+                    continue
+                raise
         self.lcd_path = lcd_path or find_lt104_lcd_hidraw()
         self.lcd_fd = None
         if self.lcd_path and os.path.exists(self.lcd_path):
@@ -105,7 +114,7 @@ class LT104Controller:
     #  Low-level USB HID control transfers (Interface 3)                  #
     # ------------------------------------------------------------------ #
 
-    def _set_feature(self, data):
+    def _set_feature(self, data, retries=10):
         """
         Send a 64-byte HID Feature Report (SET_REPORT) via USB control transfer
         to Interface 3 (vendor control channel).
@@ -120,12 +129,20 @@ class LT104Controller:
             (0x03 << 8) | 0x00,    # wValue: Feature Report (0x03), Report ID 0
             0x0003,                 # wIndex: Interface 3
             64,                     # wLength
-            1000,                   # timeout ms
+            1500,                   # timeout ms
             ctypes.addressof(buf),
         )
-        fcntl.ioctl(self.fd, USBDEVFS_CONTROL, ctrl)
+        for attempt in range(retries):
+            try:
+                fcntl.ioctl(self.fd, USBDEVFS_CONTROL, ctrl)
+                return True
+            except OSError as e:
+                if e.errno in (16, 11) and attempt < retries - 1:  # EBUSY (16), EAGAIN (11)
+                    time.sleep(0.05 * (attempt + 1))
+                    continue
+                raise
 
-    def _get_feature(self):
+    def _get_feature(self, retries=10):
         """
         Read a 64-byte HID Feature Report (GET_REPORT) via USB control transfer
         from Interface 3.
@@ -138,14 +155,21 @@ class LT104Controller:
             (0x03 << 8) | 0x00,    # wValue: Feature Report (0x03), Report ID 0
             0x0003,                 # wIndex: Interface 3
             64,                     # wLength
-            1000,                   # timeout ms
+            1500,                   # timeout ms
             ctypes.addressof(buf),
         )
-        try:
-            fcntl.ioctl(self.fd, USBDEVFS_CONTROL, ctrl)
-            return bytes(buf.raw)
-        except Exception:
-            return None
+        for attempt in range(retries):
+            try:
+                fcntl.ioctl(self.fd, USBDEVFS_CONTROL, ctrl)
+                return bytes(buf.raw)
+            except OSError as e:
+                if e.errno in (16, 11) and attempt < retries - 1:
+                    time.sleep(0.05 * (attempt + 1))
+                    continue
+                return None
+            except Exception:
+                return None
+        return None
 
     def _send_with_ack(self, b0, b1, extra=None, timeout_ms=150):
         """

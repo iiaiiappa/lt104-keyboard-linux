@@ -193,6 +193,7 @@ class LT104Window(Adw.ApplicationWindow):
         self._brightness_scale.set_hexpand(True)
         bright_box.append(self._brightness_scale)
         bright_row.add_suffix(bright_box)
+        self._bright_row = bright_row
         group.add(bright_row)
 
         # Speed
@@ -207,6 +208,7 @@ class LT104Window(Adw.ApplicationWindow):
         self._speed_scale.set_hexpand(True)
         speed_box.append(self._speed_scale)
         speed_row.add_suffix(speed_box)
+        self._speed_row = speed_row
         group.add(speed_row)
 
         # Apply button
@@ -420,7 +422,12 @@ class LT104Window(Adw.ApplicationWindow):
                 self._color_row.set_visible(is_single)
             if hasattr(self, '_presets_row'):
                 self._presets_row.set_visible(is_single)
-            if mode_id == 20:
+            is_off = (mode_id == 20)
+            if hasattr(self, '_bright_row'):
+                self._bright_row.set_visible(not is_off)
+            if hasattr(self, '_speed_row'):
+                self._speed_row.set_visible(not is_off)
+            if is_off:
                 self._brightness_scale.set_value(0)
 
     def _on_preset_clicked(self, btn, hex_c):

@@ -134,12 +134,12 @@ HTML_PAGE = """<!DOCTYPE html>
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="group-brightness">
           <label><span id="txt-brightness">Brightness</span> <span id="bright-val" class="range-val">100%</span></label>
           <input type="range" id="light-brightness" min="0" max="4" value="4" oninput="updateRange('bright-val', this.value, ['0%', '25%', '50%', '75%', '100%'])" onchange="applyLight()">
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="group-speed">
           <label><span id="txt-speed">Animation Speed</span> <span id="speed-val" class="range-val">3</span></label>
           <input type="range" id="light-speed" min="0" max="4" value="3" oninput="updateRange('speed-val', this.value)" onchange="applyLight()">
         </div>
@@ -309,6 +309,11 @@ HTML_PAGE = """<!DOCTYPE html>
           colorGroup.style.display = 'none';
         }
       }
+      const isOff = (modeVal === 20);
+      const brightGroup = document.getElementById('group-brightness');
+      const speedGroup = document.getElementById('group-speed');
+      if (brightGroup) brightGroup.style.display = isOff ? 'none' : 'block';
+      if (speedGroup) speedGroup.style.display = isOff ? 'none' : 'block';
     }
 
     function onModeChange() {
@@ -709,9 +714,22 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
 
         elif self.path == "/api/sync-clock":
             try:
-                ctl = LT104Controller()
-                ctl.sync_clock()
-                ctl.close()
+                last_err = None
+                for attempt in range(3):
+                    try:
+                        ctl = LT104Controller()
+                        ctl.sync_clock()
+                        ctl.close()
+                        last_err = None
+                        break
+                    except OSError as e:
+                        last_err = e
+                        if e.errno in (16, 11) and attempt < 2:
+                            time.sleep(0.2 * (attempt + 1))
+                            continue
+                        raise
+                if last_err:
+                    raise last_err
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
