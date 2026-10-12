@@ -862,24 +862,26 @@ class LT104Window(Adw.ApplicationWindow):
 
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
             # Background all off, 1-key width 45° slashes.
-            # Spawns from middle of keyboard:
-            # Wave 1: Backslash (\) starts at 55% and sweeps right to end of keyboard.
-            # Once finished appearing from 50%, spawn next:
-            # Wave 2: Forwardslash (/) starts at 45% and sweeps left to end of keyboard.
-            # Sweeps reach edges without bouncing back and are discarded.
-            spawn_interval = 0.55 / speed_mult
-            travel_duration = 2.4 / speed_mult
-            wave_speed = 380.0 * speed_mult
+            # Slashes emerge from the 50% middle of keyboard, spaced 3 keys apart:
+            # Backslash (\) sweeps to the right without bouncing back.
+            # Forwardslash (/) sweeps to the left without bouncing back.
+            # No cross in the middle of keyboard.
+            mid_x = 479.0
+            mid_y = 141.5
+            wave_speed = 260.0 * speed_mult
+            slash_spacing = 123.0  # Exactly 3 keys apart (3 * 41px pitch)
+            spawn_interval = slash_spacing / wave_speed
+            travel_duration = 550.0 / wave_speed
+            beam_width = 20.0  # 1 key width
 
-            spawn_b = 377.0  # 525 - 148
-            spawn_f = 577.0  # 429 + 148
-            beam_width = 24.0
+            spawn_b = mid_x - mid_y
+            spawn_f = mid_x + mid_y
 
             max_val = 0.0
             active_hue = 0.0
 
             current_wave_idx = int(t / spawn_interval)
-            for w in range(current_wave_idx - 4, current_wave_idx + 1):
+            for w in range(current_wave_idx - 6, current_wave_idx + 1):
                 if w < 0:
                     continue
                 wave_age = t - w * spawn_interval
@@ -888,29 +890,29 @@ class LT104Window(Adw.ApplicationWindow):
 
                 dist_travelled = wave_age * wave_speed
                 if w % 2 == 0:
-                    # Backslash starts at 55% and sweeps right
-                    wave_coord = spawn_b + dist_travelled
-                    coord_b = cx - cy
-                    if coord_b < spawn_b - beam_width:
+                    # Backslash (\): sweeps to the right from 50% center
+                    if cx < mid_x:
                         continue
+                    coord_b = cx - cy
+                    wave_coord = spawn_b + dist_travelled
                     dist = abs(coord_b - wave_coord)
                     if dist < beam_width * 2.2:
                         val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
                         if val > max_val:
                             max_val = val
-                            active_hue = ((w % 12) * 65.0 + coord_b * 0.4 + 360.0) % 360.0
+                            active_hue = ((w * 67.0) + 360.0) % 360.0
                 else:
-                    # Forwardslash starts at 45% and sweeps left
-                    wave_coord = spawn_f - dist_travelled
-                    coord_f = cx + cy
-                    if coord_f > spawn_f + beam_width:
+                    # Forwardslash (/): sweeps to the left from 50% center
+                    if cx > mid_x:
                         continue
+                    coord_f = cx + cy
+                    wave_coord = spawn_f - dist_travelled
                     dist = abs(coord_f - wave_coord)
                     if dist < beam_width * 2.2:
                         val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
                         if val > max_val:
                             max_val = val
-                            active_hue = ((w % 12) * 65.0 + coord_f * 0.4 + 180.0 + 360.0) % 360.0
+                            active_hue = ((w * 67.0) + 180.0 + 360.0) % 360.0
 
             if max_val < 0.02:
                 return (0.0, 0.0, 0.0)
@@ -918,19 +920,27 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * max_val, c[1] * max_val, c[2] * max_val)
 
         elif mode == 18:  # 斜风细雨 (Gentle Rain)
-            # 45 degree (backslash shape: cx - cy) colored keys sweeping left to right, other keys off
-            sweep_cycle = 2.4 / speed_mult
-            sweep_prog = (t % sweep_cycle) / sweep_cycle
-            sweep_coord = -320.0 + sweep_prog * 1350.0  # Sweeps from left (-320) to right (1030)
-            slant_coord = cx - cy  # Backslash line: higher cx as cy increases
-            dist = abs(slant_coord - sweep_coord)
-            beam_width = 48.0
-            if dist > beam_width * 2.5:
+            # Multiple 45° backslashes (\: cx - cy) sweeping from left to right.
+            # Each backslash is 3 keys apart from the next/previous backslash, background keys off.
+            wave_speed = 240.0 * speed_mult
+            slash_spacing = 123.0  # Exactly 3 keys apart (3 * 41px pitch)
+            beam_width = 20.0  # 1 key width
+
+            coord_b = cx - cy
+            global_phase = t * wave_speed
+            offset = (coord_b - global_phase) % slash_spacing
+            if offset < 0:
+                offset += slash_spacing
+            dist = min(offset, slash_spacing - offset)
+
+            if dist > beam_width * 2.2:
                 return (0.0, 0.0, 0.0)
             val = math.exp(-(dist * dist) / (2.0 * beam_width * beam_width))
             if val < 0.02:
                 return (0.0, 0.0, 0.0)
-            hue = (slant_coord * 0.4 + t * speed_mult * 120.0 + 360.0) % 360.0
+
+            slash_idx = int(math.floor((coord_b - global_phase) / slash_spacing))
+            hue = ((slash_idx * 67.0) % 360.0 + 360.0) % 360.0
             c = hsl_to_rgb(hue, 1.0, 0.5)
             return (c[0] * val, c[1] * val, c[2] * val)
 

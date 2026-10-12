@@ -1023,62 +1023,55 @@ HTML_PAGE = """<!DOCTYPE html>
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
           // Background all off, 1-key width 45° slashes.
-          // Spawns from middle of keyboard:
-          // Wave 1: Backslash (\) starts at 55% and sweeps right to end of keyboard.
-          // Once finished appearing from 50%, spawn next:
-          // Wave 2: Forwardslash (/) starts at 45% and sweeps left to end of keyboard.
-          // Sweeps reach edges without bouncing back and are discarded.
-          const spawnInterval = 0.55 / speedMult; // Period between alternating slash births
-          const travelDuration = 2.4 / speedMult; // Lifespan of each outgoing slash
-          const waveSpeed = 380.0 * speedMult;    // Propagation velocity across keyboard in px/s
+          // Slashes emerge from the 50% middle of keyboard, spaced 3 keys apart:
+          // Backslash sweeps to the right without bouncing back.
+          // Forwardslash sweeps to the left without bouncing back.
+          // No cross in the middle of keyboard.
+          const midX = 479.0;
+          const midY = 141.5;
+          const waveSpeed = 260.0 * speedMult;
+          const slashSpacing = 123.0; // Exactly 3 keys apart (3 * 41px pitch)
+          const spawnInterval = slashSpacing / waveSpeed; // Delay between alternating slashes
+          const travelDuration = 550.0 / waveSpeed; // Distance to edge
+          const beamWidth = 20.0; // 1 key width
 
-          // 55% of width: cx = 525. For backslash line (cx - cy = const), center midB = 525 - 148 = 377
-          const spawnB = 377.0;
-          // 45% of width: cx = 429. For forwardslash line (cx + cy = const), center midF = 429 + 148 = 577
-          const spawnF = 577.0;
+          const spawnB = midX - midY;
+          const spawnF = midX + midY;
 
-          const beamWidth = 24.0; // Sharp 1-key width
           let maxVal = 0.0;
           let activeHue = 0;
 
-          // Check all active overlapping waves traveling outwards
           const currentWaveIndex = Math.floor(t / spawnInterval);
-          for (let w = currentWaveIndex - 4; w <= currentWaveIndex; w++) {
+          for (let w = currentWaveIndex - 6; w <= currentWaveIndex; w++) {
             if (w < 0) continue;
             const waveAge = t - w * spawnInterval;
             if (waveAge < 0 || waveAge > travelDuration) continue;
 
-            const isBackslash = (w % 2 === 0);
             const distTravelled = waveAge * waveSpeed;
-
-            if (isBackslash) {
-              // Backslash starts at 55% and sweeps right (increasing cx - cy)
-              const waveCoord = spawnB + distTravelled;
+            if (w % 2 === 0) {
+              // Backslash: sweeps to the right from 50% center
+              if (cx < midX) continue;
               const coordB = cx - cy;
-              // Only illuminate keys to the right of 55% spawn origin
-              if (coordB < spawnB - beamWidth) continue;
+              const waveCoord = spawnB + distTravelled;
               const dist = Math.abs(coordB - waveCoord);
               if (dist < beamWidth * 2.2) {
                 const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
                 if (val > maxVal) {
                   maxVal = val;
-                  // Random/distinct vibrant color per slash wave based on wave index & slant
-                  activeHue = ((w % 12) * 65 + coordB * 0.4 + 360) % 360;
+                  activeHue = ((w * 67) + 360) % 360;
                 }
               }
             } else {
-              // Forwardslash starts at 45% and sweeps left (decreasing cx + cy)
-              const waveCoord = spawnF - distTravelled;
+              // Forwardslash: sweeps to the left from 50% center
+              if (cx > midX) continue;
               const coordF = cx + cy;
-              // Only illuminate keys to the left of 45% spawn origin
-              if (coordF > spawnF + beamWidth) continue;
+              const waveCoord = spawnF - distTravelled;
               const dist = Math.abs(coordF - waveCoord);
               if (dist < beamWidth * 2.2) {
                 const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
                 if (val > maxVal) {
                   maxVal = val;
-                  // Random/distinct vibrant color per slash wave based on wave index & slant
-                  activeHue = ((w % 12) * 65 + coordF * 0.4 + 180 + 360) % 360;
+                  activeHue = ((w * 67) + 180 + 360) % 360;
                 }
               }
             }
@@ -1090,17 +1083,24 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)
-          // 45 degree (backslash shape: cx - cy) colored keys sweeping left to right, other keys off
-          const sweepCycle = 2.4 / speedMult;
-          const sweepProg = (t % sweepCycle) / sweepCycle;
-          const sweepCoord = -320.0 + sweepProg * 1350.0; // Sweeps from left (-320) to right (1030)
-          const slantCoord = cx - cy; // Backslash line: higher cx as cy increases
-          const dist = Math.abs(slantCoord - sweepCoord);
-          const beamWidth = 48.0;
-          if (dist > beamWidth * 2.5) return [0, 0, 0];
-          const val = Math.exp(-(dist * dist) / (2 * beamWidth * beamWidth));
+          // Multiple 45° backslashes (cx - cy) sweeping from left to right.
+          // Each backslash is 3 keys apart from the next/previous backslash, background keys off.
+          const waveSpeed = 240.0 * speedMult;
+          const slashSpacing = 123.0; // Exactly 3 keys apart (3 * 41px pitch)
+          const beamWidth = 20.0; // 1 key width
+
+          const coordB = cx - cy;
+          const globalPhase = t * waveSpeed;
+          let offset = (coordB - globalPhase) % slashSpacing;
+          if (offset < 0) offset += slashSpacing;
+          const dist = Math.min(offset, slashSpacing - offset);
+
+          if (dist > beamWidth * 2.2) return [0, 0, 0];
+          const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
           if (val < 0.02) return [0, 0, 0];
-          const hue = (slantCoord * 0.4 + t * speedMult * 120.0 + 360) % 360;
+
+          const slashIdx = Math.floor((coordB - globalPhase) / slashSpacing);
+          const hue = ((slashIdx * 67) % 360 + 360) % 360;
           const c = hslToRgb(hue, 1.0, 0.5);
           return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
         }
