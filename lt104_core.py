@@ -201,16 +201,31 @@ class LT104Controller:
 
         # Payload packet (no ACK expected)
         pkt = bytearray(64)
-        pkt[0]  = int(mode)       & 0xFF
-        pkt[1]  = int(r)          & 0xFF
-        pkt[2]  = int(g)          & 0xFF
-        pkt[3]  = int(b)          & 0xFF
-        pkt[4]  = 0x01            # colortype: 0=mono, 1=spectrum/custom
-        pkt[8]  = int(brightness) & 0xFF
-        pkt[9]  = int(speed)      & 0xFF
-        pkt[10] = int(direction)  & 0xFF
-        pkt[14] = 0x55
-        pkt[15] = 0xAA
+        if int(mode) == 20 or int(brightness) == 0:
+            # Mode 20 / Backlight Off: Windows driver uses hardware sleep opcode 0x80 (at 0x42d907)
+            pkt[0]  = 0x80            # 0x80 = Hardware Backlight Off opcode
+            pkt[1]  = 0x00            # R
+            pkt[2]  = 0x00            # G
+            pkt[3]  = 0x00            # B
+            pkt[4]  = 0x00
+            pkt[8]  = 0x00            # colortype = 0 (mono / off)
+            pkt[9]  = 0x05            # speed
+            pkt[10] = 0x05            # direction
+            pkt[11] = 0x00            # brightness = 0
+            pkt[14] = 0xAA
+            pkt[15] = 0x55
+        else:
+            pkt[0]  = int(mode)       & 0xFF
+            pkt[1]  = int(r)          & 0xFF
+            pkt[2]  = int(g)          & 0xFF
+            pkt[3]  = int(b)          & 0xFF
+            pkt[4]  = 0x00
+            pkt[8]  = 0x01            # colortype: 1=spectrum/custom
+            pkt[9]  = int(speed)      & 0xFF
+            pkt[10] = int(direction)  & 0xFF
+            pkt[11] = int(brightness) & 0xFF
+            pkt[14] = 0xAA
+            pkt[15] = 0x55
         self._set_feature(pkt)
         time.sleep(0.020)
 

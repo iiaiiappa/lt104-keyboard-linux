@@ -132,6 +132,7 @@ class LT104Window(Adw.ApplicationWindow):
         self._mode_row.set_model(mode_strings)
         initial_mode_idx = max(0, min(len(LIGHT_MODES)-1, int(cfg.get("mode", 1)) - 1))
         self._mode_row.set_selected(initial_mode_idx)
+        self._mode_row.connect("notify::selected", self._on_mode_changed)
         group.add(self._mode_row)
 
         # Colour button row
@@ -405,6 +406,11 @@ class LT104Window(Adw.ApplicationWindow):
         save_config({"hud_interval": sec})
         self._check_hud_status()
 
+    def _on_mode_changed(self, row, param):
+        mode_idx = self._mode_row.get_selected()
+        if mode_idx < len(LIGHT_MODES) and LIGHT_MODES[mode_idx]["id"] == 20:
+            self._brightness_scale.set_value(0)
+
     def _on_preset_clicked(self, btn, hex_c):
         rgba = Gdk.RGBA()
         rgba.parse(hex_c)
@@ -420,6 +426,10 @@ class LT104Window(Adw.ApplicationWindow):
         r, g, b   = int(rgba.red * 255), int(rgba.green * 255), int(rgba.blue * 255)
         brightness = int(self._brightness_scale.get_value())
         speed      = int(self._speed_scale.get_value())
+
+        if mode_id == 20:
+            brightness = 0
+            self._brightness_scale.set_value(0)
 
         def do_light():
             ctl = LT104Controller()

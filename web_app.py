@@ -314,8 +314,14 @@ HTML_PAGE = """<!DOCTYPE html>
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
-      const brightness = document.getElementById('light-brightness').value;
-      const speed = document.getElementById('light-speed').value;
+      let brightness = parseInt(document.getElementById('light-brightness').value);
+      const speed = parseInt(document.getElementById('light-speed').value);
+
+      if (parseInt(mode) === 20) {
+        brightness = 0;
+        document.getElementById('light-brightness').value = 0;
+        updateRange('bright-val', 0, ['0%', '25%', '50%', '75%', '100%']);
+      }
 
       try {
         localStorage.setItem('lt104_light_mode', mode);
