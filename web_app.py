@@ -1085,29 +1085,45 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)
-          // Multiple 45° backslashes (cx - cy) sweeping smoothly from left to right.
-          // Exactly 3 unlit keys apart from the next/previous backslash, background keys off.
-          // Smooth continuous motion without any flashing or abrupt color switching.
-          const waveSpeed = 200.0 * speedMult;
-          const slashSpacing = 164.0; // Exactly 3 unlit keys apart (4 * 41px pitch)
-          const maxDist = 26.0; // Smooth 1-key window (neighbor key at 41px is strictly 0)
-
+          // Multiple 45° backslashes (cx - cy) sweeping continuously from left to right.
+          // Spacing: Exactly 4 keys apart from middle of backslash to middle of next backslash (4 * 41px = 164px).
+          // Width: 1.8 keys width with Gaussian blur (sigma = 19.0px).
+          // Seamless fade-in and fade-out transitions; slashes flow continuously without on/off popping.
+          const waveSpeed = 180.0 * speedMult;
+          const slashSpacing = 164.0; // 4 keys pitch from middle of backslash to next middle
+          const sigma = 19.0;         // 1.8 keys Gaussian blur width
           const coordB = cx - cy;
           const globalPhase = t * waveSpeed;
-          // Use round() so the slash index center is locked at the peak of the beam,
-          // ensuring the key never flips hue while illuminated!
-          const slashIdx = Math.round((coordB - globalPhase) / slashSpacing);
-          const slashCenter = slashIdx * slashSpacing + globalPhase;
-          const dist = Math.abs(coordB - slashCenter);
 
-          if (dist > maxDist) return [0, 0, 0];
-          // Continuous smooth cosine window (1.0 at center, seamlessly 0.0 at maxDist without hard cutoff pop)
-          const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
-          if (val < 0.01) return [0, 0, 0];
+          // Check active adjacent slashes
+          const kCenter = (coordB - globalPhase) / slashSpacing;
+          const kMin = Math.floor(kCenter - 1);
+          const kMax = Math.ceil(kCenter + 1);
 
-          const hue = ((slashIdx * 67) % 360 + 360) % 360;
-          const c = hslToRgb(hue, 1.0, 0.5);
-          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          let totalR = 0;
+          let totalG = 0;
+          let totalB = 0;
+
+          for (let k = kMin; k <= kMax; k++) {
+            const linePos = k * slashSpacing + globalPhase;
+            const dist = Math.abs(coordB - linePos);
+            // Gaussian blur falloff
+            const val = Math.exp(-(dist * dist) / (2.0 * sigma * sigma));
+            if (val > 0.005) {
+              const hue = ((k * 67) % 360 + 360) % 360;
+              const c = hslToRgb(hue, 1.0, 0.5);
+              totalR += c[0] * val;
+              totalG += c[1] * val;
+              totalB += c[2] * val;
+            }
+          }
+
+          if (totalR < 1 && totalG < 1 && totalB < 1) return [0, 0, 0];
+          return [
+            Math.min(255, Math.round(totalR)),
+            Math.min(255, Math.round(totalG)),
+            Math.min(255, Math.round(totalB))
+          ];
         }
 
         case 19: { // 来回穿梭 (Shuttle)

@@ -920,27 +920,43 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * max_val, c[1] * max_val, c[2] * max_val)
 
         elif mode == 18:  # 斜风细雨 (Gentle Rain)
-            # Multiple 45° backslashes (cx - cy) sweeping smoothly from left to right.
-            # Exactly 3 unlit keys apart from the next/previous backslash, background keys off.
-            wave_speed = 200.0 * speed_mult
-            slash_spacing = 164.0  # Exactly 3 unlit keys apart (4 * 41px pitch)
-            max_dist = 26.0  # Smooth 1-key window (neighbor key at 41px is strictly 0)
-
+            # Multiple 45° backslashes (cx - cy) sweeping continuously from left to right.
+            # Spacing: Exactly 4 keys apart from middle of backslash to middle of next backslash (4 * 41px = 164px).
+            # Width: 1.8 keys width with Gaussian blur (sigma = 19.0px).
+            # Seamless fade-in and fade-out transitions; slashes flow continuously without on/off popping.
+            wave_speed = 180.0 * speed_mult
+            slash_spacing = 164.0  # 4 keys pitch from middle of backslash to next middle
+            sigma = 19.0         # 1.8 keys Gaussian blur width
             coord_b = cx - cy
             global_phase = t * wave_speed
-            slash_idx = int(round((coord_b - global_phase) / slash_spacing))
-            slash_center = slash_idx * slash_spacing + global_phase
-            dist = abs(coord_b - slash_center)
 
-            if dist > max_dist:
-                return (0.0, 0.0, 0.0)
-            val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
-            if val < 0.01:
-                return (0.0, 0.0, 0.0)
+            # Check active adjacent slashes
+            k_center = (coord_b - global_phase) / slash_spacing
+            k_min = int(math.floor(k_center - 1.0))
+            k_max = int(math.ceil(k_center + 1.0))
 
-            hue = ((slash_idx * 67.0) % 360.0 + 360.0) % 360.0
-            c = hsl_to_rgb(hue, 1.0, 0.5)
-            return (c[0] * val, c[1] * val, c[2] * val)
+            total_r = 0.0
+            total_g = 0.0
+            total_b = 0.0
+
+            for k in range(k_min, k_max + 1):
+                line_pos = k * slash_spacing + global_phase
+                dist = abs(coord_b - line_pos)
+                val = math.exp(-(dist * dist) / (2.0 * sigma * sigma))
+                if val > 0.005:
+                    hue = ((k * 67.0) % 360.0 + 360.0) % 360.0
+                    c = hsl_to_rgb(hue, 1.0, 0.5)
+                    total_r += c[0] * val
+                    total_g += c[1] * val
+                    total_b += c[2] * val
+
+            if total_r < 0.005 and total_g < 0.005 and total_b < 0.005:
+                return (0.0, 0.0, 0.0)
+            return (
+                min(1.0, total_r),
+                min(1.0, total_g),
+                min(1.0, total_b)
+            )
 
         elif mode == 19:  # 来回穿梭 (Shuttle)
             # Slow flowing harmonic wave across the whole board (does not react to keypresses)
