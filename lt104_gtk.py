@@ -339,6 +339,11 @@ class LT104Window(Adw.ApplicationWindow):
         self._hud_once_btn.add_css_class("pill")
         self._hud_once_btn.connect("clicked", self._on_hud_once)
         btn_box.append(self._hud_once_btn)
+
+        self._hud_restore_btn = Gtk.Button(label="🔄  恢复动画")
+        self._hud_restore_btn.add_css_class("pill")
+        self._hud_restore_btn.connect("clicked", self._on_restore_anim)
+        btn_box.append(self._hud_restore_btn)
         box.append(btn_box)
 
         # HUD status note
@@ -612,6 +617,33 @@ class LT104Window(Adw.ApplicationWindow):
             self._error_dialog("单次推送失败", msg)
 
         run_in_thread(do_once, on_done=done, on_error=err)
+
+    def _on_restore_anim(self, btn):
+        btn.set_sensitive(False)
+        import subprocess
+
+        idx = self._restore_row.get_selected()
+        preset = self._restore_presets[idx] if idx < len(self._restore_presets) else "lt104_sample.gif"
+
+        def do_restore():
+            cmd = [sys.executable, CLI_PATH, "hud-restore"]
+            if preset:
+                cmd.extend(["--preset", preset])
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            return res.returncode == 0
+
+        def done(ok):
+            btn.set_sensitive(True)
+            if ok:
+                self._toast(f"🔄  预设动画 ({preset}) 已成功恢复至屏幕！")
+            else:
+                self._toast("❌  恢复动画失败，请检查键盘连接。")
+
+        def err(msg):
+            btn.set_sensitive(True)
+            self._error_dialog("恢复动画失败", msg)
+
+        run_in_thread(do_restore, on_done=done, on_error=err)
 
     def _on_choose_file(self, btn):
         dialog = Gtk.FileDialog()

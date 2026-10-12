@@ -61,6 +61,8 @@ def main():
     p_hud_stop.add_argument("--restore", choices=["lt104_sample.gif", "0_perfect36.gif", "none"], default=None, help="Preset GIF to restore after stopping HUD")
     subparsers.add_parser("hud-status")
     subparsers.add_parser("hud-once")
+    p_hud_restore = subparsers.add_parser("hud-restore")
+    p_hud_restore.add_argument("--preset", choices=["lt104_sample.gif", "0_perfect36.gif", "none"], default=None, help="Preset animation to restore immediately")
 
     # clock-schedule commands
     subparsers.add_parser("clock-schedule-status")
@@ -186,6 +188,21 @@ def main():
         res = subprocess.run([sys.executable, script, "--once"])
         if res.returncode != 0:
             sys.exit(res.returncode)
+        return
+
+    elif args.cmd == "hud-restore":
+        cfg = load_config()
+        preset = args.preset if getattr(args, 'preset', None) else cfg.get("hud_restore_preset", "lt104_sample.gif")
+        if not preset or preset == "none":
+            preset = "lt104_sample.gif"
+        gif_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), preset)
+        if not os.path.exists(gif_path):
+            print(f"Error: Animation preset file not found: {gif_path}", file=sys.stderr)
+            sys.exit(1)
+        ctl = LT104Controller()
+        frames = ctl.upload_lcd_image(gif_path, slot=1)
+        ctl.close()
+        print(f"OK: Restored animation {preset} ({frames} frames)")
         return
 
     elif args.cmd == "clock-schedule-status":

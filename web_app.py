@@ -176,6 +176,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
           <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="background: linear-gradient(135deg, #059669, #10b981);">📊 Start Real-time System HUD</button>
           <button class="btn btn-secondary" id="btn-hud-once" onclick="pushHudOnce()">⚡ Update HUD Once</button>
+          <button class="btn btn-secondary" id="btn-restore-anim" onclick="restoreAnimation()">🔄 Restore Animation</button>
           <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
             <span id="txt-hud-interval">Refresh Interval:</span>
             <select id="hud-interval" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onIntervalChanged()">
@@ -284,6 +285,8 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById('txt-hud-status-label').innerText = t('hud_status_label') + ':';
       document.getElementById('txt-hud-note').innerText = t('hud_note');
       document.getElementById('btn-hud-once').innerText = '⚡ ' + t('hud_once_btn');
+      const btnRestoreAnim = document.getElementById('btn-restore-anim');
+      if (btnRestoreAnim) btnRestoreAnim.innerText = '🔄 ' + t('hud_restore_btn');
       document.getElementById('txt-hud-hardware-note').innerText = '💡 ' + t('hud_hardware_note');
 
       const intervals = [5, 10, 20, 30, 60, 120, 300];
@@ -551,6 +554,30 @@ HTML_PAGE = """<!DOCTYPE html>
         alert('Error: ' + e);
       } finally {
         btn.disabled = false;
+      }
+    }
+
+    async function restoreAnimation() {
+      const btn = document.getElementById('btn-restore-anim');
+      const presetSelect = document.getElementById('hud-restore-preset');
+      const preset = presetSelect ? presetSelect.value : 'lt104_sample.gif';
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/hud-restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preset })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('🔄 ' + t('hud_restore_success'));
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (e) {
+        alert('Error: ' + e);
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -881,6 +908,38 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True, "preset": preset}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode())
+
+        elif self.path == "/api/hud-restore":
+            try:
+                preset = "lt104_sample.gif"
+                content_len = int(self.headers.get("Content-Length", 0))
+                if content_len > 0:
+                    try:
+                        req_data = json.loads(self.rfile.read(content_len).decode())
+                        preset = req_data.get("preset", preset)
+                    except Exception:
+                        pass
+                cli_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.py")
+                cmd = [sys.executable, cli_script, "hud-restore"]
+                if preset:
+                    cmd.extend(["--preset", preset])
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+                if res.returncode == 0:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True, "preset": preset}).encode())
+                else:
+                    err_msg = res.stderr.strip() or res.stdout.strip() or f"CLI returned code {res.returncode}"
+                    self.send_response(500)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": False, "error": err_msg}).encode())
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
