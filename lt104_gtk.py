@@ -54,7 +54,7 @@ class LT104Window(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title("LT-104 键盘控制中心")
-        self.set_default_size(580, 920)
+        self.set_default_size(960, 680)
         self.set_resizable(True)
 
         # ---- Root layout ---- #
@@ -76,27 +76,30 @@ class LT104Window(Adw.ApplicationWindow):
         toolbar_view.set_content(scroll)
 
         clamp = Adw.Clamp()
-        clamp.set_maximum_size(580)
+        clamp.set_maximum_size(960)
         clamp.set_margin_top(8)
         clamp.set_margin_bottom(12)
         clamp.set_margin_start(14)
         clamp.set_margin_end(14)
         scroll.set_child(clamp)
 
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        clamp.set_child(main_box)
+        # 2-Column responsive container so all cards and buttons fit simultaneously
+        two_col_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        two_col_box.set_homogeneous(True)
+        clamp.set_child(two_col_box)
 
-        # ---- RGB Card ---- #
-        main_box.append(self._build_rgb_card())
+        col_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        col_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        two_col_box.append(col_left)
+        two_col_box.append(col_right)
 
-        # ---- Clock Card ---- #
-        main_box.append(self._build_clock_card())
+        # ---- Left Column: RGB Card & Clock Sync Card ---- #
+        col_left.append(self._build_rgb_card())
+        col_left.append(self._build_clock_card())
 
-        # ---- HUD Card ---- #
-        main_box.append(self._build_hud_card())
-
-        # ---- LCD Card ---- #
-        main_box.append(self._build_lcd_card())
+        # ---- Right Column: Real-time HUD Card & LCD Uploader Card ---- #
+        col_right.append(self._build_hud_card())
+        col_right.append(self._build_lcd_card())
 
         # ---- Toast overlay lives at window level ---- #
         self._toast_overlay = Adw.ToastOverlay()
