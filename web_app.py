@@ -1022,39 +1022,69 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
-          // Background all off, 1-key width 45-degree slashes with random/colorful lights.
-          // Alternates strictly sequentially so backslash and forwardslash NEVER exist simultaneously or form a cross:
-          // Slot 1: Backslash (\) sweeps across to the left without bouncing.
-          // Slot 2: Forwardslash (/) sweeps across to the right without bouncing.
-          const slotDur = 1.35 / speedMult;
-          const cycleDur = slotDur * 2.0;
-          const curTime = (t % cycleDur);
-          const isSlot1 = (curTime < slotDur);
-          const prog = (isSlot1 ? (curTime / slotDur) : ((curTime - slotDur) / slotDur));
+          // Background all off, 1-key width 45° slashes.
+          // Spawns from middle of keyboard:
+          // Wave 1: Backslash (\) starts at 55% (~525px) and sweeps right to end of keyboard.
+          // Immediately as previous finished appearing from 50%, spawn next:
+          // Wave 2: Forwardslash (/) starts at 45% (~429px) and sweeps left to end of keyboard.
+          // Multiple slashes can coexist while traveling outwards without bouncing back.
+          const spawnInterval = 0.85 / speedMult; // Interval between successive wave spawns from middle
+          const travelDuration = 1.9 / speedMult; // Total duration a wave travels before leaving keyboard
+          const waveSpeed = 560.0 * speedMult;    // Movement speed in px/s
+
+          // Backslash line: coordB = cx - cy. Center midB = 525 - 148 = 377px
+          const midB = 377.0;
+          // Forwardslash line: coordF = cx + cy. Center midF = 429 + 148 = 577px
+          const midF = 577.0;
 
           const beamWidth = 26.0; // Width of 1 key
-          let dist = 9999.0;
+          let maxVal = 0.0;
           let activeHue = 0;
 
-          if (isSlot1) {
-            // Backslash (\: coordB = cx - cy), sweeps left from 1050 down to -350
-            const coordB = cx - cy;
-            const sweepB = 1050.0 - prog * 1400.0;
-            dist = Math.abs(coordB - sweepB);
-            activeHue = (coordB * 0.75 + t * speedMult * 120.0 + 360) % 360;
-          } else {
-            // Forwardslash (/: coordF = cx + cy), sweeps right from -50 up to 1350
-            const coordF = cx + cy;
-            const sweepF = -50.0 + prog * 1400.0;
-            dist = Math.abs(coordF - sweepF);
-            activeHue = (coordF * 0.75 + t * speedMult * 120.0 + 180) % 360;
+          // Check last 4 waves to account for all concurrent outgoing slashes
+          const currentWaveIndex = Math.floor(t / spawnInterval);
+          for (let w = currentWaveIndex - 3; w <= currentWaveIndex; w++) {
+            if (w < 0) continue;
+            const waveAge = t - w * spawnInterval;
+            if (waveAge < 0 || waveAge > travelDuration) continue; // Out of bounds or not spawned yet
+
+            const waveType = (w % 2 === 0 ? 'backslash' : 'forwardslash');
+            const distTravelled = waveAge * waveSpeed;
+
+            if (waveType === 'backslash') {
+              // Backslash starts at 55% and sweeps to the RIGHT (increasing coordB)
+              const waveCoord = midB + distTravelled;
+              const coordB = cx - cy;
+              // Only illuminate keys at or beyond spawn point (traveling rightwards)
+              if (coordB < midB - beamWidth * 1.5) continue;
+              const dist = Math.abs(coordB - waveCoord);
+              if (dist < beamWidth * 2.4) {
+                const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
+                if (val > maxVal) {
+                  maxVal = val;
+                  activeHue = (w * 77 + coordB * 0.7 + 360) % 360; // Random/colorful unique hue per wave
+                }
+              }
+            } else {
+              // Forwardslash starts at 45% and sweeps to the LEFT (decreasing coordF)
+              const waveCoord = midF - distTravelled;
+              const coordF = cx + cy;
+              // Only illuminate keys at or beyond spawn point (traveling leftwards)
+              if (coordF > midF + beamWidth * 1.5) continue;
+              const dist = Math.abs(coordF - waveCoord);
+              if (dist < beamWidth * 2.4) {
+                const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
+                if (val > maxVal) {
+                  maxVal = val;
+                  activeHue = (w * 77 + coordF * 0.7 + 180 + 360) % 360; // Random/colorful unique hue per wave
+                }
+              }
+            }
           }
 
-          if (dist > beamWidth * 2.4) return [0, 0, 0];
-          const val = Math.exp(-(dist * dist) / (2.0 * beamWidth * beamWidth));
-          if (val < 0.02) return [0, 0, 0];
+          if (maxVal < 0.02) return [0, 0, 0];
           const c = hslToRgb(activeHue, 1.0, 0.5);
-          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          return [Math.round(c[0] * maxVal), Math.round(c[1] * maxVal), Math.round(c[2] * maxVal)];
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)
