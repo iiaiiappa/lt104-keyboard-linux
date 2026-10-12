@@ -28,7 +28,7 @@ from config import load_config, save_config
 APP_ID = "com.theforwardway.lt104"
 CLI_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.py")
 
-KB_KEYS = [["esc",16,16,24,24],["F1",75,16,24,24],["F2",105,16,24,24],["F3",135,16,24,24],["F4",165,16,24,24],["F5",211,16,24,24],["F6",241,16,24,24],["F7",271,16,24,24],["F8",301,16,24,24],["F9",346,16,24,24],["F10",376,16,24,24],["F11",406,16,24,24],["F12",437,16,24,24],["Prt",474,16,24,24],["Scr",505,16,24,24],["Pau",536,16,24,24],["~",16,55,24,24],["1",46,55,24,24],["2",76,55,24,24],["3",106,55,24,24],["4",136,55,24,24],["5",166,55,24,24],["6",196,55,24,24],["7",226,55,24,24],["8",256,55,24,24],["9",286,55,24,24],["0",316,55,24,24],["-",346,55,24,24],["=",376,55,24,24],["\u232b",406,55,57,24],["Ins",474,55,24,24],["Hm",505,55,24,24],["PgU",536,55,24,24],["Num",573,55,24,24],["/",604,55,24,24],["*",635,55,24,24],["-",666,55,24,24],["Tab",16,85,38,24],["Q",60,85,24,24],["W",90,85,24,24],["E",120,85,24,24],["R",150,85,24,24],["T",181,85,24,24],["Y",211,85,24,24],["U",241,85,24,24],["I",271,85,24,24],["O",301,85,24,24],["P",331,85,24,24],["[",361,85,24,24],["]",391,85,24,24],["|",422,85,40,24],["Del",474,85,24,24],["End",505,85,24,24],["PgD",536,85,24,24],["7",573,85,24,24],["8",604,85,24,24],["9",635,85,24,24],["+",666,85,24,53],["Caps",16,115,45,24],["A",67,115,24,24],["S",97,115,24,24],["D",127,115,24,24],["F",158,115,24,24],["G",188,115,24,24],["H",218,115,24,24],["J",248,115,24,24],["K",278,115,24,24],["L",308,115,24,24],[";",338,115,24,24],["'",368,115,24,24],["Enter",398,115,65,24],["4",573,115,24,24],["5",604,115,24,24],["6",635,115,24,24],["Shift",16,145,61,24],["Z",83,145,24,24],["X",113,145,24,24],["C",144,145,24,24],["V",174,145,24,24],["B",204,145,24,24],["N",234,145,24,24],["M",264,145,24,24],["<",294,145,24,24],[">",324,145,24,24],["?",354,145,24,24],["Shift",384,145,79,24],["\u25b2",505,145,24,24],["1",573,145,24,24],["2",604,145,24,24],["3",635,145,24,24],["Enter",666,145,24,53],["Ctrl",16,175,32,24],["Win",53,175,32,24],["Alt",91,175,32,24],["",129,175,180,24],["Alt",316,175,32,24],["Fn",354,175,32,24],["App",392,175,32,24],["Ctrl",430,175,32,24],["\u25c4",474,175,24,24],["\u25bc",505,175,24,24],["\u25ba",536,175,24,24],["0",573,175,54,24],[".",635,175,24,24]]
+KB_KEYS = [["esc",19,16,33,33],["F1",100,16,33,33],["F2",141,16,33,33],["F3",182,16,33,33],["F4",222,16,33,33],["F5",285,16,33,33],["F6",326,16,33,33],["F7",367,16,33,33],["F8",408,16,33,33],["F9",469,16,33,33],["F10",510,16,33,33],["F11",551,16,33,33],["F12",594,16,33,33],["print",644,16,33,33],["scrl lock",686,16,33,33],["pause",729,16,33,33],["~",19,70,33,33],["1",60,70,33,33],["2",101,70,33,33],["3",142,70,33,33],["4",183,70,33,33],["5",224,70,33,33],["6",265,70,33,33],["7",306,70,33,33],["8",347,70,33,33],["9",388,70,33,33],["0",429,70,33,33],["-",469,70,33,33],["=",510,70,33,33],["backspace",551,70,78,33],["insert",644,70,33,33],["home",686,70,33,33],["page up",729,70,33,33],["numlock",779,70,33,33],["/",822,70,33,33],["*",864,70,33,33],["-",906,70,33,33],["tab",19,111,52,33],["Q",79,111,33,33],["W",120,111,33,33],["E",161,111,33,33],["R",202,111,33,33],["T",244,111,33,33],["Y",285,111,33,33],["U",326,111,33,33],["I",367,111,33,33],["O",408,111,33,33],["P",449,111,33,33],["[",490,111,33,33],["]",531,111,33,33],["\\|",573,111,55,33],["del",644,111,33,33],["end",686,111,33,33],["page down",729,111,33,33],["7",779,111,33,33],["8",822,111,33,33],["9",864,111,33,33],["+",906,111,33,73],["Caps",19,152,61,33],["A",89,152,33,33],["S",130,152,33,33],["D",171,152,33,33],["F",213,152,33,33],["G",254,152,33,33],["H",295,152,33,33],["J",336,152,33,33],["K",377,152,33,33],["L",418,152,33,33],[";",459,152,33,33],["'\"",500,152,33,33],["enter",540,152,89,33],["4",779,152,33,33],["5",822,152,33,33],["6",864,152,33,33],["shift",19,193,83,33],["Z",111,193,33,33],["X",151,193,33,33],["C",194,193,33,33],["V",235,193,33,33],["B",276,193,33,33],["N",317,193,33,33],["M",358,193,33,33],["<",399,193,33,33],[">",439,193,33,33],["?",480,193,33,33],["shift",521,193,108,33],["\u2191",686,193,33,33],["1",779,193,33,33],["2",822,193,33,33],["3",864,193,33,33],["enter",906,193,33,73],["control",19,234,44,33],["win",70,234,44,33],["alt",121,234,44,33],["space",173,234,246,33],["alt",429,234,44,33],["fn",480,234,44,33],["app",532,234,44,33],["control",584,234,44,33],["\u2190",644,234,33,33],["\u2193",686,234,33,33],["\u2192",729,234,33,33],["0",779,234,74,33],[".",864,234,33,33]]
 
 def draw_round_rect(cr, x, y, w, h, r):
     cr.new_sub_path()
@@ -154,6 +154,17 @@ class LT104Window(Adw.ApplicationWindow):
         self._last_auto_tap_time = 0.0
         self._last_auto_ripple_time = 0.0
         self._preview_timer_id = GLib.timeout_add(33, self._tick_preview)
+
+        # Photorealistic skin surfaces
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        dark_png = os.path.join(base_dir, "static", "keyboard_skin_dark.png")
+        lit_png = os.path.join(base_dir, "static", "keyboard_skin_lit.png")
+        self._skin_dark = cairo.ImageSurface.create_from_png(dark_png) if os.path.exists(dark_png) else None
+        self._skin_lit = cairo.ImageSurface.create_from_png(lit_png) if os.path.exists(lit_png) else None
+        self._lcd_surface = None
+        self._last_lcd_mtime = 0.0
+        self._hud_running = False
+        self._load_lcd_surface()
 
     def _initial_refresh(self):
         self._refresh_status()
@@ -528,6 +539,7 @@ class LT104Window(Adw.ApplicationWindow):
                 except (OSError, ValueError):
                     pass
 
+            self._hud_running = running
             idx = self._interval_row.get_selected()
             sec = self._interval_intervals[idx] if idx < len(self._interval_intervals) else 120
             if running:
@@ -625,6 +637,26 @@ class LT104Window(Adw.ApplicationWindow):
     #  Keyboard Visualizer Preview Engine (Cairo 30fps)                 #
     # ------------------------------------------------------------------ #
 
+    def _load_lcd_surface(self):
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            lcd_path = os.path.join(base_dir, "static", "current_lcd.gif")
+            if not os.path.exists(lcd_path):
+                lcd_path = os.path.join(base_dir, "lt104_sample.gif")
+            if os.path.exists(lcd_path):
+                mtime = os.path.getmtime(lcd_path)
+                if mtime != self._last_lcd_mtime or self._lcd_surface is None:
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(lcd_path, 62, 39, False)
+                    # Convert pixbuf to Cairo ImageSurface
+                    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 62, 39)
+                    cr = cairo.Context(surf)
+                    Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0)
+                    cr.paint()
+                    self._lcd_surface = surf
+                    self._last_lcd_mtime = mtime
+        except Exception:
+            pass
+
     def _tick_preview(self):
         if hasattr(self, '_preview_area') and self._preview_area and self.get_visible():
             self._preview_area.queue_draw()
@@ -640,11 +672,11 @@ class LT104Window(Adw.ApplicationWindow):
     def _on_preview_clicked(self, gesture, n_press, x, y):
         w = self._preview_area.get_width()
         h = self._preview_area.get_height()
-        scale_x = w / 706.0
-        scale_y = h / 214.0
+        scale_x = w / 954.0
+        scale_y = h / 297.0
         scale = min(scale_x, scale_y)
-        offset_x = (w - 706.0 * scale) / 2.0
-        offset_y = (h - 214.0 * scale) / 2.0
+        offset_x = (w - 954.0 * scale) / 2.0
+        offset_y = (h - 297.0 * scale) / 2.0
 
         canvas_x = (x - offset_x) / scale
         canvas_y = (y - offset_y) / scale
@@ -675,11 +707,11 @@ class LT104Window(Adw.ApplicationWindow):
     def _on_preview_motion(self, controller, x, y):
         w = self._preview_area.get_width()
         h = self._preview_area.get_height()
-        scale_x = w / 706.0
-        scale_y = h / 214.0
+        scale_x = w / 954.0
+        scale_y = h / 297.0
         scale = min(scale_x, scale_y)
-        offset_x = (w - 706.0 * scale) / 2.0
-        offset_y = (h - 214.0 * scale) / 2.0
+        offset_x = (w - 954.0 * scale) / 2.0
+        offset_y = (h - 297.0 * scale) / 2.0
 
         canvas_x = (x - offset_x) / scale
         canvas_y = (y - offset_y) / scale
@@ -752,19 +784,19 @@ class LT104Window(Adw.ApplicationWindow):
             return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 12:  # 峰回路转 (Rotary Wave)
-            angle = math.atan2(cy - 105.0, cx - 350.0)
+            angle = math.atan2(cy - 145.0, cx - 475.0)
             hue = (angle * (180.0 / math.pi) + t * speed_mult * 90.0) % 360.0
             return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 13:  # 一触即发 (Ripple Trigger)
-            dist = math.hypot(cx - 350.0, cy - 105.0)
+            dist = math.hypot(cx - 475.0, cy - 145.0)
             ripple = math.sin(dist * 0.08 - t * speed_mult * 4.0)
             val = max(0.1, max(0.0, ripple) ** 2)
             return (base_rgb[0] * val, base_rgb[1] * val, base_rgb[2] * val)
 
         elif mode == 14:  # 一石二鸟 (Dual Ripple)
-            d1 = math.hypot(cx - 180.0, cy - 105.0)
-            d2 = math.hypot(cx - 520.0, cy - 105.0)
+            d1 = math.hypot(cx - 245.0, cy - 145.0)
+            d2 = math.hypot(cx - 705.0, cy - 145.0)
             r1 = math.sin(d1 * 0.07 - t * speed_mult * 4.0)
             r2 = math.sin(d2 * 0.07 - t * speed_mult * 4.0 + math.pi)
             hue = (d1 * 0.5 + d2 * 0.5 + t * speed_mult * 50.0) % 360.0
@@ -773,12 +805,12 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 15:  # 涟漪扩散 (Ripple Spread)
-            dist = math.hypot(cx - 350.0, cy - 105.0)
+            dist = math.hypot(cx - 475.0, cy - 145.0)
             hue = (dist * 1.2 - t * speed_mult * 90.0) % 360.0
             return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 16:  # 川流不息 (Infinite Stream)
-            row = round((k[2] - 16) / 30)
+            row = round((k[2] - 16) / 41)
             dir_val = 1 if row % 2 == 0 else -1
             hue = (cx * 0.4 * dir_val - t * speed_mult * 120.0 + row * 40.0) % 360.0
             val = 0.5 + 0.5 * math.sin(cx * 0.04 * dir_val - t * speed_mult * 3.5)
@@ -801,15 +833,15 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 19:  # 来回穿梭 (Shuttle)
-            beam_x = (math.sin(t * speed_mult * 2.2) * 0.5 + 0.5) * 650.0 + 20.0
+            beam_x = (math.sin(t * speed_mult * 2.2) * 0.5 + 0.5) * 880.0 + 30.0
             dist = abs(cx - beam_x)
-            val = max(0.08, math.exp(-dist * dist / 3000.0))
+            val = max(0.08, math.exp(-dist * dist / 5000.0))
             hue = (t * speed_mult * 60.0) % 360.0
             c = hsl_to_rgb(hue, 1.0, 0.5)
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 21:  # 万众一心 (Solid Center)
-            dist = math.hypot(cx - 350.0, cy - 105.0)
+            dist = math.hypot(cx - 475.0, cy - 145.0)
             pulse = math.sin(dist * 0.04 + t * speed_mult * 3.0)
             val = max(0.15, pulse * 0.5 + 0.5)
             hue = (dist * 0.5 + t * speed_mult * 30.0) % 360.0
@@ -829,11 +861,11 @@ class LT104Window(Adw.ApplicationWindow):
         now = time.time()
         t = now
 
-        scale_x = width / 706.0
-        scale_y = height / 214.0
+        scale_x = width / 954.0
+        scale_y = height / 297.0
         scale = min(scale_x, scale_y)
-        offset_x = (width - 706.0 * scale) / 2.0
-        offset_y = (height - 214.0 * scale) / 2.0
+        offset_x = (width - 954.0 * scale) / 2.0
+        offset_y = (height - 297.0 * scale) / 2.0
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
@@ -861,7 +893,7 @@ class LT104Window(Adw.ApplicationWindow):
         # Simulated ripple for Ripple Trigger mode
         if mode_id == 13 and (now - self._last_auto_ripple_time > 2.6):
             self._active_ripples.append({
-                "x": 350.0, "y": 105.0, "t": now, "color": base_rgb
+                "x": 475.0, "y": 145.0, "t": now, "color": base_rgb
             })
             self._last_auto_ripple_time = now
 
@@ -872,150 +904,151 @@ class LT104Window(Adw.ApplicationWindow):
         cr.translate(offset_x, offset_y)
         cr.scale(scale, scale)
 
-        # 1. Keyboard Chassis
-        draw_round_rect(cr, 4, 4, 698, 206, 12)
-        chassis_pat = cairo.LinearGradient(4, 4, 4, 210)
-        chassis_pat.add_color_stop_rgb(0, 0.075, 0.082, 0.14)
-        chassis_pat.add_color_stop_rgb(1, 0.047, 0.055, 0.094)
-        cr.set_source(chassis_pat)
-        cr.fill_preserve()
-        cr.set_source_rgba(1, 1, 1, 0.08)
-        cr.set_line_width(1.5)
-        cr.stroke()
-
-        # 2. Plate Bezel
-        draw_round_rect(cr, 10, 10, 686, 194, 8)
-        cr.set_source_rgba(0, 0, 0, 0.6)
-        cr.set_line_width(2)
-        cr.stroke()
-
-        # 3. Mini TFT Color LCD Screen (X=573, Y=14, W=68, H=28)
-        draw_round_rect(cr, 573, 14, 68, 28, 4)
-        cr.set_source_rgb(0.012, 0.031, 0.075)
-        cr.fill_preserve()
-        cr.set_source_rgb(0.15, 0.17, 0.24)
-        cr.set_line_width(1)
-        cr.stroke()
-
-        cr.save()
-        draw_round_rect(cr, 574, 15, 66, 26, 3)
-        cr.clip()
-        time_str = time.strftime("LT %H:%M:%S")
-        cr.select_font_face("monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        cr.set_font_size(7.0)
-        cr.set_source_rgb(0.22, 0.74, 0.97)
-        cr.move_to(578, 25)
-        cr.show_text(time_str)
-
-        # Telemetry equalizer bars
-        for bi in range(7):
-            bar_h = 3 + abs(math.sin(t * 3.5 + bi * 0.9)) * 6.5
-            bx = 578 + bi * 9
-            if bi % 2 == 0:
-                cr.set_source_rgb(0.06, 0.72, 0.5)
-            else:
-                cr.set_source_rgb(0.02, 0.71, 0.83)
-            cr.rectangle(bx, 38 - bar_h, 6, bar_h)
+        # 1. Keyboard Chassis Base
+        if self._skin_dark:
+            cr.set_source_surface(self._skin_dark, 0, 0)
+            cr.paint()
+        else:
+            cr.set_source_rgb(0.067, 0.075, 0.122)
+            cr.rectangle(0, 0, 954, 297)
             cr.fill()
-        cr.restore()
 
-        # 4. Rotary Knob (CX=668, CY=28, R=13)
-        knob_cx, knob_cy, knob_r = 668.0, 28.0, 13.0
-        knob_pat = cairo.RadialGradient(knob_cx - 3, knob_cy - 3, 2, knob_cx, knob_cy, knob_r)
-        knob_pat.add_color_stop_rgb(0, 0.39, 0.44, 0.55)
-        knob_pat.add_color_stop_rgb(0.7, 0.20, 0.25, 0.33)
-        knob_pat.add_color_stop_rgb(1, 0.12, 0.16, 0.23)
-        cr.arc(knob_cx, knob_cy, knob_r, 0, math.pi * 2)
-        cr.set_source(knob_pat)
-        cr.fill_preserve()
-        cr.set_source_rgba(1, 1, 1, 0.2)
-        cr.set_line_width(1)
-        cr.stroke()
+        # 2. Lit Keycaps Overlay
+        if self._skin_lit and bright_mult > 0:
+            cr.save()
+            # Clip to keys areas
+            cr.rectangle(15, 12, 755, 50)
+            cr.rectangle(15, 62, 930, 215)
+            cr.clip()
 
-        knob_angle = (t * 0.8) % (math.pi * 2)
-        cr.set_source_rgb(1.0, 1.0, 1.0)
-        cr.set_line_width(2)
-        cr.set_line_cap(cairo.LINE_CAP_ROUND)
-        cr.move_to(knob_cx + math.cos(knob_angle) * 5, knob_cy + math.sin(knob_angle) * 5)
-        cr.line_to(knob_cx + math.cos(knob_angle) * 11, knob_cy + math.sin(knob_angle) * 11)
-        cr.stroke()
+            tinted_surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 954, 297)
+            tinted_cr = cairo.Context(tinted_surf)
 
-        # 5. Keys Layer
-        for i, k in enumerate(KB_KEYS):
-            label, x, y, w, h = k
-            cx = x + w / 2.0
-            cy = y + h / 2.0
+            if mode_id == 1 and not self._active_ripples:
+                # STATIC MODE: All keys uniform exact brightness
+                tinted_cr.set_source_surface(self._skin_lit, 0, 0)
+                tinted_cr.paint()
+                tinted_cr.set_operator(cairo.OPERATOR_MULTIPLY)
+                tinted_cr.set_source_rgb(base_rgb[0] * bright_mult, base_rgb[1] * bright_mult, base_rgb[2] * bright_mult)
+                tinted_cr.paint()
+            else:
+                # Dynamic light map per key
+                color_surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 954, 297)
+                color_cr = cairo.Context(color_surf)
 
-            r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
+                for i, k in enumerate(KB_KEYS):
+                    _, kx, ky, kw, kh = k
+                    cx = kx + kw / 2.0
+                    cy = ky + kh / 2.0
+                    r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-            # Ripple waves
-            for rip in self._active_ripples:
-                age = (now - rip["t"])
-                rip_dist = math.hypot(cx - rip["x"], cy - rip["y"])
-                wave_front = age * 380.0
-                diff = abs(rip_dist - wave_front)
-                if diff < 35.0:
-                    amp = (1.0 - age / 0.9) * (1.0 - diff / 35.0)
-                    r = min(1.0, r + rip["color"][0] * amp)
-                    g = min(1.0, g + rip["color"][1] * amp)
-                    b = min(1.0, b + rip["color"][2] * amp)
+                    for rip in self._active_ripples:
+                        age = (now - rip["t"])
+                        rip_dist = math.hypot(cx - rip["x"], cy - rip["y"])
+                        wave_front = age * 480.0
+                        diff = abs(rip_dist - wave_front)
+                        if diff < 45.0:
+                            amp = (1.0 - age / 0.9) * (1.0 - diff / 45.0)
+                            r = min(1.0, r + rip["color"][0] * amp)
+                            g = min(1.0, g + rip["color"][1] * amp)
+                            b = min(1.0, b + rip["color"][2] * amp)
 
-            # Underglow
-            if bright_mult > 0 and (r > 0.02 or g > 0.02 or b > 0.02):
-                rad = max(w, h) * 0.72
-                glow_pat = cairo.RadialGradient(cx, cy, 2, cx, cy, rad)
-                glow_pat.add_color_stop_rgba(0, r, g, b, 0.48 * bright_mult)
-                glow_pat.add_color_stop_rgba(0.65, r, g, b, 0.16 * bright_mult)
-                glow_pat.add_color_stop_rgba(1, 0, 0, 0, 0)
-                cr.set_source(glow_pat)
-                cr.rectangle(cx - rad, cy - rad, rad * 2, rad * 2)
-                cr.fill()
+                    r = max(0.0, min(1.0, r * bright_mult))
+                    g = max(0.0, min(1.0, g * bright_mult))
+                    b = max(0.0, min(1.0, b * bright_mult))
 
-            # Keycap Base
-            draw_round_rect(cr, x, y, w, h, 3.5)
-            cr.set_source_rgb(0.09, 0.098, 0.15)
-            cr.fill_preserve()
-            cr.set_source_rgba(1, 1, 1, 0.08)
-            cr.set_line_width(1)
+                    if r > 0.005 or g > 0.005 or b > 0.005:
+                        color_cr.set_source_rgb(r, g, b)
+                        color_cr.rectangle(kx - 3, ky - 3, kw + 6, kh + 6)
+                        color_cr.fill()
+
+                tinted_cr.set_source_surface(self._skin_lit, 0, 0)
+                tinted_cr.paint()
+                tinted_cr.set_operator(cairo.OPERATOR_MULTIPLY)
+                tinted_cr.set_source_surface(color_surf, 0, 0)
+                tinted_cr.paint()
+
+            cr.set_source_surface(tinted_surf, 0, 0)
+            cr.paint()
+            cr.restore()
+
+        # 3. Hover Ring Highlight
+        if 0 <= self._hovered_key_idx < len(KB_KEYS):
+            _, hx, hy, hw, hh = KB_KEYS[self._hovered_key_idx]
+            cr.save()
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.65)
+            cr.set_line_width(1.5)
+            cr.rectangle(hx, hy, hw, hh)
+            cr.stroke()
+            cr.restore()
+
+        # 4. Reactive LCD Screen (X=808, Y=18, W=62, H=39)
+        cr.save()
+        cr.rectangle(808, 18, 62, 39)
+        cr.clip()
+
+        if getattr(self, '_hud_running', False):
+            # Real-time HUD Mode: Live hardware telemetry & digital clock
+            cr.set_source_rgb(0.012, 0.031, 0.075)
+            cr.paint()
+
+            cr.set_source_rgb(0.22, 0.74, 0.97)
+            cr.select_font_face("monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+            cr.set_font_size(8.0)
+            time_str = time.strftime("%H:%M:%S")
+            cr.move_to(814, 27)
+            cr.show_text(time_str)
+
+            cr.set_source_rgb(0.12, 0.16, 0.23)
+            cr.set_line_width(1.0)
+            cr.move_to(810, 29)
+            cr.line_to(868, 29)
             cr.stroke()
 
-            # Inset Dish
-            draw_round_rect(cr, x + 1.5, y + 1.5, w - 3, h - 3, 2.5)
-            top_pat = cairo.LinearGradient(x, y, x, y + h)
-            top_pat.add_color_stop_rgb(0, 0.15, 0.16, 0.23)
-            top_pat.add_color_stop_rgb(1, 0.08, 0.09, 0.14)
-            cr.set_source(top_pat)
+            # CPU
+            cr.set_source_rgb(0.58, 0.64, 0.72)
+            cr.set_font_size(7.0)
+            cr.move_to(811, 37)
+            cr.show_text("C")
+            cr.set_source_rgb(0.06, 0.72, 0.5)
+            cr.rectangle(820, 32, 12, 5)
             cr.fill()
+            cr.move_to(846, 37)
+            cr.show_text("18%")
 
-            # Legend
-            if label:
-                cr.save()
-                cr.select_font_face("sans-serif", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-                font_size = 7.0 if len(label) > 3 else 8.5
-                cr.set_font_size(font_size)
-                ext = cr.text_extents(label)
-                tx = cx - ext.width / 2.0 - ext.x_bearing
-                ty = cy - ext.height / 2.0 - ext.y_bearing
+            # RAM
+            cr.set_source_rgb(0.58, 0.64, 0.72)
+            cr.move_to(811, 46)
+            cr.show_text("R")
+            cr.set_source_rgb(0.02, 0.71, 0.83)
+            cr.rectangle(820, 41, 18, 5)
+            cr.fill()
+            cr.move_to(846, 46)
+            cr.show_text("51%")
 
-                if bright_mult > 0 and (r > 0.02 or g > 0.02 or b > 0.02):
-                    lr = min(1.0, r * 0.75 + 0.25 * bright_mult)
-                    lg = min(1.0, g * 0.75 + 0.25 * bright_mult)
-                    lb = min(1.0, b * 0.75 + 0.25 * bright_mult)
-                    cr.set_source_rgb(lr, lg, lb)
-                else:
-                    cr.set_source_rgb(0.39, 0.45, 0.55)
+            # Equalizer
+            for bi in range(7):
+                bx = 811 + bi * 8
+                cr.set_source_rgb(0.06, 0.72, 0.5 if bi % 2 == 0 else 0.83)
+                bar_h = 2 + abs(math.sin(t * 3.5 + bi * 0.9)) * 5
+                cr.rectangle(bx, 56 - bar_h, 6, bar_h)
+                cr.fill()
+        else:
+            # GIF Animation Mode: Render active custom/preset LCD GIF
+            self._load_lcd_surface()
+            if self._lcd_surface:
+                cr.set_source_surface(self._lcd_surface, 808, 18)
+                cr.paint()
+            else:
+                cr.set_source_rgb(0.012, 0.031, 0.075)
+                cr.paint()
+                cr.set_source_rgb(0.22, 0.74, 0.97)
+                cr.select_font_face("monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+                cr.set_font_size(7.5)
+                cr.move_to(818, 40)
+                cr.show_text("LT-104")
 
-                cr.move_to(tx, ty)
-                cr.show_text(label)
-                cr.restore()
-
-            # Hover ring highlight
-            if i == self._hovered_key_idx:
-                draw_round_rect(cr, x, y, w, h, 3.5)
-                cr.set_source_rgba(1, 1, 1, 0.5)
-                cr.set_line_width(1.5)
-                cr.stroke()
-
+        cr.restore()
         cr.restore()
 
     def _apply_light_silently(self):

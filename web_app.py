@@ -16,10 +16,24 @@ import signal
 from lt104_core import LT104Controller, LIGHT_MODES, find_lt104_usb, find_lt104_lcd_hidraw
 import i18n
 from config import load_config, save_config
+from PIL import Image, ImageSequence
 
 CFG = load_config()
 HUD_PROC = None
 HUD_INTERVAL = float(CFG.get("hud_interval", 120.0))
+
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+
+def update_lcd_cache(src_path):
+    try:
+        os.makedirs(STATIC_DIR, exist_ok=True)
+        dst_path = os.path.join(STATIC_DIR, "current_lcd.gif")
+        im = Image.open(src_path)
+        frames = [f.copy().convert("RGB").resize((62, 39)) for f in ImageSequence.Iterator(im)]
+        dur = im.info.get("duration", 80)
+        frames[0].save(dst_path, save_all=True, append_images=frames[1:], loop=0, duration=dur)
+    except Exception as e:
+        pass
 
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -39,7 +53,7 @@ HTML_PAGE = """<!DOCTYPE html>
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-    .container { max-width: 880px; width: 100%; }
+    .container { max-width: 1280px; width: 100%; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
     .header h1 { font-size: 24px; color: var(--accent); display: flex; align-items: center; gap: 10px; }
     .header-right { display: flex; align-items: center; gap: 12px; }
@@ -47,7 +61,13 @@ HTML_PAGE = """<!DOCTYPE html>
     .status-badge { background: #00c85322; color: #00e676; border: 1px solid #00e67644; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .status-badge.error { background: #d5000022; color: #ff5252; border-color: #ff525244; }
     
-    .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .main-layout { display: flex; flex-direction: column; gap: 20px; }
+    @media (min-width: 1024px) {
+      .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    }
+    .col-left, .col-right { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    
+    .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 24px; margin-bottom: 0px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
     .card-title { font-size: 18px; margin-bottom: 18px; color: #fff; font-weight: 600; display: flex; align-items: center; gap: 8px; }
     
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
@@ -103,149 +123,155 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- RGB Lighting Card -->
-    <div class="card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
-        <div class="card-title" id="txt-rgb-title" style="margin-bottom: 0;">🌈 RGB Lighting & Backlight</div>
-        <label class="switch-wrap" style="font-size: 13px;">
-          <input type="checkbox" id="chk-auto-apply" checked onchange="toggleAutoApply(this.checked)">
-          <span class="slider"></span>
-          <span id="txt-auto-apply">Live Apply (Auto Apply on Change)</span>
-        </label>
-      </div>
-      <p style="color: var(--subtext); font-size: 13px; margin-bottom: 16px;" id="txt-rgb-desc">
-        Apply immediately and save permanently to keyboard EEPROM
-      </p>
-
-      <!-- Keyboard Animation Visualizer Preview -->
-      <div class="kb-preview-wrap" style="background: #090b14; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 20px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--subtext); flex-wrap: wrap; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 7px;">
-            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00e676; box-shadow: 0 0 8px #00e676;"></span>
-            <strong id="txt-kb-preview-title" style="color: var(--text);">Live Keyboard Animation Preview</strong>
-            <span id="kb-preview-mode-tag" style="background: rgba(99, 102, 241, 0.18); border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 8px; border-radius: 10px; font-size: 11px; color: #c7d2fe;">静态恒亮 (Static)</span>
+    <div class="main-layout">
+      <div class="col-left">
+        <!-- RGB Lighting Card -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div class="card-title" id="txt-rgb-title" style="margin-bottom: 0;">🌈 RGB Lighting & Backlight</div>
+            <label class="switch-wrap" style="font-size: 13px;">
+              <input type="checkbox" id="chk-auto-apply" checked onchange="toggleAutoApply(this.checked)">
+              <span class="slider"></span>
+              <span id="txt-auto-apply">Live Apply (Auto Apply on Change)</span>
+            </label>
           </div>
-          <span id="txt-kb-preview-hint" style="font-size: 11px; opacity: 0.85; color: #94a3b8;">💡 Click any key to trigger lighting reaction</span>
-        </div>
-        <div style="width: 100%; display: flex; justify-content: center; overflow: hidden;">
-          <canvas id="kb-preview" width="706" height="214" style="width: 100%; max-width: 706px; height: auto; display: block; border-radius: 8px; cursor: pointer;"></canvas>
-        </div>
-      </div>
+          <p style="color: var(--subtext); font-size: 13px; margin-bottom: 16px;" id="txt-rgb-desc">
+            Apply immediately and save permanently to keyboard EEPROM
+          </p>
 
-      <div class="grid">
-        <div class="form-group">
-          <label id="txt-light-mode">Lighting Mode</label>
-          <select id="light-mode" onchange="onModeChange()">
-            __LIGHT_OPTIONS__
-          </select>
-        </div>
-
-        <div class="form-group" id="group-custom-color">
-          <label id="txt-custom-color">Custom Color</label>
-          <div class="color-picker-wrap">
-            <input type="color" id="light-color" value="#00e5ff" onchange="onColorChange()">
-            <span id="color-hex" style="font-family: monospace; font-size: 14px;">#00e5ff</span>
+          <!-- Keyboard Animation Visualizer Preview -->
+          <div class="kb-preview-wrap" style="background: #090b14; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 20px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--subtext); flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 7px;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00e676; box-shadow: 0 0 8px #00e676;"></span>
+                <strong id="txt-kb-preview-title" style="color: var(--text);">Live Keyboard Animation Preview</strong>
+                <span id="kb-preview-mode-tag" style="background: rgba(99, 102, 241, 0.18); border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 8px; border-radius: 10px; font-size: 11px; color: #c7d2fe;">静态恒亮 (Static)</span>
+              </div>
+              <span id="txt-kb-preview-hint" style="font-size: 11px; opacity: 0.85; color: #94a3b8;">💡 Click any key to trigger lighting reaction</span>
+            </div>
+            <div style="width: 100%; display: flex; justify-content: center; overflow: hidden;">
+              <canvas id="kb-preview" width="954" height="297" style="width: 100%; max-width: 954px; height: auto; display: block; border-radius: 8px; cursor: pointer;"></canvas>
+            </div>
           </div>
-          <div class="presets">
-            <div class="preset-btn" style="background:#ff0055" onclick="setColor('#ff0055')" title="Magenta"></div>
-            <div class="preset-btn" style="background:#00e5ff" onclick="setColor('#00e5ff')" title="Cyan"></div>
-            <div class="preset-btn" style="background:#00e676" onclick="setColor('#00e676')" title="Green"></div>
-            <div class="preset-btn" style="background:#ffd600" onclick="setColor('#ffd600')" title="Yellow"></div>
-            <div class="preset-btn" style="background:#d500f9" onclick="setColor('#d500f9')" title="Purple"></div>
-            <div class="preset-btn" style="background:#ff3d00" onclick="setColor('#ff3d00')" title="Orange"></div>
-            <div class="preset-btn" style="background:#ffffff" onclick="setColor('#ffffff')" title="White"></div>
+
+          <div class="grid">
+            <div class="form-group">
+              <label id="txt-light-mode">Lighting Mode</label>
+              <select id="light-mode" onchange="onModeChange()">
+                __LIGHT_OPTIONS__
+              </select>
+            </div>
+
+            <div class="form-group" id="group-custom-color">
+              <label id="txt-custom-color">Custom Color</label>
+              <div class="color-picker-wrap">
+                <input type="color" id="light-color" value="#00e5ff" onchange="onColorChange()">
+                <span id="color-hex" style="font-family: monospace; font-size: 14px;">#00e5ff</span>
+              </div>
+              <div class="presets">
+                <div class="preset-btn" style="background:#ff0055" onclick="setColor('#ff0055')" title="Magenta"></div>
+                <div class="preset-btn" style="background:#00e5ff" onclick="setColor('#00e5ff')" title="Cyan"></div>
+                <div class="preset-btn" style="background:#00e676" onclick="setColor('#00e676')" title="Green"></div>
+                <div class="preset-btn" style="background:#ffd600" onclick="setColor('#ffd600')" title="Yellow"></div>
+                <div class="preset-btn" style="background:#d500f9" onclick="setColor('#d500f9')" title="Purple"></div>
+                <div class="preset-btn" style="background:#ff3d00" onclick="setColor('#ff3d00')" title="Orange"></div>
+                <div class="preset-btn" style="background:#ffffff" onclick="setColor('#ffffff')" title="White"></div>
+              </div>
+            </div>
+
+            <div class="form-group" id="group-brightness">
+              <label><span id="txt-brightness">Brightness</span> <span id="bright-val" class="range-val">100%</span></label>
+              <input type="range" id="light-brightness" min="0" max="4" value="4" oninput="onBrightnessInput(this.value)" onchange="onBrightnessChange()">
+            </div>
+
+            <div class="form-group" id="group-speed">
+              <label><span id="txt-speed">Animation Speed</span> <span id="speed-val" class="range-val">3</span></label>
+              <input type="range" id="light-speed" min="0" max="4" value="3" oninput="onSpeedInput(this.value)" onchange="onSpeedChange()">
+            </div>
           </div>
-        </div>
-
-        <div class="form-group" id="group-brightness">
-          <label><span id="txt-brightness">Brightness</span> <span id="bright-val" class="range-val">100%</span></label>
-          <input type="range" id="light-brightness" min="0" max="4" value="4" oninput="onBrightnessInput(this.value)" onchange="onBrightnessChange()">
-        </div>
-
-        <div class="form-group" id="group-speed">
-          <label><span id="txt-speed">Animation Speed</span> <span id="speed-val" class="range-val">3</span></label>
-          <input type="range" id="light-speed" min="0" max="4" value="3" oninput="onSpeedInput(this.value)" onchange="onSpeedChange()">
-        </div>
-      </div>
-      <div id="wrap-apply-light" style="margin-top: 20px; display: none;">
-        <button class="btn" onclick="applyLight()" id="btn-apply-light">✨ Apply & Save Backlight</button>
-      </div>
-    </div>
-
-    <!-- Clock Sync Card -->
-    <div class="card">
-      <div class="card-title" id="txt-clock-title">🕒 TFT Clock Calibration & Auto-Sync</div>
-      <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-clock-desc">
-        Sync PC time immediately or enable 12-hour automated background service.
-      </p>
-      <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #121420; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border);">
-        <button class="btn btn-secondary" onclick="syncClock()" id="btn-sync-clock">🕒 Sync Clock to Keyboard LCD</button>
-        <label class="switch-wrap">
-          <input type="checkbox" id="chk-clock-sched" onchange="toggleClockSchedule(this.checked)">
-          <span class="slider"></span>
-          <span id="txt-clock-sched">Auto-Sync Clock Every 12 Hours</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Real-time System HUD Card -->
-    <div class="card">
-      <div class="card-title" id="txt-hud-title">📊 Real-time System Monitoring HUD</div>
-      <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-hud-desc">
-        Stream live CPU / RAM / Disk telemetry directly to keyboard LCD RAM.
-      </p>
-      
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-          <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="background: linear-gradient(135deg, #059669, #10b981);">📊 Start Real-time System HUD</button>
-          <button class="btn btn-secondary" id="btn-hud-once" onclick="pushHudOnce()">⚡ Update HUD Once</button>
-          <button class="btn btn-secondary" id="btn-restore-anim" onclick="restoreAnimation()">🔄 Restore Animation</button>
-          <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
-            <span id="txt-hud-interval">Refresh Interval:</span>
-            <select id="hud-interval" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onIntervalChanged()">
-              <option value="5" id="opt-5s">5s (Fast)</option>
-              <option value="10" id="opt-10s">10s (Moderate)</option>
-              <option value="20" id="opt-20s">20s</option>
-              <option value="30" id="opt-30s">30s (Power Saving)</option>
-              <option value="60" id="opt-60s">60s (Slow)</option>
-              <option value="120" id="opt-120s" selected>120s (2 min - Default)</option>
-              <option value="300" id="opt-300s">300s (5 min - Power Saving)</option>
-            </select>
-          </div>
-          <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
-            <span id="txt-hud-restore">Stop Restore:</span>
-            <select id="hud-restore-preset" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onRestorePresetChanged()">
-              <option value="lt104_sample.gif" id="opt-restore-sample" selected>lt104_sample.gif (Default Factory)</option>
-              <option value="0_perfect36.gif" id="opt-restore-p36">0_perfect36.gif</option>
-              <option value="none" id="opt-restore-none">Restore None</option>
-            </select>
+          <div id="wrap-apply-light" style="margin-top: 20px; display: none;">
+            <button class="btn" onclick="applyLight()" id="btn-apply-light">✨ Apply & Save Backlight</button>
           </div>
         </div>
-        <div id="hud-status-text" style="font-size: 13px; color: var(--subtext);">
-          <span id="txt-hud-status-label">System HUD Status:</span> <span id="hud-badge" style="color: #94a3b8; font-weight: 600;">Stopped</span> (<span id="txt-hud-note">Direct RAM streaming, zero SPI Flash wear, typing 100% responsive</span>)
-        </div>
-        <div class="hud-hardware-banner" id="txt-hud-hardware-note" style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; line-height: 1.5; color: #bae6fd;">
-          💡 Note: The 48MHz keyboard MCU dedicates 100% bandwidth to transfer 28KB frame over SPI, pausing software LED PWM for ~0.5s. Recommended interval: 2 to 5 minutes (or use single-shot update).
+
+        <!-- Clock Sync Card -->
+        <div class="card">
+          <div class="card-title" id="txt-clock-title">🕒 TFT Clock Calibration & Auto-Sync</div>
+          <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-clock-desc">
+            Sync PC time immediately or enable 12-hour automated background service.
+          </p>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #121420; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border);">
+            <button class="btn btn-secondary" onclick="syncClock()" id="btn-sync-clock">🕒 Sync Clock to Keyboard LCD</button>
+            <label class="switch-wrap">
+              <input type="checkbox" id="chk-clock-sched" onchange="toggleClockSchedule(this.checked)">
+              <span class="slider"></span>
+              <span id="txt-clock-sched">Auto-Sync Clock Every 12 Hours</span>
+            </label>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- LCD Image / GIF Upload Card -->
-    <div class="card" id="card-lcd-upload">
-      <div class="card-title" id="txt-lcd-title">📺 LCD Image & GIF Upload</div>
-      <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-lcd-desc">
-        Automatically scaled to 160 × 80 RGB565, multi-frame GIF supported.
-      </p>
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="form-group">
-          <input type="file" id="lcd-file" accept="image/gif,image/png,image/jpeg,image/webp">
-          <div class="progress-bar-wrap" id="progress-wrap">
-            <div class="progress-bar" id="progress-bar"></div>
+      <div class="col-right">
+        <!-- Real-time System HUD Card -->
+        <div class="card">
+          <div class="card-title" id="txt-hud-title">📊 Real-time System Monitoring HUD</div>
+          <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-hud-desc">
+            Stream live CPU / RAM / Disk telemetry directly to keyboard LCD RAM.
+          </p>
+          
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+              <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="background: linear-gradient(135deg, #059669, #10b981);">📊 Start Real-time System HUD</button>
+              <button class="btn btn-secondary" id="btn-hud-once" onclick="pushHudOnce()">⚡ Update HUD Once</button>
+              <button class="btn btn-secondary" id="btn-restore-anim" onclick="restoreAnimation()">🔄 Restore Animation</button>
+              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
+                <span id="txt-hud-interval">Refresh Interval:</span>
+                <select id="hud-interval" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onIntervalChanged()">
+                  <option value="5" id="opt-5s">5s (Fast)</option>
+                  <option value="10" id="opt-10s">10s (Moderate)</option>
+                  <option value="20" id="opt-20s">20s</option>
+                  <option value="30" id="opt-30s">30s (Power Saving)</option>
+                  <option value="60" id="opt-60s">60s (Slow)</option>
+                  <option value="120" id="opt-120s" selected>120s (2 min - Default)</option>
+                  <option value="300" id="opt-300s">300s (5 min - Power Saving)</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
+                <span id="txt-hud-restore">Stop Restore:</span>
+                <select id="hud-restore-preset" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onRestorePresetChanged()">
+                  <option value="lt104_sample.gif" id="opt-restore-sample" selected>lt104_sample.gif (Default Factory)</option>
+                  <option value="0_perfect36.gif" id="opt-restore-p36">0_perfect36.gif</option>
+                  <option value="none" id="opt-restore-none">Restore None</option>
+                </select>
+              </div>
+            </div>
+            <div id="hud-status-text" style="font-size: 13px; color: var(--subtext);">
+              <span id="txt-hud-status-label">System HUD Status:</span> <span id="hud-badge" style="color: #94a3b8; font-weight: 600;">Stopped</span> (<span id="txt-hud-note">Direct RAM streaming, zero SPI Flash wear, typing 100% responsive</span>)
+            </div>
+            <div class="hud-hardware-banner" id="txt-hud-hardware-note" style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid #0284c7; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; line-height: 1.5; color: #bae6fd;">
+              💡 Note: The 48MHz keyboard MCU dedicates 100% bandwidth to transfer 28KB frame over SPI, pausing software LED PWM for ~0.5s. Recommended interval: 2 to 5 minutes (or use single-shot update).
+            </div>
           </div>
-          <div id="upload-status" style="font-size: 13px; color: var(--subtext); margin-top: 4px;"></div>
         </div>
-        <div>
-          <button class="btn" onclick="uploadLcdImage()" id="btn-upload-lcd">🚀 Upload to Keyboard LCD</button>
+
+        <!-- LCD Image / GIF Upload Card -->
+        <div class="card" id="card-lcd-upload">
+          <div class="card-title" id="txt-lcd-title">📺 LCD Image & GIF Upload</div>
+          <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-lcd-desc">
+            Automatically scaled to 160 × 80 RGB565, multi-frame GIF supported.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="form-group">
+              <input type="file" id="lcd-file" accept="image/gif,image/png,image/jpeg,image/webp">
+              <div class="progress-bar-wrap" id="progress-wrap">
+                <div class="progress-bar" id="progress-bar"></div>
+              </div>
+              <div id="upload-status" style="font-size: 13px; color: var(--subtext); margin-top: 4px;"></div>
+            </div>
+            <div>
+              <button class="btn" onclick="uploadLcdImage()" id="btn-upload-lcd">🚀 Upload to Keyboard LCD</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -554,6 +580,7 @@ HTML_PAGE = """<!DOCTYPE html>
         if (data.success) {
           statusEl.innerText = '✅ ' + t('upload_success', { frames: data.frames });
           showToast('📺 ' + t('upload_success', { frames: data.frames }));
+          if (typeof reloadLcdGif === 'function') setTimeout(reloadLcdGif, 500);
         } else {
           statusEl.innerText = '❌ ' + t('upload_fail') + ': ' + data.error;
           alert(t('upload_fail') + ': ' + data.error);
@@ -659,6 +686,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const data = await res.json();
         if (data.success) {
           showToast('🔄 ' + t('hud_restore_success'));
+          if (typeof reloadLcdGif === 'function') setTimeout(reloadLcdGif, 500);
         } else {
           alert('Error: ' + data.error);
         }
@@ -769,9 +797,9 @@ HTML_PAGE = """<!DOCTYPE html>
     });
 
     // -------------------------------------------------------------------------
-    //  Interactive Keyboard Animation Preview Engine (104 Keys + LCD + Knob)
+    //  Photorealistic Keyboard Visualizer Preview Engine (Official 954x297 Skin)
     // -------------------------------------------------------------------------
-    const KB_KEYS = [["esc",16,16,24,24],["F1",75,16,24,24],["F2",105,16,24,24],["F3",135,16,24,24],["F4",165,16,24,24],["F5",211,16,24,24],["F6",241,16,24,24],["F7",271,16,24,24],["F8",301,16,24,24],["F9",346,16,24,24],["F10",376,16,24,24],["F11",406,16,24,24],["F12",437,16,24,24],["Prt",474,16,24,24],["Scr",505,16,24,24],["Pau",536,16,24,24],["~",16,55,24,24],["1",46,55,24,24],["2",76,55,24,24],["3",106,55,24,24],["4",136,55,24,24],["5",166,55,24,24],["6",196,55,24,24],["7",226,55,24,24],["8",256,55,24,24],["9",286,55,24,24],["0",316,55,24,24],["-",346,55,24,24],["=",376,55,24,24],["\u232b",406,55,57,24],["Ins",474,55,24,24],["Hm",505,55,24,24],["PgU",536,55,24,24],["Num",573,55,24,24],["/",604,55,24,24],["*",635,55,24,24],["-",666,55,24,24],["Tab",16,85,38,24],["Q",60,85,24,24],["W",90,85,24,24],["E",120,85,24,24],["R",150,85,24,24],["T",181,85,24,24],["Y",211,85,24,24],["U",241,85,24,24],["I",271,85,24,24],["O",301,85,24,24],["P",331,85,24,24],["[",361,85,24,24],["]",391,85,24,24],["|",422,85,40,24],["Del",474,85,24,24],["End",505,85,24,24],["PgD",536,85,24,24],["7",573,85,24,24],["8",604,85,24,24],["9",635,85,24,24],["+",666,85,24,53],["Caps",16,115,45,24],["A",67,115,24,24],["S",97,115,24,24],["D",127,115,24,24],["F",158,115,24,24],["G",188,115,24,24],["H",218,115,24,24],["J",248,115,24,24],["K",278,115,24,24],["L",308,115,24,24],[";",338,115,24,24],["'",368,115,24,24],["Enter",398,115,65,24],["4",573,115,24,24],["5",604,115,24,24],["6",635,115,24,24],["Shift",16,145,61,24],["Z",83,145,24,24],["X",113,145,24,24],["C",144,145,24,24],["V",174,145,24,24],["B",204,145,24,24],["N",234,145,24,24],["M",264,145,24,24],["<",294,145,24,24],[">",324,145,24,24],["?",354,145,24,24],["Shift",384,145,79,24],["\u25b2",505,145,24,24],["1",573,145,24,24],["2",604,145,24,24],["3",635,145,24,24],["Enter",666,145,24,53],["Ctrl",16,175,32,24],["Win",53,175,32,24],["Alt",91,175,32,24],["",129,175,180,24],["Alt",316,175,32,24],["Fn",354,175,32,24],["App",392,175,32,24],["Ctrl",430,175,32,24],["\u25c4",474,175,24,24],["\u25bc",505,175,24,24],["\u25ba",536,175,24,24],["0",573,175,54,24],[".",635,175,24,24]];
+    const KB_KEYS = [["esc",19,16,33,33],["F1",100,16,33,33],["F2",141,16,33,33],["F3",182,16,33,33],["F4",222,16,33,33],["F5",285,16,33,33],["F6",326,16,33,33],["F7",367,16,33,33],["F8",408,16,33,33],["F9",469,16,33,33],["F10",510,16,33,33],["F11",551,16,33,33],["F12",594,16,33,33],["print",644,16,33,33],["scrl lock",686,16,33,33],["pause",729,16,33,33],["~",19,70,33,33],["1",60,70,33,33],["2",101,70,33,33],["3",142,70,33,33],["4",183,70,33,33],["5",224,70,33,33],["6",265,70,33,33],["7",306,70,33,33],["8",347,70,33,33],["9",388,70,33,33],["0",429,70,33,33],["-",469,70,33,33],["=",510,70,33,33],["backspace",551,70,78,33],["insert",644,70,33,33],["home",686,70,33,33],["page up",729,70,33,33],["numlock",779,70,33,33],["/",822,70,33,33],["*",864,70,33,33],["-",906,70,33,33],["tab",19,111,52,33],["Q",79,111,33,33],["W",120,111,33,33],["E",161,111,33,33],["R",202,111,33,33],["T",244,111,33,33],["Y",285,111,33,33],["U",326,111,33,33],["I",367,111,33,33],["O",408,111,33,33],["P",449,111,33,33],["[",490,111,33,33],["]",531,111,33,33],["\\|",573,111,55,33],["del",644,111,33,33],["end",686,111,33,33],["page down",729,111,33,33],["7",779,111,33,33],["8",822,111,33,33],["9",864,111,33,33],["+",906,111,33,73],["Caps",19,152,61,33],["A",89,152,33,33],["S",130,152,33,33],["D",171,152,33,33],["F",213,152,33,33],["G",254,152,33,33],["H",295,152,33,33],["J",336,152,33,33],["K",377,152,33,33],["L",418,152,33,33],[";",459,152,33,33],["'\"",500,152,33,33],["enter",540,152,89,33],["4",779,152,33,33],["5",822,152,33,33],["6",864,152,33,33],["shift",19,193,83,33],["Z",111,193,33,33],["X",151,193,33,33],["C",194,193,33,33],["V",235,193,33,33],["B",276,193,33,33],["N",317,193,33,33],["M",358,193,33,33],["<",399,193,33,33],[">",439,193,33,33],["?",480,193,33,33],["shift",521,193,108,33],["\u2191",686,193,33,33],["1",779,193,33,33],["2",822,193,33,33],["3",864,193,33,33],["enter",906,193,33,73],["control",19,234,44,33],["win",70,234,44,33],["alt",121,234,44,33],["space",173,234,246,33],["alt",429,234,44,33],["fn",480,234,44,33],["app",532,234,44,33],["control",584,234,44,33],["\u2190",644,234,33,33],["\u2193",686,234,33,33],["\u2192",729,234,33,33],["0",779,234,74,33],[".",864,234,33,33]];
 
     let kbCanvas = null;
     let kbCtx = null;
@@ -780,6 +808,24 @@ HTML_PAGE = """<!DOCTYPE html>
     const keyFlashes = new Float32Array(KB_KEYS.length);
     let lastAutoTapTime = 0;
     let lastAutoRippleTime = 0;
+
+    let skinDark = new Image();
+    skinDark.src = '/static/keyboard_skin_dark.png';
+    let skinLit = new Image();
+    skinLit.src = '/static/keyboard_skin_lit.png';
+    let lcdGif = new Image();
+    lcdGif.src = '/static/current_lcd.gif';
+
+    // Offscreen canvas for fast pixel tinting
+    let tintCanvas = document.createElement('canvas');
+    tintCanvas.width = 954;
+    tintCanvas.height = 297;
+    let tintCtx = tintCanvas.getContext('2d');
+
+    function reloadLcdGif() {
+      lcdGif = new Image();
+      lcdGif.src = '/static/current_lcd.gif?t=' + Date.now();
+    }
 
     function hslToRgb(h, s, l) {
       h = ((h % 360) + 360) % 360 / 360;
@@ -804,20 +850,6 @@ HTML_PAGE = """<!DOCTYPE html>
         parseInt(hex.slice(3, 5), 16) || 0,
         parseInt(hex.slice(5, 7), 16) || 0
       ];
-    }
-
-    function drawRoundRect(ctx, x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.arcTo(x + w, y, x + w, y + r, r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-      ctx.lineTo(x + r, y + h);
-      ctx.arcTo(x, y + h, x, y + h - r, r);
-      ctx.lineTo(x, y + r);
-      ctx.arcTo(x, y, x + r, y, r);
-      ctx.closePath();
     }
 
     function calcKeyColor(mode, k, idx, t, baseRgb, speedMult, brightMult) {
@@ -846,7 +878,7 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 5: { // 漫天飞雪 (Snow)
-          const row = Math.round((k[2] - 16) / 30);
+          const row = Math.round((k[2] - 16) / 41);
           const phase = (t * speedMult * 3.5 - row * 0.9 + (idx % 5) * 0.4) % 6.283;
           const val = Math.pow(Math.max(0, Math.sin(phase)), 3);
           return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
@@ -888,21 +920,21 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 12: { // 峰回路转 (Rotary Wave)
-          const angle = Math.atan2(cy - 105, cx - 350);
+          const angle = Math.atan2(cy - 145, cx - 475);
           const hue = (angle * (180 / Math.PI) + t * speedMult * 90) % 360;
           return hslToRgb(hue, 1.0, 0.5);
         }
 
         case 13: { // 一触即发 (Ripple Trigger)
-          const dist = Math.hypot(cx - 350, cy - 105);
+          const dist = Math.hypot(cx - 475, cy - 145);
           const ripple = Math.sin(dist * 0.08 - t * speedMult * 4.0);
           const val = Math.max(0.1, Math.pow(Math.max(0, ripple), 2));
           return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
         }
 
         case 14: { // 一石二鸟 (Dual Ripple)
-          const d1 = Math.hypot(cx - 180, cy - 105);
-          const d2 = Math.hypot(cx - 520, cy - 105);
+          const d1 = Math.hypot(cx - 240, cy - 145);
+          const d2 = Math.hypot(cx - 700, cy - 145);
           const r1 = Math.sin(d1 * 0.07 - t * speedMult * 4.0);
           const r2 = Math.sin(d2 * 0.07 - t * speedMult * 4.0 + Math.PI);
           const hue = (d1 * 0.5 + d2 * 0.5 + t * speedMult * 50) % 360;
@@ -912,13 +944,13 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 15: { // 涟漪扩散 (Ripple Spread)
-          const dist = Math.hypot(cx - 350, cy - 105);
+          const dist = Math.hypot(cx - 475, cy - 145);
           const hue = (dist * 1.2 - t * speedMult * 90) % 360;
           return hslToRgb(hue, 1.0, 0.5);
         }
 
         case 16: { // 川流不息 (Infinite Stream)
-          const row = Math.round((k[2] - 16) / 30);
+          const row = Math.round((k[2] - 16) / 41);
           const dir = (row % 2 === 0) ? 1 : -1;
           const hue = (cx * 0.4 * dir - t * speedMult * 120 + row * 40) % 360;
           const val = 0.5 + 0.5 * Math.sin(cx * 0.04 * dir - t * speedMult * 3.5);
@@ -944,16 +976,16 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 19: { // 来回穿梭 (Shuttle)
-          const beamX = (Math.sin(t * speedMult * 2.2) * 0.5 + 0.5) * 650 + 20;
+          const beamX = (Math.sin(t * speedMult * 2.2) * 0.5 + 0.5) * 880 + 30;
           const dist = Math.abs(cx - beamX);
-          const val = Math.max(0.08, Math.exp(-dist * dist / 3000));
+          const val = Math.max(0.08, Math.exp(-dist * dist / 5000));
           const hue = (t * speedMult * 60) % 360;
           const c = hslToRgb(hue, 1.0, 0.5);
           return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
         }
 
         case 21: { // 万众一心 (Solid Center)
-          const dist = Math.hypot(cx - 350, cy - 105);
+          const dist = Math.hypot(cx - 475, cy - 145);
           const pulse = Math.sin(dist * 0.04 + t * speedMult * 3.0);
           const val = Math.max(0.15, pulse * 0.5 + 0.5);
           const hue = (dist * 0.5 + t * speedMult * 30) % 360;
@@ -1010,169 +1042,157 @@ HTML_PAGE = """<!DOCTYPE html>
 
       // Simulated ripple for Ripple Trigger mode
       if (modeVal === 13 && (now - lastAutoRippleTime > 2600)) {
-        activeRipples.push({ x: 350, y: 105, t: now, color: baseRgb });
+        activeRipples.push({ x: 475, y: 145, t: now, color: baseRgb });
         lastAutoRippleTime = now;
       }
 
       // Filter active ripples
       activeRipples = activeRipples.filter(r => (now - r.t) < 900);
 
-      // Clear canvas
+      // Clear main canvas
       kbCtx.clearRect(0, 0, kbCanvas.width, kbCanvas.height);
 
-      // Draw Keyboard Chassis
-      drawRoundRect(kbCtx, 4, 4, 698, 206, 12);
-      const chassisGrad = kbCtx.createLinearGradient(4, 4, 4, 210);
-      chassisGrad.addColorStop(0, '#131524');
-      chassisGrad.addColorStop(1, '#0c0e18');
-      kbCtx.fillStyle = chassisGrad;
-      kbCtx.fill();
-      kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      kbCtx.lineWidth = 1.5;
-      kbCtx.stroke();
+      // 1. Draw photorealistic dark keyboard base skin
+      if (skinDark.complete && skinDark.naturalWidth > 0) {
+        kbCtx.drawImage(skinDark, 0, 0, 954, 297);
+      } else {
+        kbCtx.fillStyle = '#11131f';
+        kbCtx.fillRect(0, 0, 954, 297);
+      }
 
-      // Draw Inner Keyboard Plate Bezel
-      drawRoundRect(kbCtx, 10, 10, 686, 194, 8);
-      kbCtx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-      kbCtx.lineWidth = 2;
-      kbCtx.stroke();
+      // 2. Draw photorealistic tinted lit keycap layer
+      if (skinLit.complete && skinLit.naturalWidth > 0 && brightMult > 0) {
+        tintCtx.clearRect(0, 0, 954, 297);
 
-      // Draw Mini TFT Color LCD Screen (X=573, Y=14, W=68, H=28)
-      drawRoundRect(kbCtx, 573, 14, 68, 28, 4);
-      kbCtx.fillStyle = '#030813';
-      kbCtx.fill();
-      kbCtx.strokeStyle = '#272b3d';
-      kbCtx.lineWidth = 1;
-      kbCtx.stroke();
+        if (modeVal === 1 && activeRipples.length === 0) {
+          // STATIC MODE: All keys uniform exact brightness
+          tintCtx.fillStyle = `rgb(${Math.round(baseRgb[0] * brightMult)}, ${Math.round(baseRgb[1] * brightMult)}, ${Math.round(baseRgb[2] * brightMult)})`;
+          tintCtx.fillRect(15, 12, 755, 50);
+          tintCtx.fillRect(15, 62, 930, 215);
+        } else {
+          // DYNAMIC MODES: Render light map per key
+          for (let i = 0; i < KB_KEYS.length; i++) {
+            const k = KB_KEYS[i];
+            const [, kx, ky, kw, kh] = k;
+            const cx = kx + kw / 2;
+            const cy = ky + kh / 2;
 
-      // Screen interior: status & clock
+            let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
+
+            // Active ripples overlay
+            for (let j = 0; j < activeRipples.length; j++) {
+              const rip = activeRipples[j];
+              const age = (now - rip.t) / 1000;
+              const ripDist = Math.hypot(cx - rip.x, cy - rip.y);
+              const waveFront = age * 480;
+              const diff = Math.abs(ripDist - waveFront);
+              if (diff < 45) {
+                const rippleAmp = (1 - age / 0.9) * (1 - diff / 45);
+                r = Math.min(255, r + Math.round(rip.color[0] * rippleAmp));
+                g = Math.min(255, g + Math.round(rip.color[1] * rippleAmp));
+                b = Math.min(255, b + Math.round(rip.color[2] * rippleAmp));
+              }
+            }
+
+            r = Math.round(r * brightMult);
+            g = Math.round(g * brightMult);
+            b = Math.round(b * brightMult);
+
+            if (r > 0 || g > 0 || b > 0) {
+              tintCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+              tintCtx.fillRect(kx - 3, ky - 3, kw + 6, kh + 6);
+            }
+          }
+        }
+
+        // Multiply composite lit skin over tinted color map
+        tintCtx.globalCompositeOperation = 'destination-in';
+        tintCtx.drawImage(skinLit, 0, 0, 954, 297);
+        tintCtx.globalCompositeOperation = 'source-over';
+
+        // Draw tinted lit keys onto main keyboard canvas
+        kbCtx.save();
+        kbCtx.beginPath();
+        kbCtx.rect(15, 12, 755, 50);
+        kbCtx.rect(15, 62, 930, 215);
+        kbCtx.clip();
+        kbCtx.drawImage(tintCanvas, 0, 0);
+        kbCtx.restore();
+      }
+
+      // 3. Hover Ring Highlight
+      if (hoveredKeyIdx >= 0 && hoveredKeyIdx < KB_KEYS.length) {
+        const [, hx, hy, hw, hh] = KB_KEYS[hoveredKeyIdx];
+        kbCtx.save();
+        kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+        kbCtx.lineWidth = 1.5;
+        kbCtx.strokeRect(hx, hy, hw, hh);
+        kbCtx.restore();
+      }
+
+      // 4. Reactive LCD Screen (X=808, Y=18, W=62, H=39)
       kbCtx.save();
       kbCtx.beginPath();
-      kbCtx.rect(574, 15, 66, 26);
+      kbCtx.rect(808, 18, 62, 39);
       kbCtx.clip();
-      const d = new Date();
-      const timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
-      kbCtx.fillStyle = '#38bdf8';
-      kbCtx.font = 'bold 7.5px monospace';
-      kbCtx.textAlign = 'center';
-      kbCtx.fillText('LT-104 ' + timeStr, 607, 26);
 
-      // Mini animated sound/telemetry equalizer bars
-      const barCount = 7;
-      const barW = 6;
-      for (let bi = 0; bi < barCount; bi++) {
-        const barH = 3 + Math.abs(Math.sin(t * 3.5 + bi * 0.9)) * 7;
-        const bx = 578 + bi * 9;
-        kbCtx.fillStyle = (bi % 2 === 0 ? '#10b981' : '#06b6d4');
-        kbCtx.fillRect(bx, 38 - barH, barW, barH);
+      if (hudRunning) {
+        // Real-time HUD Mode: Display live hardware telemetry & clock
+        kbCtx.fillStyle = '#030813';
+        kbCtx.fillRect(808, 18, 62, 39);
+
+        const d = new Date();
+        const timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+
+        // Clock header
+        kbCtx.fillStyle = '#38bdf8';
+        kbCtx.font = 'bold 7px monospace';
+        kbCtx.textAlign = 'center';
+        kbCtx.fillText(timeStr, 839, 26);
+
+        // Divider
+        kbCtx.fillStyle = '#1e293b';
+        kbCtx.fillRect(810, 28, 58, 1);
+
+        // CPU row
+        kbCtx.font = '6px monospace';
+        kbCtx.textAlign = 'left';
+        kbCtx.fillStyle = '#94a3b8';
+        kbCtx.fillText('C', 811, 35);
+        kbCtx.fillStyle = '#10b981';
+        kbCtx.fillRect(818, 30, 14, 4);
+        kbCtx.fillText('28%', 844, 35);
+
+        // RAM row
+        kbCtx.fillStyle = '#94a3b8';
+        kbCtx.fillText('R', 811, 43);
+        kbCtx.fillStyle = '#06b6d4';
+        kbCtx.fillRect(818, 38, 20, 4);
+        kbCtx.fillText('52%', 844, 43);
+
+        // Dynamic Equalizer bars
+        const barCount = 7;
+        const barW = 6;
+        for (let bi = 0; bi < barCount; bi++) {
+          const barH = 2 + Math.abs(Math.sin(t * 3.5 + bi * 0.9)) * 5;
+          const bx = 811 + bi * 8;
+          kbCtx.fillStyle = (bi % 2 === 0 ? '#10b981' : '#06b6d4');
+          kbCtx.fillRect(bx, 55 - barH, barW, barH);
+        }
+      } else {
+        // GIF Animation Mode: Render active custom/preset LCD GIF
+        if (lcdGif.complete && lcdGif.naturalWidth > 0) {
+          kbCtx.drawImage(lcdGif, 808, 18, 62, 39);
+        } else {
+          kbCtx.fillStyle = '#030813';
+          kbCtx.fillRect(808, 18, 62, 39);
+          kbCtx.fillStyle = '#38bdf8';
+          kbCtx.font = 'bold 7.5px monospace';
+          kbCtx.textAlign = 'center';
+          kbCtx.fillText('LT-104', 839, 39);
+        }
       }
       kbCtx.restore();
-
-      // Draw Rotary Knob (CX=668, CY=28, R=13)
-      const knobCx = 668, knobCy = 28, knobR = 13;
-      const knobGrad = kbCtx.createRadialGradient(knobCx - 3, knobCy - 3, 2, knobCx, knobCy, knobR);
-      knobGrad.addColorStop(0, '#64748b');
-      knobGrad.addColorStop(0.7, '#334155');
-      knobGrad.addColorStop(1, '#1e293b');
-      kbCtx.beginPath();
-      kbCtx.arc(knobCx, knobCy, knobR, 0, Math.PI * 2);
-      kbCtx.fillStyle = knobGrad;
-      kbCtx.fill();
-      kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      kbCtx.lineWidth = 1;
-      kbCtx.stroke();
-
-      // Knob indicator notch
-      const knobAngle = (t * 0.8) % (Math.PI * 2);
-      kbCtx.beginPath();
-      kbCtx.moveTo(knobCx + Math.cos(knobAngle) * 5, knobCy + Math.sin(knobAngle) * 5);
-      kbCtx.lineTo(knobCx + Math.cos(knobAngle) * 11, knobCy + Math.sin(knobAngle) * 11);
-      kbCtx.strokeStyle = '#ffffff';
-      kbCtx.lineWidth = 2;
-      kbCtx.lineCap = 'round';
-      kbCtx.stroke();
-
-      // Draw Keys Layer
-      for (let i = 0; i < KB_KEYS.length; i++) {
-        const k = KB_KEYS[i];
-        const [label, x, y, w, h] = k;
-        const cx = x + w / 2;
-        const cy = y + h / 2;
-
-        let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
-
-        // Overlay active ripple waves
-        for (let j = 0; j < activeRipples.length; j++) {
-          const rip = activeRipples[j];
-          const age = (now - rip.t) / 1000;
-          const ripDist = Math.hypot(cx - rip.x, cy - rip.y);
-          const waveFront = age * 380;
-          const diff = Math.abs(ripDist - waveFront);
-          if (diff < 35) {
-            const rippleAmp = (1 - age / 0.9) * (1 - diff / 35);
-            r = Math.min(255, r + Math.round(rip.color[0] * rippleAmp));
-            g = Math.min(255, g + Math.round(rip.color[1] * rippleAmp));
-            b = Math.min(255, b + Math.round(rip.color[2] * rippleAmp));
-          }
-        }
-
-        // 1. Underglow / LED bloom
-        if (brightMult > 0 && (r > 5 || g > 5 || b > 5)) {
-          const rad = Math.max(w, h) * 0.72;
-          const glow = kbCtx.createRadialGradient(cx, cy, 2, cx, cy, rad);
-          glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.48 * brightMult})`);
-          glow.addColorStop(0.65, `rgba(${r}, ${g}, ${b}, ${0.16 * brightMult})`);
-          glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          kbCtx.fillStyle = glow;
-          kbCtx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
-        }
-
-        // 2. Keycap Base Plastic
-        drawRoundRect(kbCtx, x, y, w, h, 3.5);
-        kbCtx.fillStyle = '#171926';
-        kbCtx.fill();
-        kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-        kbCtx.lineWidth = 1;
-        kbCtx.stroke();
-
-        // 3. Inset Keycap Top Surface
-        drawRoundRect(kbCtx, x + 1.5, y + 1.5, w - 3, h - 3, 2.5);
-        const topGrad = kbCtx.createLinearGradient(x, y, x, y + h);
-        topGrad.addColorStop(0, '#26293a');
-        topGrad.addColorStop(1, '#141624');
-        kbCtx.fillStyle = topGrad;
-        kbCtx.fill();
-
-        // 4. Shine-Through Keycap Legend
-        if (label) {
-          kbCtx.save();
-          kbCtx.textAlign = 'center';
-          kbCtx.textBaseline = 'middle';
-          kbCtx.font = label.length > 3 ? '7.5px -apple-system, sans-serif' : '9px -apple-system, sans-serif';
-
-          if (brightMult > 0 && (r > 5 || g > 5 || b > 5)) {
-            const lr = Math.min(255, Math.round(r * 0.75 + 255 * 0.25 * brightMult));
-            const lg = Math.min(255, Math.round(g * 0.75 + 255 * 0.25 * brightMult));
-            const lb = Math.min(255, Math.round(b * 0.75 + 255 * 0.25 * brightMult));
-            kbCtx.fillStyle = `rgb(${lr}, ${lg}, ${lb})`;
-            kbCtx.shadowColor = `rgb(${r}, ${g}, ${b})`;
-            kbCtx.shadowBlur = 4 * brightMult;
-          } else {
-            kbCtx.fillStyle = '#64748b';
-            kbCtx.shadowBlur = 0;
-          }
-          kbCtx.fillText(label, cx, cy + 0.5);
-          kbCtx.restore();
-        }
-
-        // 5. Hover ring highlight
-        if (i === hoveredKeyIdx) {
-          drawRoundRect(kbCtx, x, y, w, h, 3.5);
-          kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-          kbCtx.lineWidth = 1.5;
-          kbCtx.stroke();
-        }
-      }
 
       requestAnimationFrame(renderKeyboard);
     }
@@ -1296,6 +1316,22 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({"enabled": enabled}).encode())
 
+        elif self.path.startswith("/static/"):
+            clean_sub = self.path[len("/static/"):].split("?")[0]
+            file_path = os.path.join(STATIC_DIR, clean_sub)
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                ext = clean_sub.split(".")[-1].lower()
+                mime = "image/png" if ext == "png" else ("image/gif" if ext == "gif" else "application/octet-stream")
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                with open(file_path, "rb") as f:
+                    self.wfile.write(f.read())
+            else:
+                self.send_response(404)
+                self.end_headers()
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -1407,6 +1443,7 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                 ctl = LT104Controller()
                 frames = ctl.upload_lcd_image(tmp_path)
                 ctl.close()
+                update_lcd_cache(tmp_path)
                 os.unlink(tmp_path)
 
                 self.send_response(200)
@@ -1490,6 +1527,10 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                     cmd.extend(["--preset", preset])
                 res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
                 if res.returncode == 0:
+                    if preset and preset != "none":
+                        preset_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), preset)
+                        if os.path.exists(preset_file):
+                            update_lcd_cache(preset_file)
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
