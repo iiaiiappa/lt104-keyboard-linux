@@ -7,11 +7,13 @@ Runs on http://127.0.0.1:8989
 import http.server
 import json
 import urllib.parse
+import urllib.request
 import os
 import sys
 import tempfile
 import subprocess
 import signal
+import time
 
 from lt104_core import LT104Controller, LIGHT_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
 import i18n
@@ -34,6 +36,81 @@ def update_lcd_cache(src_path):
         frames[0].save(dst_path, save_all=True, append_images=frames[1:], loop=0, duration=dur)
     except Exception as e:
         pass
+
+_UPDATE_CACHE = {"timestamp": 0, "data": None}
+
+def check_github_updates():
+    now = time.time()
+    if _UPDATE_CACHE["data"] is not None and (now - _UPDATE_CACHE["timestamp"]) < 900:
+        return _UPDATE_CACHE["data"]
+
+    current_commit = "unknown"
+    try:
+        current_commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        pass
+
+    current_version = "v1.0.0"
+    version_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")
+    if os.path.exists(version_file):
+        try:
+            with open(version_file, "r") as vf:
+                current_version = vf.read().strip()
+        except Exception:
+            pass
+
+    res = {
+        "has_update": False,
+        "current_version": current_version,
+        "current_commit": current_commit,
+        "latest_version": current_version,
+        "latest_commit": current_commit,
+        "release_url": "https://github.com/iiaiiappa/lt104-keyboard-linux/releases",
+        "html_url": "https://github.com/iiaiiappa/lt104-keyboard-linux",
+        "release_notes": ""
+    }
+
+    try:
+        req = urllib.request.Request(
+            "https://api.github.com/repos/iiaiiappa/lt104-keyboard-linux/releases/latest",
+            headers={"User-Agent": "LT104-Keyboard-Linux/1.0", "Accept": "application/vnd.github.v3+json"}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=4) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode())
+                    tag = data.get("tag_name", "")
+                    res["latest_version"] = tag
+                    res["release_url"] = data.get("html_url", res["release_url"])
+                    res["release_notes"] = data.get("body", "")
+                    if tag and tag.lstrip("v") != current_version.lstrip("v"):
+                        res["has_update"] = True
+        except Exception:
+            # Fallback to commits on master branch if no formal releases yet
+            req_commit = urllib.request.Request(
+                "https://api.github.com/repos/iiaiiappa/lt104-keyboard-linux/commits/master",
+                headers={"User-Agent": "LT104-Keyboard-Linux/1.0", "Accept": "application/vnd.github.v3+json"}
+            )
+            with urllib.request.urlopen(req_commit, timeout=4) as resp_commit:
+                if resp_commit.status == 200:
+                    cdata = json.loads(resp_commit.read().decode())
+                    remote_sha = cdata.get("sha", "")[:7]
+                    res["latest_commit"] = remote_sha
+                    res["html_url"] = cdata.get("html_url", res["html_url"])
+                    res["commit_message"] = cdata.get("commit", {}).get("message", "").split("\n")[0]
+                    if remote_sha and current_commit != "unknown" and remote_sha != current_commit:
+                        res["has_update"] = True
+                        res["latest_version"] = f"commit {remote_sha}"
+    except Exception as e:
+        res["error"] = str(e)
+
+    _UPDATE_CACHE["timestamp"] = now
+    _UPDATE_CACHE["data"] = res
+    return res
 
 HTML_PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -60,6 +137,8 @@ HTML_PAGE = """<!DOCTYPE html>
     .lang-select { background: #121420; border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 6px 12px; font-size: 13px; outline: none; cursor: pointer; }
     .status-badge { background: #00c85322; color: #00e676; border: 1px solid #00e67644; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .status-badge.error { background: #d5000022; color: #ff5252; border-color: #ff525244; }
+    .update-badge { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
+    .update-badge:hover { background: rgba(56, 189, 248, 0.25); transform: translateY(-1px); }
     
     .main-layout { display: flex; flex-direction: column; gap: 20px; }
     @media (min-width: 1024px) {
@@ -119,6 +198,7 @@ HTML_PAGE = """<!DOCTYPE html>
           <option value="es">Español (Spanish)</option>
           <option value="ru">Русский (Russian)</option>
         </select>
+        <a id="update-badge" class="update-badge" href="https://github.com/iiaiiappa/lt104-keyboard-linux" target="_blank" rel="noopener noreferrer">🚀 <span id="update-text">New Update Available</span></a>
         <div id="device-badge" class="status-badge">● LT-104 Connected</div>
       </div>
     </div>
@@ -362,6 +442,11 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById('txt-lcd-title').innerText = '📺 ' + t('lcd_card_title');
       document.getElementById('txt-lcd-desc').innerText = t('lcd_card_desc');
       document.getElementById('btn-upload-lcd').innerText = '🚀 ' + t('upload_btn');
+      if (latestUpdateData && latestUpdateData.has_update) {
+        const ver = latestUpdateData.latest_version || ('commit ' + latestUpdateData.latest_commit);
+        const txt = document.getElementById('update-text');
+        if (txt) txt.innerText = t('update_available', { ver });
+      }
       updateHudUI();
     }
 
@@ -407,6 +492,7 @@ HTML_PAGE = """<!DOCTYPE html>
       autoApplyLight = Boolean(enabled);
       localStorage.setItem('lt104_light_auto_apply', autoApplyLight);
       updateAutoApplyUI();
+      showToast(autoApplyLight ? '⚡ ' + t('auto_apply') + ' (ON)' : '⏸️ ' + t('auto_apply') + ' (OFF)');
       if (autoApplyLight) {
         applyLight();
       }
@@ -543,7 +629,7 @@ HTML_PAGE = """<!DOCTYPE html>
         });
         const data = await res.json();
         if (data.success) {
-          showToast('✅ ' + t('apply_btn'));
+          showToast('✅ ' + t('settings_applied'));
         } else {
           alert(t('clock_sync_fail') + ': ' + data.error);
         }
@@ -750,6 +836,8 @@ HTML_PAGE = """<!DOCTYPE html>
         });
         showToast('⏱️ ' + t('hud_started', { sec: interval }));
         checkHudStatus();
+      } else {
+        showToast('⏱️ ' + t('hud_interval') + ': ' + interval + 's');
       }
     }
 
@@ -777,6 +865,32 @@ HTML_PAGE = """<!DOCTYPE html>
         } else {
           badge.innerText = '● ' + t('disconnected');
           badge.className = 'status-badge error';
+        }
+      } catch (e) {}
+    }
+
+    let latestUpdateData = null;
+
+    async function checkUpdates() {
+      try {
+        const res = await fetch('/api/check-update');
+        const data = await res.json();
+        latestUpdateData = data;
+        const badge = document.getElementById('update-badge');
+        const txt = document.getElementById('update-text');
+        if (!badge || !txt) return;
+        if (data.has_update) {
+          const ver = data.latest_version || ('commit ' + data.latest_commit);
+          txt.innerText = t('update_available', { ver });
+          badge.href = data.release_url || data.html_url || 'https://github.com/iiaiiappa/lt104-keyboard-linux';
+          badge.style.display = 'inline-flex';
+          const notifiedKey = 'lt104_notified_' + ver;
+          if (!sessionStorage.getItem(notifiedKey)) {
+            sessionStorage.setItem(notifiedKey, '1');
+            showToast('🚀 ' + t('update_toast', { ver }));
+          }
+        } else {
+          badge.style.display = 'none';
         }
       } catch (e) {}
     }
@@ -839,8 +953,10 @@ HTML_PAGE = """<!DOCTYPE html>
       checkDeviceStatus();
       checkHudStatus();
       checkClockScheduleStatus();
+      checkUpdates();
       setInterval(checkHudStatus, 4000);
       setInterval(checkDeviceStatus, 5000);
+      setInterval(checkUpdates, 1800000);
       initKeyboardPreview();
     });
 
@@ -1534,6 +1650,14 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"enabled": enabled}).encode())
+
+        elif self.path == "/api/check-update":
+            up_info = check_github_updates()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(json.dumps(up_info).encode())
 
         elif self.path.startswith("/static/"):
             clean_sub = self.path[len("/static/"):].split("?")[0]
