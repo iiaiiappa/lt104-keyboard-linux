@@ -116,6 +116,22 @@ HTML_PAGE = """<!DOCTYPE html>
       <p style="color: var(--subtext); font-size: 13px; margin-bottom: 16px;" id="txt-rgb-desc">
         Apply immediately and save permanently to keyboard EEPROM
       </p>
+
+      <!-- Keyboard Animation Visualizer Preview -->
+      <div class="kb-preview-wrap" style="background: #090b14; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 20px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--subtext); flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00e676; box-shadow: 0 0 8px #00e676;"></span>
+            <strong id="txt-kb-preview-title" style="color: var(--text);">Live Keyboard Animation Preview</strong>
+            <span id="kb-preview-mode-tag" style="background: rgba(99, 102, 241, 0.18); border: 1px solid rgba(99, 102, 241, 0.35); padding: 1px 8px; border-radius: 10px; font-size: 11px; color: #c7d2fe;">静态恒亮 (Static)</span>
+          </div>
+          <span id="txt-kb-preview-hint" style="font-size: 11px; opacity: 0.85; color: #94a3b8;">💡 Click any key to trigger lighting reaction</span>
+        </div>
+        <div style="width: 100%; display: flex; justify-content: center; overflow: hidden;">
+          <canvas id="kb-preview" width="706" height="214" style="width: 100%; max-width: 706px; height: auto; display: block; border-radius: 8px; cursor: pointer;"></canvas>
+        </div>
+      </div>
+
       <div class="grid">
         <div class="form-group">
           <label id="txt-light-mode">Lighting Mode</label>
@@ -282,6 +298,10 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById('btn-apply-light').innerText = '✨ ' + t('apply_btn');
       const txtAutoApply = document.getElementById('txt-auto-apply');
       if (txtAutoApply) txtAutoApply.innerText = t('auto_apply');
+      const txtPreviewTitle = document.getElementById('txt-kb-preview-title');
+      if (txtPreviewTitle) txtPreviewTitle.innerText = t('kb_preview_title');
+      const txtPreviewHint = document.getElementById('txt-kb-preview-hint');
+      if (txtPreviewHint) txtPreviewHint.innerText = '💡 ' + t('kb_preview_hint');
       
       document.getElementById('txt-clock-title').innerText = '🕒 ' + t('clock_card_title');
       document.getElementById('txt-clock-desc').innerText = t('clock_card_desc');
@@ -339,10 +359,11 @@ HTML_PAGE = """<!DOCTYPE html>
         }
       }
       const isOff = (modeVal === 20);
+      const isStatic = (modeVal === 1);
       const brightGroup = document.getElementById('group-brightness');
       const speedGroup = document.getElementById('group-speed');
       if (brightGroup) brightGroup.style.display = isOff ? 'none' : 'block';
-      if (speedGroup) speedGroup.style.display = isOff ? 'none' : 'block';
+      if (speedGroup) speedGroup.style.display = (isOff || isStatic) ? 'none' : 'block';
     }
 
     let autoApplyLight = true;
@@ -744,7 +765,469 @@ HTML_PAGE = """<!DOCTYPE html>
       checkClockScheduleStatus();
       setInterval(checkHudStatus, 4000);
       setInterval(checkDeviceStatus, 5000);
+      initKeyboardPreview();
     });
+
+    // -------------------------------------------------------------------------
+    //  Interactive Keyboard Animation Preview Engine (104 Keys + LCD + Knob)
+    // -------------------------------------------------------------------------
+    const KB_KEYS = [["esc",16,16,24,24],["F1",75,16,24,24],["F2",105,16,24,24],["F3",135,16,24,24],["F4",165,16,24,24],["F5",211,16,24,24],["F6",241,16,24,24],["F7",271,16,24,24],["F8",301,16,24,24],["F9",346,16,24,24],["F10",376,16,24,24],["F11",406,16,24,24],["F12",437,16,24,24],["Prt",474,16,24,24],["Scr",505,16,24,24],["Pau",536,16,24,24],["~",16,55,24,24],["1",46,55,24,24],["2",76,55,24,24],["3",106,55,24,24],["4",136,55,24,24],["5",166,55,24,24],["6",196,55,24,24],["7",226,55,24,24],["8",256,55,24,24],["9",286,55,24,24],["0",316,55,24,24],["-",346,55,24,24],["=",376,55,24,24],["\u232b",406,55,57,24],["Ins",474,55,24,24],["Hm",505,55,24,24],["PgU",536,55,24,24],["Num",573,55,24,24],["/",604,55,24,24],["*",635,55,24,24],["-",666,55,24,24],["Tab",16,85,38,24],["Q",60,85,24,24],["W",90,85,24,24],["E",120,85,24,24],["R",150,85,24,24],["T",181,85,24,24],["Y",211,85,24,24],["U",241,85,24,24],["I",271,85,24,24],["O",301,85,24,24],["P",331,85,24,24],["[",361,85,24,24],["]",391,85,24,24],["|",422,85,40,24],["Del",474,85,24,24],["End",505,85,24,24],["PgD",536,85,24,24],["7",573,85,24,24],["8",604,85,24,24],["9",635,85,24,24],["+",666,85,24,53],["Caps",16,115,45,24],["A",67,115,24,24],["S",97,115,24,24],["D",127,115,24,24],["F",158,115,24,24],["G",188,115,24,24],["H",218,115,24,24],["J",248,115,24,24],["K",278,115,24,24],["L",308,115,24,24],[";",338,115,24,24],["'",368,115,24,24],["Enter",398,115,65,24],["4",573,115,24,24],["5",604,115,24,24],["6",635,115,24,24],["Shift",16,145,61,24],["Z",83,145,24,24],["X",113,145,24,24],["C",144,145,24,24],["V",174,145,24,24],["B",204,145,24,24],["N",234,145,24,24],["M",264,145,24,24],["<",294,145,24,24],[">",324,145,24,24],["?",354,145,24,24],["Shift",384,145,79,24],["\u25b2",505,145,24,24],["1",573,145,24,24],["2",604,145,24,24],["3",635,145,24,24],["Enter",666,145,24,53],["Ctrl",16,175,32,24],["Win",53,175,32,24],["Alt",91,175,32,24],["",129,175,180,24],["Alt",316,175,32,24],["Fn",354,175,32,24],["App",392,175,32,24],["Ctrl",430,175,32,24],["\u25c4",474,175,24,24],["\u25bc",505,175,24,24],["\u25ba",536,175,24,24],["0",573,175,54,24],[".",635,175,24,24]];
+
+    let kbCanvas = null;
+    let kbCtx = null;
+    let hoveredKeyIdx = -1;
+    let activeRipples = [];
+    const keyFlashes = new Float32Array(KB_KEYS.length);
+    let lastAutoTapTime = 0;
+    let lastAutoRippleTime = 0;
+
+    function hslToRgb(h, s, l) {
+      h = ((h % 360) + 360) % 360 / 360;
+      if (s === 0) return [Math.round(l * 255), Math.round(l * 255), Math.round(l * 255)];
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      const f = t => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      return [Math.round(f(h + 1/3) * 255), Math.round(f(h) * 255), Math.round(f(h - 1/3) * 255)];
+    }
+
+    function hexToRgb(hex) {
+      if (!hex || hex[0] !== '#') return [0, 229, 255];
+      return [
+        parseInt(hex.slice(1, 3), 16) || 0,
+        parseInt(hex.slice(3, 5), 16) || 0,
+        parseInt(hex.slice(5, 7), 16) || 0
+      ];
+    }
+
+    function drawRoundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+    }
+
+    function calcKeyColor(mode, k, idx, t, baseRgb, speedMult, brightMult) {
+      if (mode === 20 || brightMult <= 0) return [0, 0, 0];
+      const cx = k[1] + k[3] / 2;
+      const cy = k[2] + k[4] / 2;
+
+      switch (mode) {
+        case 1: // 静态恒亮 (Static)
+          return baseRgb;
+
+        case 2: { // 单点亮 (Single Light)
+          const f = Math.max(0.04, keyFlashes[idx]);
+          return [Math.round(baseRgb[0] * f), Math.round(baseRgb[1] * f), Math.round(baseRgb[2] * f)];
+        }
+
+        case 3: { // 单熄灭 (Single Off)
+          const f = Math.max(0.05, 1.0 - keyFlashes[idx]);
+          return [Math.round(baseRgb[0] * f), Math.round(baseRgb[1] * f), Math.round(baseRgb[2] * f)];
+        }
+
+        case 4: { // 繁星点点 (Stars)
+          const seed = (idx * 137.5) % 6.283;
+          const val = Math.max(0, (Math.sin(t * speedMult * 2.2 + seed) - 0.25) / 0.75);
+          return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
+        }
+
+        case 5: { // 漫天飞雪 (Snow)
+          const row = Math.round((k[2] - 16) / 30);
+          const phase = (t * speedMult * 3.5 - row * 0.9 + (idx % 5) * 0.4) % 6.283;
+          const val = Math.pow(Math.max(0, Math.sin(phase)), 3);
+          return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
+        }
+
+        case 6: { // 百花争艳 (Blossom)
+          const cluster = Math.sin(cx * 0.015 + t * speedMult * 1.5) + Math.cos(cy * 0.03 + t * speedMult * 1.2);
+          const hue = (cluster * 90 + t * speedMult * 40) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
+        }
+
+        case 7: { // 动态呼吸 (Breathing)
+          const factor = 0.12 + 0.88 * (0.5 + 0.5 * Math.sin(t * speedMult * 2.5));
+          return [Math.round(baseRgb[0] * factor), Math.round(baseRgb[1] * factor), Math.round(baseRgb[2] * factor)];
+        }
+
+        case 8: { // 光谱循环 (Spectrum Cycle)
+          const hue = (t * speedMult * 50) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
+        }
+
+        case 9: { // 彩泉涌动 (Rainbow Wave)
+          const hue = (cx * 0.5 - t * speedMult * 90) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
+        }
+
+        case 10: { // 多彩纵横 (Cross Pattern)
+          const xWave = Math.sin(cx * 0.03 - t * speedMult * 3.0);
+          const yWave = Math.cos(cy * 0.05 + t * speedMult * 2.5);
+          const val = Math.max(0.15, (xWave + yWave) * 0.5);
+          const hue = (cx * 0.3 + cy * 0.5 + t * speedMult * 60) % 360;
+          const c = hslToRgb(hue, 1.0, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+        }
+
+        case 11: { // 随波逐流 (River Stream)
+          const hue = ((cx + cy * 1.6) * 0.38 - t * speedMult * 80) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
+        }
+
+        case 12: { // 峰回路转 (Rotary Wave)
+          const angle = Math.atan2(cy - 105, cx - 350);
+          const hue = (angle * (180 / Math.PI) + t * speedMult * 90) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
+        }
+
+        case 13: { // 一触即发 (Ripple Trigger)
+          const dist = Math.hypot(cx - 350, cy - 105);
+          const ripple = Math.sin(dist * 0.08 - t * speedMult * 4.0);
+          const val = Math.max(0.1, Math.pow(Math.max(0, ripple), 2));
+          return [Math.round(baseRgb[0] * val), Math.round(baseRgb[1] * val), Math.round(baseRgb[2] * val)];
+        }
+
+        case 14: { // 一石二鸟 (Dual Ripple)
+          const d1 = Math.hypot(cx - 180, cy - 105);
+          const d2 = Math.hypot(cx - 520, cy - 105);
+          const r1 = Math.sin(d1 * 0.07 - t * speedMult * 4.0);
+          const r2 = Math.sin(d2 * 0.07 - t * speedMult * 4.0 + Math.PI);
+          const hue = (d1 * 0.5 + d2 * 0.5 + t * speedMult * 50) % 360;
+          const val = Math.max(0.1, (Math.max(0, r1) + Math.max(0, r2)) * 0.5);
+          const c = hslToRgb(hue, 1.0, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+        }
+
+        case 15: { // 涟漪扩散 (Ripple Spread)
+          const dist = Math.hypot(cx - 350, cy - 105);
+          const hue = (dist * 1.2 - t * speedMult * 90) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
+        }
+
+        case 16: { // 川流不息 (Infinite Stream)
+          const row = Math.round((k[2] - 16) / 30);
+          const dir = (row % 2 === 0) ? 1 : -1;
+          const hue = (cx * 0.4 * dir - t * speedMult * 120 + row * 40) % 360;
+          const val = 0.5 + 0.5 * Math.sin(cx * 0.04 * dir - t * speedMult * 3.5);
+          const c = hslToRgb(hue, 1.0, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+        }
+
+        case 17: { // 重峦叠嶂 (Rolling Hills)
+          const wave = Math.sin(cx * 0.02 + t * speedMult * 2.5) * Math.cos(cy * 0.04 + t * speedMult * 2.0);
+          const val = 0.3 + 0.7 * (wave * 0.5 + 0.5);
+          const hue = (cx * 0.3 + t * speedMult * 40) % 360;
+          const c = hslToRgb(hue, 1.0, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+        }
+
+        case 18: { // 斜风细雨 (Gentle Rain)
+          const slant = cx * 0.8 + cy * 1.4;
+          const drop = Math.sin(slant * 0.06 - t * speedMult * 5.0 + (idx % 7) * 1.1);
+          const val = Math.max(0.1, Math.pow(Math.max(0, drop), 4));
+          const hue = (slant * 0.2 + 180) % 360;
+          const c = hslToRgb(hue, 0.85, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+        }
+
+        case 19: { // 来回穿梭 (Shuttle)
+          const beamX = (Math.sin(t * speedMult * 2.2) * 0.5 + 0.5) * 650 + 20;
+          const dist = Math.abs(cx - beamX);
+          const val = Math.max(0.08, Math.exp(-dist * dist / 3000));
+          const hue = (t * speedMult * 60) % 360;
+          const c = hslToRgb(hue, 1.0, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+        }
+
+        case 21: { // 万众一心 (Solid Center)
+          const dist = Math.hypot(cx - 350, cy - 105);
+          const pulse = Math.sin(dist * 0.04 + t * speedMult * 3.0);
+          const val = Math.max(0.15, pulse * 0.5 + 0.5);
+          const hue = (dist * 0.5 + t * speedMult * 30) % 360;
+          const c = hslToRgb(hue, 1.0, 0.5);
+          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+        }
+
+        case 22: { // 流光溢彩 (Neon Glow)
+          const plasma = Math.sin(cx * 0.015 + t * speedMult * 1.5) + Math.sin(cy * 0.035 + t * speedMult * 1.2) + Math.sin((cx + cy) * 0.012 + t * speedMult * 1.8);
+          const hue = (plasma * 60 + 280) % 360;
+          return hslToRgb(hue, 1.0, 0.5);
+        }
+
+        default:
+          return baseRgb;
+      }
+    }
+
+    function renderKeyboard() {
+      if (!kbCanvas || !kbCtx) return;
+      const now = performance.now();
+      const t = now / 1000;
+
+      // Read live form inputs
+      const modeEl = document.getElementById('light-mode');
+      const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
+      const hex = (document.getElementById('light-color') ? document.getElementById('light-color').value : '#00e5ff');
+      const baseRgb = hexToRgb(hex);
+      const brightInput = document.getElementById('light-brightness');
+      const brightVal = parseInt(brightInput ? brightInput.value : 4);
+      const speedInput = document.getElementById('light-speed');
+      const speedVal = parseInt(speedInput ? speedInput.value : 3);
+
+      const brightMult = (modeVal === 20 ? 0 : [0.25, 0.45, 0.65, 0.85, 1.0][brightVal] || 1.0);
+      const speedMult = [0.4, 0.7, 1.0, 1.6, 2.4][speedVal] || 1.0;
+
+      // Update mode badge in header
+      const modeTag = document.getElementById('kb-preview-mode-tag');
+      if (modeTag && modeEl && modeEl.selectedIndex >= 0) {
+        modeTag.innerText = modeEl.options[modeEl.selectedIndex].text;
+      }
+
+      // Decay key flashes
+      for (let i = 0; i < keyFlashes.length; i++) {
+        if (keyFlashes[i] > 0.001) keyFlashes[i] *= 0.94;
+      }
+
+      // Simulated auto-tap for Single Light / Single Off modes
+      if ((modeVal === 2 || modeVal === 3) && (now - lastAutoTapTime > 1300)) {
+        const randIdx = Math.floor(Math.random() * KB_KEYS.length);
+        keyFlashes[randIdx] = 1.0;
+        lastAutoTapTime = now;
+      }
+
+      // Simulated ripple for Ripple Trigger mode
+      if (modeVal === 13 && (now - lastAutoRippleTime > 2600)) {
+        activeRipples.push({ x: 350, y: 105, t: now, color: baseRgb });
+        lastAutoRippleTime = now;
+      }
+
+      // Filter active ripples
+      activeRipples = activeRipples.filter(r => (now - r.t) < 900);
+
+      // Clear canvas
+      kbCtx.clearRect(0, 0, kbCanvas.width, kbCanvas.height);
+
+      // Draw Keyboard Chassis
+      drawRoundRect(kbCtx, 4, 4, 698, 206, 12);
+      const chassisGrad = kbCtx.createLinearGradient(4, 4, 4, 210);
+      chassisGrad.addColorStop(0, '#131524');
+      chassisGrad.addColorStop(1, '#0c0e18');
+      kbCtx.fillStyle = chassisGrad;
+      kbCtx.fill();
+      kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      kbCtx.lineWidth = 1.5;
+      kbCtx.stroke();
+
+      // Draw Inner Keyboard Plate Bezel
+      drawRoundRect(kbCtx, 10, 10, 686, 194, 8);
+      kbCtx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+      kbCtx.lineWidth = 2;
+      kbCtx.stroke();
+
+      // Draw Mini TFT Color LCD Screen (X=573, Y=14, W=68, H=28)
+      drawRoundRect(kbCtx, 573, 14, 68, 28, 4);
+      kbCtx.fillStyle = '#030813';
+      kbCtx.fill();
+      kbCtx.strokeStyle = '#272b3d';
+      kbCtx.lineWidth = 1;
+      kbCtx.stroke();
+
+      // Screen interior: status & clock
+      kbCtx.save();
+      kbCtx.beginPath();
+      kbCtx.rect(574, 15, 66, 26);
+      kbCtx.clip();
+      const d = new Date();
+      const timeStr = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+      kbCtx.fillStyle = '#38bdf8';
+      kbCtx.font = 'bold 7.5px monospace';
+      kbCtx.textAlign = 'center';
+      kbCtx.fillText('LT-104 ' + timeStr, 607, 26);
+
+      // Mini animated sound/telemetry equalizer bars
+      const barCount = 7;
+      const barW = 6;
+      for (let bi = 0; bi < barCount; bi++) {
+        const barH = 3 + Math.abs(Math.sin(t * 3.5 + bi * 0.9)) * 7;
+        const bx = 578 + bi * 9;
+        kbCtx.fillStyle = (bi % 2 === 0 ? '#10b981' : '#06b6d4');
+        kbCtx.fillRect(bx, 38 - barH, barW, barH);
+      }
+      kbCtx.restore();
+
+      // Draw Rotary Knob (CX=668, CY=28, R=13)
+      const knobCx = 668, knobCy = 28, knobR = 13;
+      const knobGrad = kbCtx.createRadialGradient(knobCx - 3, knobCy - 3, 2, knobCx, knobCy, knobR);
+      knobGrad.addColorStop(0, '#64748b');
+      knobGrad.addColorStop(0.7, '#334155');
+      knobGrad.addColorStop(1, '#1e293b');
+      kbCtx.beginPath();
+      kbCtx.arc(knobCx, knobCy, knobR, 0, Math.PI * 2);
+      kbCtx.fillStyle = knobGrad;
+      kbCtx.fill();
+      kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      kbCtx.lineWidth = 1;
+      kbCtx.stroke();
+
+      // Knob indicator notch
+      const knobAngle = (t * 0.8) % (Math.PI * 2);
+      kbCtx.beginPath();
+      kbCtx.moveTo(knobCx + Math.cos(knobAngle) * 5, knobCy + Math.sin(knobAngle) * 5);
+      kbCtx.lineTo(knobCx + Math.cos(knobAngle) * 11, knobCy + Math.sin(knobAngle) * 11);
+      kbCtx.strokeStyle = '#ffffff';
+      kbCtx.lineWidth = 2;
+      kbCtx.lineCap = 'round';
+      kbCtx.stroke();
+
+      // Draw Keys Layer
+      for (let i = 0; i < KB_KEYS.length; i++) {
+        const k = KB_KEYS[i];
+        const [label, x, y, w, h] = k;
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+
+        let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
+
+        // Overlay active ripple waves
+        for (let j = 0; j < activeRipples.length; j++) {
+          const rip = activeRipples[j];
+          const age = (now - rip.t) / 1000;
+          const ripDist = Math.hypot(cx - rip.x, cy - rip.y);
+          const waveFront = age * 380;
+          const diff = Math.abs(ripDist - waveFront);
+          if (diff < 35) {
+            const rippleAmp = (1 - age / 0.9) * (1 - diff / 35);
+            r = Math.min(255, r + Math.round(rip.color[0] * rippleAmp));
+            g = Math.min(255, g + Math.round(rip.color[1] * rippleAmp));
+            b = Math.min(255, b + Math.round(rip.color[2] * rippleAmp));
+          }
+        }
+
+        // 1. Underglow / LED bloom
+        if (brightMult > 0 && (r > 5 || g > 5 || b > 5)) {
+          const rad = Math.max(w, h) * 0.72;
+          const glow = kbCtx.createRadialGradient(cx, cy, 2, cx, cy, rad);
+          glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.48 * brightMult})`);
+          glow.addColorStop(0.65, `rgba(${r}, ${g}, ${b}, ${0.16 * brightMult})`);
+          glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          kbCtx.fillStyle = glow;
+          kbCtx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
+        }
+
+        // 2. Keycap Base Plastic
+        drawRoundRect(kbCtx, x, y, w, h, 3.5);
+        kbCtx.fillStyle = '#171926';
+        kbCtx.fill();
+        kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        kbCtx.lineWidth = 1;
+        kbCtx.stroke();
+
+        // 3. Inset Keycap Top Surface
+        drawRoundRect(kbCtx, x + 1.5, y + 1.5, w - 3, h - 3, 2.5);
+        const topGrad = kbCtx.createLinearGradient(x, y, x, y + h);
+        topGrad.addColorStop(0, '#26293a');
+        topGrad.addColorStop(1, '#141624');
+        kbCtx.fillStyle = topGrad;
+        kbCtx.fill();
+
+        // 4. Shine-Through Keycap Legend
+        if (label) {
+          kbCtx.save();
+          kbCtx.textAlign = 'center';
+          kbCtx.textBaseline = 'middle';
+          kbCtx.font = label.length > 3 ? '7.5px -apple-system, sans-serif' : '9px -apple-system, sans-serif';
+
+          if (brightMult > 0 && (r > 5 || g > 5 || b > 5)) {
+            const lr = Math.min(255, Math.round(r * 0.75 + 255 * 0.25 * brightMult));
+            const lg = Math.min(255, Math.round(g * 0.75 + 255 * 0.25 * brightMult));
+            const lb = Math.min(255, Math.round(b * 0.75 + 255 * 0.25 * brightMult));
+            kbCtx.fillStyle = `rgb(${lr}, ${lg}, ${lb})`;
+            kbCtx.shadowColor = `rgb(${r}, ${g}, ${b})`;
+            kbCtx.shadowBlur = 4 * brightMult;
+          } else {
+            kbCtx.fillStyle = '#64748b';
+            kbCtx.shadowBlur = 0;
+          }
+          kbCtx.fillText(label, cx, cy + 0.5);
+          kbCtx.restore();
+        }
+
+        // 5. Hover ring highlight
+        if (i === hoveredKeyIdx) {
+          drawRoundRect(kbCtx, x, y, w, h, 3.5);
+          kbCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+          kbCtx.lineWidth = 1.5;
+          kbCtx.stroke();
+        }
+      }
+
+      requestAnimationFrame(renderKeyboard);
+    }
+
+    function initKeyboardPreview() {
+      kbCanvas = document.getElementById('kb-preview');
+      if (!kbCanvas) return;
+      kbCtx = kbCanvas.getContext('2d');
+
+      // Mouse interactive reaction
+      function getCanvasPos(e) {
+        const rect = kbCanvas.getBoundingClientRect();
+        const scaleX = kbCanvas.width / rect.width;
+        const scaleY = kbCanvas.height / rect.height;
+        return {
+          x: (e.clientX - rect.left) * scaleX,
+          y: (e.clientY - rect.top) * scaleY
+        };
+      }
+
+      function findKeyAt(pos) {
+        for (let i = 0; i < KB_KEYS.length; i++) {
+          const [, kx, ky, kw, kh] = KB_KEYS[i];
+          if (pos.x >= kx && pos.x <= kx + kw && pos.y >= ky && pos.y <= ky + kh) {
+            return i;
+          }
+        }
+        return -1;
+      }
+
+      kbCanvas.addEventListener('mousemove', e => {
+        const pos = getCanvasPos(e);
+        hoveredKeyIdx = findKeyAt(pos);
+      });
+
+      kbCanvas.addEventListener('mouseleave', () => {
+        hoveredKeyIdx = -1;
+      });
+
+      kbCanvas.addEventListener('mousedown', e => {
+        const pos = getCanvasPos(e);
+        const idx = findKeyAt(pos);
+        const hex = (document.getElementById('light-color') ? document.getElementById('light-color').value : '#00e5ff');
+        const color = hexToRgb(hex);
+        if (idx >= 0) {
+          keyFlashes[idx] = 1.0;
+          const [, kx, ky, kw, kh] = KB_KEYS[idx];
+          activeRipples.push({ x: kx + kw / 2, y: ky + kh / 2, t: performance.now(), color });
+        } else {
+          activeRipples.push({ x: pos.x, y: pos.y, t: performance.now(), color });
+        }
+      });
+
+      requestAnimationFrame(renderKeyboard);
+    }
   </script>
 </body>
 </html>

@@ -84,8 +84,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif",
         "opt_restore_none": "Restore None",
         "hud_restore_btn": "Restore Animation",
-        "hud_restore_success": "Preset animation restored successfully!"
-    },
+        "hud_restore_success": "Preset animation restored successfully!",
+        "kb_preview_title": "Live Keyboard Animation Preview",
+        "kb_preview_hint": "Click any key to trigger lighting reaction",    },
     "zh-CN": {
         "title": "LT-104 键盘控制中心 (Linux 原生)",
         "connected": "已连接 LT-104 键盘",
@@ -164,8 +165,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (动态预设动画)",
         "opt_restore_none": "不恢复 (保持最后画面)",
         "hud_restore_btn": "恢复动画",
-        "hud_restore_success": "预设动画已成功恢复到屏幕！"
-    },
+        "hud_restore_success": "预设动画已成功恢复到屏幕！",
+        "kb_preview_title": "即时键盘灯效动画预览",
+        "kb_preview_hint": "点击任意按键触发灯光反馈",    },
     "zh-TW": {
         "title": "LT-104 鍵盤控制中心 (Linux 原生)",
         "connected": "已連線 LT-104 鍵盤",
@@ -244,8 +246,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (動態預設動畫)",
         "opt_restore_none": "不恢復 (保持最後畫面)",
         "hud_restore_btn": "恢復動畫",
-        "hud_restore_success": "預設動畫已成功恢復到螢幕！"
-    },
+        "hud_restore_success": "預設動畫已成功恢復到螢幕！",
+        "kb_preview_title": "即時鍵盤燈效動畫預覽",
+        "kb_preview_hint": "點擊任意按鍵觸發燈光反饋",    },
     "ja": {
         "title": "LT-104 キーボードコントロールセンター",
         "connected": "LT-104 接続済み",
@@ -324,8 +327,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (プリセットアニメ)",
         "opt_restore_none": "復元しない (最後の画面を保持)",
         "hud_restore_btn": "アニメ復元",
-        "hud_restore_success": "プリセットアニメが正常に復元されました！"
-    },
+        "hud_restore_success": "プリセットアニメが正常に復元されました！",
+        "kb_preview_title": "リアルタイムキーボードライティングプレビュー",
+        "kb_preview_hint": "キーをクリックしてライティング反応をトリガー",    },
     "ko": {
         "title": "LT-104 키보드 제어 센터",
         "connected": "LT-104 연결됨",
@@ -404,8 +408,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (사전 설정 애니메이션)",
         "opt_restore_none": "복원 안 함 (마지막 화면 유지)",
         "hud_restore_btn": "애니메이션 복원",
-        "hud_restore_success": "사전 설정 애니메이션이 성공적으로 복원되었습니다!"
-    },
+        "hud_restore_success": "사전 설정 애니메이션이 성공적으로 복원되었습니다!",
+        "kb_preview_title": "실시간 키보드 조명 애니메이션 미리보기",
+        "kb_preview_hint": "키를 클릭하여 조명 반응 실행",    },
     "de": {
         "title": "LT-104 Tastatur-Kontrollzentrum",
         "connected": "LT-104 Verbunden",
@@ -484,8 +489,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (Voreinstellung)",
         "opt_restore_none": "Keine Wiederherstellung",
         "hud_restore_btn": "Animation wiederherstellen",
-        "hud_restore_success": "Voreingestellte Animation erfolgreich wiederhergestellt!"
-    },
+        "hud_restore_success": "Voreingestellte Animation erfolgreich wiederhergestellt!",
+        "kb_preview_title": "Interaktive Tastatur-Beleuchtungsvorschau",
+        "kb_preview_hint": "Klicken Sie auf eine Taste für Lichtreaktion",    },
     "fr": {
         "title": "Centre de Contrôle Clavier LT-104",
         "connected": "LT-104 Connecté",
@@ -564,8 +570,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (Préréglage)",
         "opt_restore_none": "Aucune restauration",
         "hud_restore_btn": "Restaurer l animation",
-        "hud_restore_success": "Animation préréglée restaurée avec succès !"
-    },
+        "hud_restore_success": "Animation préréglée restaurée avec succès !",
+        "kb_preview_title": "Aperçu interactif de l'éclairage du clavier",
+        "kb_preview_hint": "Cliquez sur une touche pour déclencher la réaction",    },
     "es": {
         "title": "Centro de Control del Teclado LT-104",
         "connected": "LT-104 Conectado",
@@ -644,8 +651,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (Ajuste preestablecido)",
         "opt_restore_none": "No restaurar",
         "hud_restore_btn": "Restaurar animación",
-        "hud_restore_success": "¡Animación preestablecida restaurada con éxito!"
-    },
+        "hud_restore_success": "¡Animación preestablecida restaurada con éxito!",
+        "kb_preview_title": "Vista previa interactiva de iluminación del teclado",
+        "kb_preview_hint": "Haz clic en cualquier tecla para activar la reacción",    },
     "ru": {
         "title": "Центр управления клавиатурой LT-104",
         "connected": "LT-104 Подключена",
@@ -724,8 +732,9 @@ TRANSLATIONS = {
         "opt_restore_p36": "0_perfect36.gif (Предустановка)",
         "opt_restore_none": "Не восстанавливать",
         "hud_restore_btn": "Восстановить анимацию",
-        "hud_restore_success": "Предустановленная анимация успешно восстановлена!"
-    }
+        "hud_restore_success": "Предустановленная анимация успешно восстановлена!",
+        "kb_preview_title": "Интерактивный предпросмотр подсветки клавиатуры",
+        "kb_preview_hint": "Нажмите на любую клавишу для световой реакции",    }
 }
 
 def get_text(lang, key, **kwargs):

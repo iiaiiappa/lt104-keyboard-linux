@@ -492,10 +492,11 @@ class LT104Window(Adw.ApplicationWindow):
             if hasattr(self, '_presets_row'):
                 self._presets_row.set_visible(is_single)
             is_off = (mode_id == 20)
+            is_static = (mode_id == 1)
             if hasattr(self, '_bright_row'):
                 self._bright_row.set_visible(not is_off)
             if hasattr(self, '_speed_row'):
-                self._speed_row.set_visible(not is_off)
+                self._speed_row.set_visible(not is_off and not is_static)
             if is_off:
                 self._brightness_scale.set_value(0)
             if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
