@@ -725,8 +725,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (18, 19, 21):
-            return  # Gentle Rain, Shuttle, Solid Center do not react to keypresses
+        if mode_id in (17, 18, 19, 21):
+            return  # Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
 
         if idx >= 0:
             self._key_flashes[idx] = 1.0
@@ -861,11 +861,53 @@ class LT104Window(Adw.ApplicationWindow):
             return (0.0, 0.0, 0.0)
 
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
-            wave = math.sin(cx * 0.02 + t * speed_mult * 2.5) * math.cos(cy * 0.04 + t * speed_mult * 2.0)
-            val = 0.3 + 0.7 * (wave * 0.5 + 0.5)
-            hue = (cx * 0.3 + t * speed_mult * 40.0) % 360.0
-            c = hsl_to_rgb(hue, 1.0, 0.5)
-            return (c[0] * val, c[1] * val, c[2] * val)
+            # Background all off, slashes width one key (45 deg) with colorful lights.
+            # Phase 1: backslash (\) sweeps left, forwardslash (/) sweeps right from center (477)
+            # Phase 2: backslash (\) sweeps right, forwardslash (/) sweeps left from center (477)
+            mid_x = 477.0
+            mid_y = 148.0
+            mid_b = mid_x - mid_y  # 329.0
+            mid_f = mid_x + mid_y  # 625.0
+            max_travel = 620.0
+            cycle_duration = 3.6 / speed_mult
+            half_cycle = cycle_duration / 2.0
+            cur_time = (t % cycle_duration)
+            is_phase1 = (cur_time < half_cycle)
+            phase_prog = (cur_time / half_cycle) if is_phase1 else ((cur_time - half_cycle) / half_cycle)
+            travel = phase_prog * max_travel
+
+            if is_phase1:
+                target_b = mid_b - travel
+                target_f = mid_f + travel
+            else:
+                target_b = mid_b + travel
+                target_f = mid_f - travel
+
+            coord_b = cx - cy
+            coord_f = cx + cy
+            dist_b = abs(coord_b - target_b)
+            dist_f = abs(coord_f - target_f)
+            beam_width = 26.0
+
+            max_val = 0.0
+            active_hue = 0.0
+
+            if dist_b < beam_width * 2.2:
+                val_b = math.exp(-(dist_b * dist_b) / (2.0 * beam_width * beam_width))
+                if val_b > max_val:
+                    max_val = val_b
+                    active_hue = (coord_b * 0.7 + (0.0 if is_phase1 else 180.0) + t * speed_mult * 140.0 + 360.0) % 360.0
+
+            if dist_f < beam_width * 2.2:
+                val_f = math.exp(-(dist_f * dist_f) / (2.0 * beam_width * beam_width))
+                if val_f > max_val:
+                    max_val = val_f
+                    active_hue = (coord_f * 0.7 + (120.0 if is_phase1 else 300.0) + t * speed_mult * 140.0 + 360.0) % 360.0
+
+            if max_val < 0.02:
+                return (0.0, 0.0, 0.0)
+            c = hsl_to_rgb(active_hue, 1.0, 0.5)
+            return (c[0] * max_val, c[1] * max_val, c[2] * max_val)
 
         elif mode == 18:  # 斜风细雨 (Gentle Rain)
             # 45 degree (backslash shape: cx - cy) colored keys sweeping left to right, other keys off
@@ -984,7 +1026,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (18, 19, 21):
+                    if mode_id not in (17, 18, 19, 21):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)

@@ -1022,11 +1022,62 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
-          const wave = Math.sin(cx * 0.02 + t * speedMult * 2.5) * Math.cos(cy * 0.04 + t * speedMult * 2.0);
-          const val = 0.3 + 0.7 * (wave * 0.5 + 0.5);
-          const hue = (cx * 0.3 + t * speedMult * 40) % 360;
-          const c = hslToRgb(hue, 1.0, 0.5);
-          return [Math.round(c[0] * val), Math.round(c[1] * val), Math.round(c[2] * val)];
+          // Background all off, slashes width one key (45 deg) with colorful lights.
+          // Phase 1: backslash (\) sweeps left, forwardslash (/) sweeps right from center (477)
+          // Phase 2: backslash (\) sweeps right, forwardslash (/) sweeps left from center (477)
+          const midX = 477.0;
+          const midY = 148.0;
+          const midB = midX - midY; // 329.0
+          const midF = midX + midY; // 625.0
+          const maxTravel = 620.0;
+          const cycleDuration = 3.6 / speedMult;
+          const halfCycle = cycleDuration / 2.0;
+          const curTime = (t % cycleDuration);
+          const isPhase1 = (curTime < halfCycle);
+          const phaseProg = (isPhase1 ? (curTime / halfCycle) : ((curTime - halfCycle) / halfCycle));
+          const travel = phaseProg * maxTravel;
+
+          // Backslash line: coordB = cx - cy
+          // Forwardslash line: coordF = cx + cy
+          let targetB, targetF;
+          if (isPhase1) {
+            targetB = midB - travel; // Backslash sweeps left
+            targetF = midF + travel; // Forwardslash sweeps right
+          } else {
+            targetB = midB + travel; // Backslash sweeps right
+            targetF = midF - travel; // Forwardslash sweeps left
+          }
+
+          const coordB = cx - cy;
+          const coordF = cx + cy;
+          const distB = Math.abs(coordB - targetB);
+          const distF = Math.abs(coordF - targetF);
+          const beamWidth = 26.0; // Width of approximately one key
+
+          let maxVal = 0.0;
+          let activeHue = 0;
+
+          if (distB < beamWidth * 2.2) {
+            const valB = Math.exp(-(distB * distB) / (2 * beamWidth * beamWidth));
+            if (valB > maxVal) {
+              maxVal = valB;
+              // Colorful hue based on slash coordinate and time
+              activeHue = (coordB * 0.7 + (isPhase1 ? 0 : 180) + t * speedMult * 140.0 + 360) % 360;
+            }
+          }
+
+          if (distF < beamWidth * 2.2) {
+            const valF = Math.exp(-(distF * distF) / (2 * beamWidth * beamWidth));
+            if (valF > maxVal) {
+              maxVal = valF;
+              // Distinct colorful hue for forwardslash
+              activeHue = (coordF * 0.7 + (isPhase1 ? 120 : 300) + t * speedMult * 140.0 + 360) % 360;
+            }
+          }
+
+          if (maxVal < 0.02) return [0, 0, 0];
+          const c = hslToRgb(activeHue, 1.0, 0.5);
+          return [Math.round(c[0] * maxVal), Math.round(c[1] * maxVal), Math.round(c[2] * maxVal)];
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)
@@ -1160,8 +1211,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 18 Gentle Rain, 19 Shuttle, 21 Solid Center do not react to keypresses)
-            if (modeVal !== 18 && modeVal !== 19 && modeVal !== 21) {
+            // Active ripples overlay (Modes 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle, 21 Solid Center do not react to keypresses)
+            if (modeVal !== 17 && modeVal !== 18 && modeVal !== 19 && modeVal !== 21) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1360,7 +1411,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 18 || modeVal === 19 || modeVal === 21) return; // Gentle Rain, Shuttle, Solid Center do not react to keypresses
+        if (modeVal === 17 || modeVal === 18 || modeVal === 19 || modeVal === 21) return; // Rolling Hills, Gentle Rain, Shuttle, Solid Center do not react to keypresses
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];
