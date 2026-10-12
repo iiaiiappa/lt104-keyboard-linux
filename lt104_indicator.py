@@ -100,17 +100,32 @@ def image_to_rgb565(im):
             idx += 2
     return raw
 
+PID_FILE = "/tmp/lt104_indicator.pid"
+
 def run_indicator(interval=3.0, once=False):
     print(f"[LT-104 HUD] Starting Real-time System HUD (Interval: {interval}s)...")
     running = True
+    wake_event = False
 
     def sig_handler(sig, frame):
         nonlocal running
         print("\n[LT-104 HUD] Shutting down cleanly...")
         running = False
 
+    def usr1_handler(sig, frame):
+        nonlocal wake_event
+        wake_event = True
+
     signal.signal(signal.SIGINT, sig_handler)
     signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGUSR1, usr1_handler)
+
+    if not once:
+        try:
+            with open(PID_FILE, "w") as f:
+                f.write(str(os.getpid()))
+        except OSError:
+            pass
 
     # Initialize CPU measurement
     psutil.cpu_percent(interval=None)
@@ -173,12 +188,21 @@ def run_indicator(interval=3.0, once=False):
 
         # Sleep interval
         t_start = time.time()
-        while running and (time.time() - t_start < interval):
+        while running and not wake_event and (time.time() - t_start < interval):
             time.sleep(0.2)
+        wake_event = False
 
     if ctl:
         try: ctl.close()
         except: pass
+
+    if not once and os.path.exists(PID_FILE):
+        try:
+            if open(PID_FILE).read().strip() == str(os.getpid()):
+                os.unlink(PID_FILE)
+        except OSError:
+            pass
+
     print("[LT-104 HUD] Daemon stopped.")
 
 if __name__ == '__main__':

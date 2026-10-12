@@ -297,16 +297,16 @@ HTML_PAGE = """<!DOCTYPE html>
       setTimeout(() => toast.style.opacity = '0', 2500);
     }
 
-    const NO_COLOR_MODES = [6, 8, 20, 21, 22];
+    const SINGLE_COLOR_MODES = [1, 2, 3, 4, 5, 7];
 
     function updateColorVisibility(mode) {
       const modeVal = parseInt(mode !== undefined ? mode : document.getElementById('light-mode').value) || 1;
       const colorGroup = document.getElementById('group-custom-color');
       if (colorGroup) {
-        if (NO_COLOR_MODES.includes(modeVal)) {
-          colorGroup.style.display = 'none';
-        } else {
+        if (SINGLE_COLOR_MODES.includes(modeVal)) {
           colorGroup.style.display = 'block';
+        } else {
+          colorGroup.style.display = 'none';
         }
       }
     }
@@ -320,7 +320,7 @@ HTML_PAGE = """<!DOCTYPE html>
     function setColor(hex) {
       let mode = parseInt(document.getElementById('light-mode').value) || 1;
       // If currently in a mode that doesn't support single color, switch to Static (Mode 1)
-      if (NO_COLOR_MODES.includes(mode)) {
+      if (!SINGLE_COLOR_MODES.includes(mode)) {
         mode = 1;
         document.getElementById('light-mode').value = "1";
         updateColorVisibility(1);
@@ -644,6 +644,13 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                     running = True
                 else:
                     HUD_PROC = None
+            if not running and os.path.exists("/tmp/lt104_indicator.pid"):
+                try:
+                    p = int(open("/tmp/lt104_indicator.pid").read().strip())
+                    os.kill(p, 0)
+                    running = True
+                except (OSError, ValueError):
+                    pass
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -777,14 +784,9 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                     except Exception:
                         pass
 
-                # If running, restart with new interval
-                if HUD_PROC and HUD_PROC.poll() is None:
-                    HUD_PROC.terminate()
-                    try: HUD_PROC.wait(timeout=1.0)
-                    except: HUD_PROC.kill()
-
-                script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_indicator.py")
-                HUD_PROC = subprocess.Popen([sys.executable, script, "--interval", str(HUD_INTERVAL)])
+                cli_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.py")
+                subprocess.run([sys.executable, cli_script, "hud-stop"], check=False)
+                subprocess.run([sys.executable, cli_script, "hud-start", "--interval", str(HUD_INTERVAL)], check=False)
                 save_config({"hud_interval": HUD_INTERVAL})
 
                 self.send_response(200)
@@ -799,13 +801,8 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
 
         elif self.path == "/api/hud-stop":
             try:
-                if HUD_PROC and HUD_PROC.poll() is None:
-                    HUD_PROC.terminate()
-                    try:
-                        HUD_PROC.wait(timeout=2.0)
-                    except subprocess.TimeoutExpired:
-                        HUD_PROC.kill()
-                HUD_PROC = None
+                cli_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.py")
+                subprocess.run([sys.executable, cli_script, "hud-stop"], check=False)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
@@ -818,12 +815,19 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
 
         elif self.path == "/api/hud-once":
             try:
-                script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_indicator.py")
-                res = subprocess.run([sys.executable, script, "--once"], capture_output=True, timeout=10)
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"success": res.returncode == 0}).encode())
+                cli_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.py")
+                res = subprocess.run([sys.executable, cli_script, "hud-once"], capture_output=True, text=True, timeout=10)
+                if res.returncode == 0:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": True}).encode())
+                else:
+                    err_msg = res.stderr.strip() or res.stdout.strip() or f"CLI returned code {res.returncode}"
+                    self.send_response(500)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": False, "error": err_msg}).encode())
             except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
