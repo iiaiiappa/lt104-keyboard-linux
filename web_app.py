@@ -858,13 +858,16 @@ HTML_PAGE = """<!DOCTYPE html>
       return 5;
     }
 
+    let skinNone = new Image();
+    skinNone.src = '/static/keyboard_skin_none.png?v=1.0.3';
     let skinDark = new Image();
-    skinDark.src = '/static/keyboard_skin_dark.png?v=1.0.2';
+    skinDark.src = '/static/keyboard_skin_dark.png?v=1.0.3';
     let skinLit = new Image();
-    skinLit.src = '/static/keyboard_skin_lit.png?v=1.0.2';
+    skinLit.src = '/static/keyboard_skin_lit.png?v=1.0.3';
     let lcdGif = new Image();
-    lcdGif.src = '/static/current_lcd.gif?v=1.0.2';
+    lcdGif.src = '/static/current_lcd.gif?v=1.0.3';
 
+    skinNone.onload = () => { if (kbCtx) requestAnimationFrame(renderKeyboard); };
     skinDark.onload = () => { if (kbCtx) requestAnimationFrame(renderKeyboard); };
     skinLit.onload = () => { if (kbCtx) requestAnimationFrame(renderKeyboard); };
 
@@ -1038,8 +1041,8 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 21: { // 万众一心 (Solid Center)
-          // All lights turned on with colorful rainbow hues across the board
-          const hue = (cx * 0.38 + cy * 0.25) % 360;
+          // Slow flowing rainbow hues across the whole board (does not react to keypresses)
+          const hue = (cx * 0.35 + cy * 0.2 + t * speedMult * 25.0) % 360;
           return hslToRgb(hue, 1.0, 0.5);
         }
 
@@ -1120,25 +1123,24 @@ HTML_PAGE = """<!DOCTYPE html>
       // Clear main canvas
       kbCtx.clearRect(0, 0, kbCanvas.width, kbCanvas.height);
 
-      // 1. Draw photorealistic dark keyboard base skin
-      if (skinDark.complete && skinDark.naturalWidth > 0) {
-        kbCtx.drawImage(skinDark, 0, 0, 954, 297);
-      } else {
-        kbCtx.fillStyle = '#11131f';
-        kbCtx.fillRect(0, 0, 954, 297);
-      }
+      // 1. Draw keyboard background base
+      kbCtx.fillStyle = '#090b14';
+      kbCtx.fillRect(0, 0, 954, 297);
 
-      // 2. Draw photorealistic tinted lit keycap layer
-      if (skinLit.complete && skinLit.naturalWidth > 0 && brightMult > 0) {
-        tintCtx.clearRect(0, 0, 954, 297);
-
+      // 2. Draw lighting blocks behind the keyboard card
+      if (brightMult > 0) {
         if (modeVal === 1 && activeRipples.length === 0) {
-          // STATIC MODE: All keys uniform exact brightness
-          tintCtx.fillStyle = `rgb(${Math.round(baseRgb[0] * brightMult)}, ${Math.round(baseRgb[1] * brightMult)}, ${Math.round(baseRgb[2] * brightMult)})`;
-          tintCtx.fillRect(15, 12, 755, 50);
-          tintCtx.fillRect(15, 62, 930, 215);
+          // STATIC MODE: Uniform colored lighting behind keys
+          const staticR = Math.round(baseRgb[0] * brightMult);
+          const staticG = Math.round(baseRgb[1] * brightMult);
+          const staticB = Math.round(baseRgb[2] * brightMult);
+          kbCtx.fillStyle = `rgb(${staticR}, ${staticG}, ${staticB})`;
+          for (let i = 0; i < KB_KEYS.length; i++) {
+            const [, kx, ky, kw, kh] = KB_KEYS[i];
+            kbCtx.fillRect(kx - 1, ky - 1, kw + 2, kh + 2);
+          }
         } else {
-          // DYNAMIC MODES: Render light map per key
+          // DYNAMIC MODES: Render light blocks per key behind keyboard card
           for (let i = 0; i < KB_KEYS.length; i++) {
             const k = KB_KEYS[i];
             const [, kx, ky, kw, kh] = k;
@@ -1147,62 +1149,64 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay
-            for (let j = 0; j < activeRipples.length; j++) {
-              const rip = activeRipples[j];
-              const age = (now - rip.t) / 1000;
-              const ripMode = rip.mode || modeVal;
+            // Active ripples overlay (Mode 21 Solid Center does not react to keypresses)
+            if (modeVal !== 21) {
+              for (let j = 0; j < activeRipples.length; j++) {
+                const rip = activeRipples[j];
+                const age = (now - rip.t) / 1000;
+                const ripMode = rip.mode || modeVal;
 
-              if (ripMode === 13) {
-                // Ripple Trigger: spreads left and right on the same row ONLY
-                const kRow = getKeyRow(k[2]);
-                if (kRow === rip.row) {
-                  const dx = Math.abs(cx - rip.x);
-                  const waveFront = age * 540;
-                  const diff = Math.abs(dx - waveFront);
-                  if (diff < 36) {
-                    const amp = Math.max(0, (1 - age / 0.85) * (1 - diff / 36));
-                    r = Math.min(255, r + Math.round(rip.color[0] * amp));
-                    g = Math.min(255, g + Math.round(rip.color[1] * amp));
-                    b = Math.min(255, b + Math.round(rip.color[2] * amp));
+                if (ripMode === 13) {
+                  // Ripple Trigger: spreads left and right on the same row ONLY
+                  const kRow = getKeyRow(k[2]);
+                  if (kRow === rip.row) {
+                    const dx = Math.abs(cx - rip.x);
+                    const waveFront = age * 540;
+                    const diff = Math.abs(dx - waveFront);
+                    if (diff < 36) {
+                      const amp = Math.max(0, (1 - age / 0.85) * (1 - diff / 36));
+                      r = Math.min(255, r + Math.round(rip.color[0] * amp));
+                      g = Math.min(255, g + Math.round(rip.color[1] * amp));
+                      b = Math.min(255, b + Math.round(rip.color[2] * amp));
+                    }
                   }
-                }
-              } else if (ripMode === 14) {
-                // Dual Ripple: colorful keys separate towards left and right
-                const dx = Math.abs(cx - rip.x);
-                const waveFront = age * 500;
-                const diff = Math.abs(dx - waveFront);
-                if (diff < 42) {
-                  const amp = Math.max(0, (1 - age / 0.95) * (1 - diff / 42));
-                  const hue = (dx * 0.9 + age * 180 + k[2] * 0.3) % 360;
-                  const c = hslToRgb(hue, 1.0, 0.5);
-                  r = Math.min(255, r + Math.round(c[0] * amp));
-                  g = Math.min(255, g + Math.round(c[1] * amp));
-                  b = Math.min(255, b + Math.round(c[2] * amp));
-                }
-              } else if (ripMode === 15) {
-                // Ripple Spread: colorful keys separate outward circles like a ripple, width 3 keys
-                const dist = Math.hypot(cx - rip.x, cy - rip.y);
-                const waveFront = age * 420;
-                const diff = Math.abs(dist - waveFront);
-                if (diff < 48) { // 3 keys width
-                  const amp = Math.max(0, (1 - age / 1.1) * (1 - diff / 48));
-                  const hue = (dist * 1.2 - age * 140 + Math.atan2(cy - rip.y, cx - rip.x) * 180 / Math.PI) % 360;
-                  const c = hslToRgb(hue, 1.0, 0.5);
-                  r = Math.min(255, r + Math.round(c[0] * amp));
-                  g = Math.min(255, g + Math.round(c[1] * amp));
-                  b = Math.min(255, b + Math.round(c[2] * amp));
-                }
-              } else {
-                // Generic ripple on click
-                const ripDist = Math.hypot(cx - rip.x, cy - rip.y);
-                const waveFront = age * 480;
-                const diff = Math.abs(ripDist - waveFront);
-                if (diff < 45) {
-                  const rippleAmp = Math.max(0, (1 - age / 0.9) * (1 - diff / 45));
-                  r = Math.min(255, r + Math.round(rip.color[0] * rippleAmp));
-                  g = Math.min(255, g + Math.round(rip.color[1] * rippleAmp));
-                  b = Math.min(255, b + Math.round(rip.color[2] * rippleAmp));
+                } else if (ripMode === 14) {
+                  // Dual Ripple: colorful keys separate towards left and right
+                  const dx = Math.abs(cx - rip.x);
+                  const waveFront = age * 500;
+                  const diff = Math.abs(dx - waveFront);
+                  if (diff < 42) {
+                    const amp = Math.max(0, (1 - age / 0.95) * (1 - diff / 42));
+                    const hue = (dx * 0.9 + age * 180 + k[2] * 0.3) % 360;
+                    const c = hslToRgb(hue, 1.0, 0.5);
+                    r = Math.min(255, r + Math.round(c[0] * amp));
+                    g = Math.min(255, g + Math.round(c[1] * amp));
+                    b = Math.min(255, b + Math.round(c[2] * amp));
+                  }
+                } else if (ripMode === 15) {
+                  // Ripple Spread: colorful keys separate outward circles like a ripple, width 3 keys
+                  const dist = Math.hypot(cx - rip.x, cy - rip.y);
+                  const waveFront = age * 420;
+                  const diff = Math.abs(dist - waveFront);
+                  if (diff < 48) { // 3 keys width
+                    const amp = Math.max(0, (1 - age / 1.1) * (1 - diff / 48));
+                    const hue = (dist * 1.2 - age * 140 + Math.atan2(cy - rip.y, cx - rip.x) * 180 / Math.PI) % 360;
+                    const c = hslToRgb(hue, 1.0, 0.5);
+                    r = Math.min(255, r + Math.round(c[0] * amp));
+                    g = Math.min(255, g + Math.round(c[1] * amp));
+                    b = Math.min(255, b + Math.round(c[2] * amp));
+                  }
+                } else {
+                  // Generic ripple on click
+                  const ripDist = Math.hypot(cx - rip.x, cy - rip.y);
+                  const waveFront = age * 480;
+                  const diff = Math.abs(ripDist - waveFront);
+                  if (diff < 45) {
+                    const rippleAmp = Math.max(0, (1 - age / 0.9) * (1 - diff / 45));
+                    r = Math.min(255, r + Math.round(rip.color[0] * rippleAmp));
+                    g = Math.min(255, g + Math.round(rip.color[1] * rippleAmp));
+                    b = Math.min(255, b + Math.round(rip.color[2] * rippleAmp));
+                  }
                 }
               }
             }
@@ -1212,25 +1216,18 @@ HTML_PAGE = """<!DOCTYPE html>
             b = Math.round(b * brightMult);
 
             if (r > 0 || g > 0 || b > 0) {
-              tintCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-              tintCtx.fillRect(kx - 3, ky - 3, kw + 6, kh + 6);
+              kbCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+              kbCtx.fillRect(kx - 1, ky - 1, kw + 2, kh + 2);
             }
           }
         }
+      }
 
-        // Multiply composite lit skin over tinted color map
-        tintCtx.globalCompositeOperation = 'destination-in';
-        tintCtx.drawImage(skinLit, 0, 0, 954, 297);
-        tintCtx.globalCompositeOperation = 'source-over';
-
-        // Draw tinted lit keys onto main keyboard canvas
-        kbCtx.save();
-        kbCtx.beginPath();
-        kbCtx.rect(15, 12, 755, 50);
-        kbCtx.rect(15, 62, 930, 215);
-        kbCtx.clip();
-        kbCtx.drawImage(tintCanvas, 0, 0);
-        kbCtx.restore();
+      // 3. Draw singledevice_keyboardK870T_none keyboard card ON TOP of the lighting blocks
+      if (skinNone.complete && skinNone.naturalWidth > 0) {
+        kbCtx.drawImage(skinNone, 0, 0, 954, 297);
+      } else if (skinDark.complete && skinDark.naturalWidth > 0) {
+        kbCtx.drawImage(skinDark, 0, 0, 954, 297);
       }
 
       // 3. Hover Ring Highlight
@@ -1352,6 +1349,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
+        if (modeVal === 21) return; // Solid Center does not react to keypresses
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];

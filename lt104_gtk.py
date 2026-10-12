@@ -163,8 +163,10 @@ class LT104Window(Adw.ApplicationWindow):
 
         # Photorealistic skin surfaces
         base_dir = os.path.dirname(os.path.abspath(__file__))
+        none_png = os.path.join(base_dir, "static", "keyboard_skin_none.png")
         dark_png = os.path.join(base_dir, "static", "keyboard_skin_dark.png")
         lit_png = os.path.join(base_dir, "static", "keyboard_skin_lit.png")
+        self._skin_none = cairo.ImageSurface.create_from_png(none_png) if os.path.exists(none_png) else None
         self._skin_dark = cairo.ImageSurface.create_from_png(dark_png) if os.path.exists(dark_png) else None
         self._skin_lit = cairo.ImageSurface.create_from_png(lit_png) if os.path.exists(lit_png) else None
         self._lcd_surface = None
@@ -720,6 +722,9 @@ class LT104Window(Adw.ApplicationWindow):
         rgba = self._color_btn.get_rgba()
         base_rgb = (rgba.red, rgba.green, rgba.blue)
 
+        if mode_id == 21:
+            return  # Solid Center does not react to keypresses
+
         if idx >= 0:
             self._key_flashes[idx] = 1.0
             k = KB_KEYS[idx]
@@ -881,7 +886,8 @@ class LT104Window(Adw.ApplicationWindow):
             return (c[0] * val, c[1] * val, c[2] * val)
 
         elif mode == 21:  # 万众一心 (Solid Center)
-            hue = (cx * 0.38 + cy * 0.25) % 360.0
+            # Slow flowing rainbow hues across the board (does not react to keypresses)
+            hue = (cx * 0.35 + cy * 0.2 + t * speed_mult * 25.0) % 360.0
             return hsl_to_rgb(hue, 1.0, 0.5)
 
         elif mode == 22:  # 流光溢彩 (Neon Glow)
@@ -952,112 +958,92 @@ class LT104Window(Adw.ApplicationWindow):
         cr.translate(offset_x, offset_y)
         cr.scale(scale, scale)
 
-        # 1. Keyboard Chassis Base
-        if self._skin_dark:
-            cr.set_source_surface(self._skin_dark, 0, 0)
-            cr.paint()
-        else:
-            cr.set_source_rgb(0.067, 0.075, 0.122)
-            cr.rectangle(0, 0, 954, 297)
-            cr.fill()
+        # 1. Background base
+        cr.set_source_rgb(0.035, 0.043, 0.078)
+        cr.rectangle(0, 0, 954, 297)
+        cr.fill()
 
-        # 2. Lit Keycaps Overlay
-        if self._skin_lit and bright_mult > 0:
-            cr.save()
-            # Clip to keys areas
-            cr.rectangle(15, 12, 755, 50)
-            cr.rectangle(15, 62, 930, 215)
-            cr.clip()
-
-            tinted_surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 954, 297)
-            tinted_cr = cairo.Context(tinted_surf)
-
+        # 2. Lighting Blocks behind keyboard card
+        if bright_mult > 0:
             if mode_id == 1 and not self._active_ripples:
-                # STATIC MODE: All keys uniform exact brightness
-                tinted_cr.set_source_surface(self._skin_lit, 0, 0)
-                tinted_cr.paint()
-                tinted_cr.set_operator(cairo.OPERATOR_MULTIPLY)
-                tinted_cr.set_source_rgb(base_rgb[0] * bright_mult, base_rgb[1] * bright_mult, base_rgb[2] * bright_mult)
-                tinted_cr.paint()
+                # STATIC MODE: Uniform colored lighting behind keys
+                cr.set_source_rgb(base_rgb[0] * bright_mult, base_rgb[1] * bright_mult, base_rgb[2] * bright_mult)
+                for i, k in enumerate(KB_KEYS):
+                    _, kx, ky, kw, kh = k
+                    cr.rectangle(kx - 1, ky - 1, kw + 2, kh + 2)
+                cr.fill()
             else:
-                # Dynamic light map per key
-                color_surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 954, 297)
-                color_cr = cairo.Context(color_surf)
-
+                # DYNAMIC MODES: Render light blocks per key behind keyboard card
                 for i, k in enumerate(KB_KEYS):
                     _, kx, ky, kw, kh = k
                     cx = kx + kw / 2.0
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    for rip in self._active_ripples:
-                        age = (now - rip["t"])
-                        rip_mode = rip.get("mode", mode_id)
+                    if mode_id != 21:
+                        for rip in self._active_ripples:
+                            age = (now - rip["t"])
+                            rip_mode = rip.get("mode", mode_id)
 
-                        if rip_mode == 13:
-                            # Ripple Trigger: spreads left and right on same row ONLY
-                            k_row = get_key_row(k[2])
-                            if k_row == rip.get("row", -1):
+                            if rip_mode == 13:
+                                k_row = get_key_row(k[2])
+                                if k_row == rip.get("row", -1):
+                                    dx = abs(cx - rip["x"])
+                                    wave_front = age * 540.0
+                                    diff = abs(dx - wave_front)
+                                    if diff < 36.0:
+                                        amp = max(0.0, (1.0 - age / 0.85) * (1.0 - diff / 36.0))
+                                        r = min(1.0, r + rip["color"][0] * amp)
+                                        g = min(1.0, g + rip["color"][1] * amp)
+                                        b = min(1.0, b + rip["color"][2] * amp)
+                            elif rip_mode == 14:
                                 dx = abs(cx - rip["x"])
-                                wave_front = age * 540.0
+                                wave_front = age * 500.0
                                 diff = abs(dx - wave_front)
-                                if diff < 36.0:
-                                    amp = max(0.0, (1.0 - age / 0.85) * (1.0 - diff / 36.0))
+                                if diff < 42.0:
+                                    amp = max(0.0, (1.0 - age / 0.95) * (1.0 - diff / 42.0))
+                                    hue = (dx * 0.9 + age * 180.0 + k[2] * 0.3) % 360.0
+                                    c = hsl_to_rgb(hue, 1.0, 0.5)
+                                    r = min(1.0, r + c[0] * amp)
+                                    g = min(1.0, g + c[1] * amp)
+                                    b = min(1.0, b + c[2] * amp)
+                            elif rip_mode == 15:
+                                dist = math.hypot(cx - rip["x"], cy - rip["y"])
+                                wave_front = age * 420.0
+                                diff = abs(dist - wave_front)
+                                if diff < 48.0:
+                                    amp = max(0.0, (1.0 - age / 1.1) * (1.0 - diff / 48.0))
+                                    hue = (dist * 1.2 - age * 140.0 + math.atan2(cy - rip["y"], cx - rip["x"]) * 180.0 / math.pi) % 360.0
+                                    c = hsl_to_rgb(hue, 1.0, 0.5)
+                                    r = min(1.0, r + c[0] * amp)
+                                    g = min(1.0, g + c[1] * amp)
+                                    b = min(1.0, b + c[2] * amp)
+                            else:
+                                rip_dist = math.hypot(cx - rip["x"], cy - rip["y"])
+                                wave_front = age * 480.0
+                                diff = abs(rip_dist - wave_front)
+                                if diff < 45.0:
+                                    amp = max(0.0, (1.0 - age / 0.9) * (1.0 - diff / 45.0))
                                     r = min(1.0, r + rip["color"][0] * amp)
                                     g = min(1.0, g + rip["color"][1] * amp)
                                     b = min(1.0, b + rip["color"][2] * amp)
-                        elif rip_mode == 14:
-                            # Dual Ripple: colorful keys separate towards left and right
-                            dx = abs(cx - rip["x"])
-                            wave_front = age * 500.0
-                            diff = abs(dx - wave_front)
-                            if diff < 42.0:
-                                amp = max(0.0, (1.0 - age / 0.95) * (1.0 - diff / 42.0))
-                                hue = (dx * 0.9 + age * 180.0 + k[2] * 0.3) % 360.0
-                                c = hsl_to_rgb(hue, 1.0, 0.5)
-                                r = min(1.0, r + c[0] * amp)
-                                g = min(1.0, g + c[1] * amp)
-                                b = min(1.0, b + c[2] * amp)
-                        elif rip_mode == 15:
-                            # Ripple Spread: concentric rings width ~3 keys
-                            dist = math.hypot(cx - rip["x"], cy - rip["y"])
-                            wave_front = age * 420.0
-                            diff = abs(dist - wave_front)
-                            if diff < 48.0:
-                                amp = max(0.0, (1.0 - age / 1.1) * (1.0 - diff / 48.0))
-                                hue = (dist * 1.2 - age * 140.0 + math.atan2(cy - rip["y"], cx - rip["x"]) * 180.0 / math.pi) % 360.0
-                                c = hsl_to_rgb(hue, 1.0, 0.5)
-                                r = min(1.0, r + c[0] * amp)
-                                g = min(1.0, g + c[1] * amp)
-                                b = min(1.0, b + c[2] * amp)
-                        else:
-                            rip_dist = math.hypot(cx - rip["x"], cy - rip["y"])
-                            wave_front = age * 480.0
-                            diff = abs(rip_dist - wave_front)
-                            if diff < 45.0:
-                                amp = max(0.0, (1.0 - age / 0.9) * (1.0 - diff / 45.0))
-                                r = min(1.0, r + rip["color"][0] * amp)
-                                g = min(1.0, g + rip["color"][1] * amp)
-                                b = min(1.0, b + rip["color"][2] * amp)
 
                     r = max(0.0, min(1.0, r * bright_mult))
                     g = max(0.0, min(1.0, g * bright_mult))
                     b = max(0.0, min(1.0, b * bright_mult))
 
                     if r > 0.005 or g > 0.005 or b > 0.005:
-                        color_cr.set_source_rgb(r, g, b)
-                        color_cr.rectangle(kx - 3, ky - 3, kw + 6, kh + 6)
-                        color_cr.fill()
+                        cr.set_source_rgb(r, g, b)
+                        cr.rectangle(kx - 1, ky - 1, kw + 2, kh + 2)
+                        cr.fill()
 
-                tinted_cr.set_source_surface(self._skin_lit, 0, 0)
-                tinted_cr.paint()
-                tinted_cr.set_operator(cairo.OPERATOR_MULTIPLY)
-                tinted_cr.set_source_surface(color_surf, 0, 0)
-                tinted_cr.paint()
-
-            cr.set_source_surface(tinted_surf, 0, 0)
+        # 3. Draw singledevice_keyboardK870T_none card ON TOP of the lighting blocks
+        if self._skin_none:
+            cr.set_source_surface(self._skin_none, 0, 0)
             cr.paint()
-            cr.restore()
+        elif self._skin_dark:
+            cr.set_source_surface(self._skin_dark, 0, 0)
+            cr.paint()
 
         # 3. Hover Ring Highlight
         if 0 <= self._hovered_key_idx < len(KB_KEYS):
