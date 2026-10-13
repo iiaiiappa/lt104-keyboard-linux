@@ -144,6 +144,7 @@ class LT104Window(Adw.ApplicationWindow):
         self._next_star_change_time = 0.0
         self._hud_running = False
         self._key_flashes = [0.0] * len(KB_KEYS)
+        self._pressed_key_idx = -1
         self._active_ripples = []
         self._hovered_key_idx = -1
         self._last_auto_tap_time = 0.0
@@ -242,7 +243,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         # Gesture & motion controllers
         click_gesture = Gtk.GestureClick()
-        click_gesture.connect("pressed", self._on_preview_clicked)
+        click_gesture.connect("pressed", self._on_preview_pressed)
+        click_gesture.connect("released", self._on_preview_released)
         self._preview_area.add_controller(click_gesture)
 
         motion_ctrl = Gtk.EventControllerMotion()
@@ -708,7 +710,7 @@ class LT104Window(Adw.ApplicationWindow):
                 return i
         return -1
 
-    def _on_preview_clicked(self, gesture, n_press, x, y):
+    def _on_preview_pressed(self, gesture, n_press, x, y):
         w = self._preview_area.get_width()
         h = self._preview_area.get_height()
         scale_x = w / 954.0
@@ -721,14 +723,17 @@ class LT104Window(Adw.ApplicationWindow):
         canvas_y = (y - offset_y) / scale
 
         idx = self._find_key_at(canvas_x, canvas_y)
+        self._pressed_key_idx = idx
         now = time.time()
         rgba = self._color_btn.get_rgba()
         base_rgb = (rgba.red, rgba.green, rgba.blue)
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (10, 16, 17, 18, 19):
-            return  # Cross Pattern, Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
+        if mode_id in (3, 10, 16, 17, 18, 19):
+            # Single Off (3) has NO ripples. Modes 10, 16, 17, 18, 19 do not react.
+            self._preview_area.queue_draw()
+            return
 
         if idx >= 0:
             self._key_flashes[idx] = 1.0
@@ -742,8 +747,6 @@ class LT104Window(Adw.ApplicationWindow):
                 "mode": mode_id
             })
         else:
-            mode_idx = self._mode_row.get_selected()
-            mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
             self._active_ripples.append({
                 "x": canvas_x,
                 "y": canvas_y,
@@ -752,6 +755,10 @@ class LT104Window(Adw.ApplicationWindow):
                 "color": base_rgb,
                 "mode": mode_id
             })
+        self._preview_area.queue_draw()
+
+    def _on_preview_released(self, gesture, n_press, x, y):
+        self._pressed_key_idx = -1
         self._preview_area.queue_draw()
 
     def _on_preview_motion(self, controller, x, y):
@@ -790,8 +797,10 @@ class LT104Window(Adw.ApplicationWindow):
             return (base_rgb[0] * f, base_rgb[1] * f, base_rgb[2] * f)
 
         elif mode == 3:  # 单熄灭 (Single Off)
-            f = max(0.05, 1.0 - self._key_flashes[idx])
-            return (base_rgb[0] * f, base_rgb[1] * f, base_rgb[2] * f)
+            # Lights on ALL the time. When pressing a key, the key's light is OFF. When not pressing, light is back ON.
+            if idx == getattr(self, '_pressed_key_idx', -1):
+                return (0.0, 0.0, 0.0)
+            return base_rgb
 
         elif mode == 4:  # 繁星点点 (Stars)
             # All keys lit with static color, randomly turn off 2-3 keys
@@ -1083,8 +1092,8 @@ class LT104Window(Adw.ApplicationWindow):
             if self._key_flashes[i] > 0.001:
                 self._key_flashes[i] *= 0.94
 
-        # Simulated auto-tap for Single Light / Single Off modes
-        if mode_id in (2, 3) and (now - self._last_auto_tap_time > 1.3):
+        # Simulated auto-tap for Single Light (Mode 2) only
+        if mode_id == 2 and (now - self._last_auto_tap_time > 1.3):
             rand_idx = random.randint(0, len(KB_KEYS) - 1)
             self._key_flashes[rand_idx] = 1.0
             self._last_auto_tap_time = now
@@ -1131,7 +1140,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (10, 16, 17, 18, 19):
+                    if mode_id not in (3, 10, 16, 17, 18, 19):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)

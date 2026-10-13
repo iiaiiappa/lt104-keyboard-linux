@@ -171,15 +171,7 @@ HTML_PAGE = """<!DOCTYPE html>
     .preset-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff3; cursor: pointer; transition: transform 0.15s; }
     .preset-btn:hover { transform: scale(1.15); border-color: #fff; }
 
-    /* GNOME Shell Extension Presets Section */
-    .ext-presets-section { background: var(--card-inner); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
-    .ext-presets-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .ext-presets-title { font-size: 13px; font-weight: 600; color: #deddda; display: flex; align-items: center; gap: 6px; }
-    .ext-presets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-    .ext-preset-pill { background: #242424; border: 1px solid #3c3c3c; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 500; color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s ease; text-align: left; }
-    .ext-preset-pill:hover { background: #3584e4; border-color: #3584e4; color: #ffffff; transform: translateY(-1px); }
-    .ext-preset-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 4px rgba(0,0,0,0.4); }
-    
+
     .range-val { font-size: 13px; color: var(--accent); float: right; }
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--success); color: #000; padding: 12px 20px; border-radius: 8px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
     .progress-bar-wrap { width: 100%; height: 8px; background: var(--card-inner); border-radius: 4px; overflow: hidden; margin-top: 12px; display: none; }
@@ -245,54 +237,7 @@ HTML_PAGE = """<!DOCTYPE html>
             </div>
           </div>
 
-          <!-- GNOME Extension Quick Backlight Presets Bar -->
-          <div class="ext-presets-section">
-            <div class="ext-presets-header">
-              <div class="ext-presets-title">
-                <span>🌈</span>
-                <span id="txt-ext-presets-title">GNOME Extension Quick Presets</span>
-              </div>
-              <span style="font-size: 11px; color: var(--subtext);" id="txt-ext-presets-hint">1-Click Lighting Preset</span>
-            </div>
-            <div class="ext-presets-grid">
-              <button class="ext-preset-pill" onclick="applyPreset('breathing_cyan')" title="Breathing Cyan">
-                <span class="ext-preset-dot" style="background: #00e5ff;"></span>
-                <span id="ext-preset-breathing-cyan">Breathing Cyan</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('static_white')" title="Static White">
-                <span class="ext-preset-dot" style="background: #ffffff;"></span>
-                <span id="ext-preset-static-white">Static White</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('static_cyan')" title="Static Cyan">
-                <span class="ext-preset-dot" style="background: #00e5ff;"></span>
-                <span id="ext-preset-static-cyan">Static Cyan</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('static_magenta')" title="Static Magenta">
-                <span class="ext-preset-dot" style="background: #ff0055;"></span>
-                <span id="ext-preset-static-magenta">Static Magenta</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('static_green')" title="Static Green">
-                <span class="ext-preset-dot" style="background: #00e676;"></span>
-                <span id="ext-preset-static-green">Static Green</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('spectrum')" title="Spectrum Cycle">
-                <span class="ext-preset-dot" style="background: linear-gradient(135deg, #ff0055, #00e5ff);"></span>
-                <span id="ext-preset-spectrum">Spectrum Cycle</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('rainbow')" title="Rainbow Wave">
-                <span class="ext-preset-dot" style="background: linear-gradient(135deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff);"></span>
-                <span id="ext-preset-rainbow">Rainbow Wave</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('stream')" title="River Stream">
-                <span class="ext-preset-dot" style="background: linear-gradient(135deg, #00b4d8, #0077b6);"></span>
-                <span id="ext-preset-stream">River Stream</span>
-              </button>
-              <button class="ext-preset-pill" onclick="applyPreset('off')" title="Turn Off Backlight">
-                <span class="ext-preset-dot" style="background: #555555;"></span>
-                <span id="ext-preset-off">Turn Off Backlight</span>
-              </button>
-            </div>
-          </div>
+
 
           <div class="grid">
             <div class="form-group">
@@ -502,67 +447,12 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById('txt-lcd-title').innerText = '📺 ' + t('lcd_card_title');
       document.getElementById('txt-lcd-desc').innerText = t('lcd_card_desc');
       document.getElementById('btn-upload-lcd').innerText = '🚀 ' + t('upload_btn');
-
-      // Localize GNOME Extension Quick Presets Bar
-      const txtExtPresets = document.getElementById('txt-ext-presets-title');
-      if (txtExtPresets) txtExtPresets.innerText = t('ext_presets') || 'Backlight Presets';
-      const extPresetsMap = {
-        'breathing-cyan': 'breathing_cyan',
-        'static-white': 'static_white',
-        'static-cyan': 'static_cyan',
-        'static-magenta': 'static_magenta',
-        'static-green': 'static_green',
-        'spectrum': 'spectrum',
-        'rainbow': 'rainbow',
-        'stream': 'stream',
-        'off': 'off'
-      };
-      const curBundle = I18N[currentLang] || I18N['en'];
-      const curPresets = (curBundle && curBundle.presets) || (I18N['en'] && I18N['en'].presets) || {};
-      for (const [domId, pKey] of Object.entries(extPresetsMap)) {
-        const el = document.getElementById('ext-preset-' + domId);
-        if (el && curPresets[pKey]) {
-          el.innerText = curPresets[pKey];
-        }
-      }
-
       if (latestUpdateData && latestUpdateData.has_update) {
         const ver = latestUpdateData.latest_version || ('commit ' + latestUpdateData.latest_commit);
         const txt = document.getElementById('update-text');
         if (txt) txt.innerText = t('update_available', { ver });
       }
       updateHudUI();
-    }
-
-    const GNOME_PRESETS = {
-      'breathing_cyan': { mode: 7, hex: '#00e5ff', brightness: 4, speed: 3 },
-      'static_white':   { mode: 1, hex: '#ffffff', brightness: 4, speed: 3 },
-      'static_cyan':    { mode: 1, hex: '#00e5ff', brightness: 4, speed: 3 },
-      'static_magenta': { mode: 1, hex: '#ff0055', brightness: 4, speed: 3 },
-      'static_green':   { mode: 1, hex: '#00e676', brightness: 4, speed: 3 },
-      'spectrum':       { mode: 8, hex: '#00e5ff', brightness: 4, speed: 3 },
-      'rainbow':        { mode: 9, hex: '#00e5ff', brightness: 4, speed: 3 },
-      'stream':         { mode: 11, hex: '#00e5ff', brightness: 4, speed: 3 },
-      'off':            { mode: 20, hex: '#000000', brightness: 0, speed: 0 }
-    };
-
-    function applyPreset(presetKey) {
-      const cfg = GNOME_PRESETS[presetKey];
-      if (!cfg) return;
-      document.getElementById('light-mode').value = String(cfg.mode);
-      document.getElementById('light-color').value = cfg.hex;
-      document.getElementById('color-hex').innerText = cfg.hex;
-      document.getElementById('light-brightness').value = cfg.brightness;
-      updateRange('bright-val', cfg.brightness, ['0%', '25%', '50%', '75%', '100%']);
-      document.getElementById('light-speed').value = cfg.speed;
-      updateRange('speed-val', cfg.speed);
-      updateColorVisibility(cfg.mode);
-
-      const curBundle = I18N[currentLang] || I18N['en'];
-      const pName = (curBundle && curBundle.presets && curBundle.presets[presetKey]) || presetKey;
-      showToast('🌈 ' + pName);
-
-      applyLight();
     }
 
     function showToast(msg) {
@@ -1083,6 +973,7 @@ HTML_PAGE = """<!DOCTYPE html>
     let kbCanvas = null;
     let kbCtx = null;
     let hoveredKeyIdx = -1;
+    let pressedKeyIdx = -1;
     let activeRipples = [];
     const keyFlashes = new Float32Array(KB_KEYS.length);
     let lastAutoTapTime = 0;
@@ -1163,10 +1054,12 @@ HTML_PAGE = """<!DOCTYPE html>
           return [Math.round(baseRgb[0] * f), Math.round(baseRgb[1] * f), Math.round(baseRgb[2] * f)];
         }
 
-        case 3: { // 单熄灭 (Single Off)
-          const f = Math.max(0.05, 1.0 - keyFlashes[idx]);
-          return [Math.round(baseRgb[0] * f), Math.round(baseRgb[1] * f), Math.round(baseRgb[2] * f)];
-        }
+        case 3: // 单熄灭 (Single Off)
+          // Lights on ALL the time. When pressing a key, the key's light is OFF. When not pressing, light is back ON.
+          if (idx === pressedKeyIdx) {
+            return [0, 0, 0];
+          }
+          return baseRgb;
 
         case 4: { // 繁星点点 (Stars)
           // All keys lit with static color, randomly turn off 2-3 keys for 0.5s when speed is 1
@@ -1494,8 +1387,8 @@ HTML_PAGE = """<!DOCTYPE html>
         if (keyFlashes[i] > 0.001) keyFlashes[i] *= 0.94;
       }
 
-      // Simulated auto-tap for Single Light / Single Off modes
-      if ((modeVal === 2 || modeVal === 3) && (now - lastAutoTapTime > 1300)) {
+      // Simulated auto-tap for Single Light (Mode 2) only
+      if (modeVal === 2 && (now - lastAutoTapTime > 1300)) {
         const randIdx = Math.floor(Math.random() * KB_KEYS.length);
         keyFlashes[randIdx] = 1.0;
         lastAutoTapTime = now;
@@ -1547,8 +1440,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
-            if (modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
+            // Active ripples overlay (Modes 3 Single Off, 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
+            if (modeVal !== 3 && modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1738,16 +1631,26 @@ HTML_PAGE = """<!DOCTYPE html>
 
       kbCanvas.addEventListener('mouseleave', () => {
         hoveredKeyIdx = -1;
+        pressedKeyIdx = -1;
+      });
+
+      kbCanvas.addEventListener('mouseup', () => {
+        pressedKeyIdx = -1;
+      });
+
+      window.addEventListener('mouseup', () => {
+        pressedKeyIdx = -1;
       });
 
       kbCanvas.addEventListener('mousedown', e => {
         const pos = getCanvasPos(e);
         const idx = findKeyAt(pos);
+        pressedKeyIdx = idx;
         const hex = (document.getElementById('light-color') ? document.getElementById('light-color').value : '#00e5ff');
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Cross Pattern, Infinite Stream, Rolling Hills, Gentle Rain, Shuttle do not react to keypresses
+        if (modeVal === 3 || modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Mode 3 Single Off has NO ripples. Modes 10, 16, 17, 18, 19 do not react
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];
