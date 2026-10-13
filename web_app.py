@@ -153,7 +153,7 @@ HTML_PAGE = """<!DOCTYPE html>
     .status-dot-pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2ec27e; box-shadow: 0 0 8px #2ec27e; }
     .pill-badge { background: rgba(53, 132, 228, 0.2); border: 1px solid rgba(53, 132, 228, 0.4); padding: 2px 10px; border-radius: 12px; font-size: 12px; color: #78aeed; font-weight: 500; }
     .kb-canvas-container { width: 100%; display: flex; justify-content: center; overflow: hidden; background: #121212; border-radius: 10px; border: 1px solid #282828; padding: 4px; }
-    #kb-preview { width: 100%; max-width: 954px; height: auto; display: block; border-radius: 8px; cursor: pointer; }
+    #kb-preview { width: 100%; max-width: 954px; aspect-ratio: 954 / 297; display: block; border-radius: 8px; cursor: pointer; }
 
     /* 2-Column Responsive Layout Below Preview */
     .main-layout { display: flex; flex-direction: column; gap: 16px; }
