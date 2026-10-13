@@ -1,0 +1,1328 @@
+# LangTu LT-104 Keyboard Driver & Reverse Engineering User Prompts
+
+This document records all **166 keyboard driver and reverse engineering prompts** submitted by the user across this session, preserved in chronological order with exact text, timestamps, and step references.
+
+---
+
+### Prompt #1 (Step 1120)
+- **Time**: `2026-10-11T21:35:38Z`
+
+If I give you the binary of the windows program,
+do you think you can port a LT-104 keyboard config windows program so I can run it on ubuntu?
+
+---
+
+### Prompt #2 (Step 1122)
+- **Time**: `2026-10-11T21:46:24Z`
+
+the files from windows 11, the keyboard program is here
+/home/iiaiiappa/PatProject/LT104 Driver V1.0
+
+---
+
+### Prompt #3 (Step 1165)
+- **Time**: `2026-10-11T21:57:12Z`
+
+try Plan A first.
+
+---
+
+### Prompt #4 (Step 1182)
+- **Time**: `2026-10-11T22:13:40Z`
+
+程式打開後即可直接調整 RGB 燈效、小螢幕 LCD GIF/圖片、自訂按鍵與巨集。
+no I cannot do that. program can open but cannot do "調整 RGB 燈效、小螢幕 LCD GIF/圖片、自訂按鍵與巨集"
+
+---
+
+### Prompt #5 (Step 1232)
+- **Time**: `2026-10-11T22:15:33Z`
+
+this is the screenshot of the keyboard and there is no where I can config the keyboard.
+
+---
+
+### Prompt #6 (Step 1345)
+- **Time**: `2026-10-11T22:23:08Z`
+
+*(empty / media-only prompt)*
+
+---
+
+### Prompt #7 (Step 1366)
+- **Time**: `2026-10-11T22:25:26Z`
+
+clicked the keyboard and nothing pop up
+
+---
+
+### Prompt #8 (Step 1440)
+- **Time**: `2026-10-11T22:30:58Z`
+
+still nothing happened. same.
+
+---
+
+### Prompt #9 (Step 1476)
+- **Time**: `2026-10-11T22:34:11Z`
+
+nope
+
+---
+
+### Prompt #10 (Step 1490)
+- **Time**: `2026-10-11T22:35:31Z`
+
+plan B then.
+
+---
+
+### Prompt #11 (Step 1505)
+- **Time**: `2026-10-11T22:36:15Z`
+
+uninstall the LT104 from arcMenu
+
+---
+
+### Prompt #12 (Step 1511)
+- **Time**: `2026-10-11T22:45:55Z`
+
+have you worked on plan B?
+
+---
+
+### Prompt #13 (Step 1609)
+- **Time**: `2026-10-11T22:57:31Z`
+
+none of the things in the web interface is working on my keyboard.
+
+---
+
+### Prompt #14 (Step 2121)
+- **Time**: `2026-10-11T23:28:03Z`
+
+I tested it. time does not sync to keyboard. no change to keyboard light animation.
+
+---
+
+### Prompt #15 (Step 2500)
+- **Time**: `2026-10-11T23:47:21Z`
+
+continue
+
+---
+
+### Prompt #16 (Step 2519)
+- **Time**: `2026-10-11T23:52:42Z`
+
+unbelieve you have pull of the feat.
+
+---
+
+### Prompt #17 (Step 2521)
+- **Time**: `2026-10-11T23:53:38Z`
+
+may be you can program it as a gnome app as well?
+
+---
+
+### Prompt #18 (Step 2531)
+- **Time**: `2026-10-11T23:56:01Z`
+
+continue
+
+---
+
+### Prompt #19 (Step 2597)
+- **Time**: `2026-10-12T00:05:48Z`
+
+You gave me three black icons that has no reponse with left or right click.
+
+---
+
+### Prompt #20 (Step 2602)
+- **Time**: `2026-10-12T00:13:18Z`
+
+continue
+
+---
+
+### Prompt #21 (Step 2621)
+- **Time**: `2026-10-12T00:16:25Z`
+
+can you produce a gif that is 160 * 80 RGB565, and multiple frame GIF animation?
+
+---
+
+### Prompt #22 (Step 2631)
+- **Time**: `2026-10-12T00:22:59Z`
+
+the upload does not replace the factory animation.
+
+---
+
+### Prompt #23 (Step 2725)
+- **Time**: `2026-10-12T00:30:02Z`
+
+It appears for a bit but it then plays the old factory animation. Sometimes it gives a white screen for a while like 20 seconds?
+
+---
+
+### Prompt #24 (Step 2742)
+- **Time**: `2026-10-12T00:33:59Z`
+
+It is playing but the video is raising to the top right, and then factory animation for 5 seconds and then white for 7 seconds.
+
+---
+
+### Prompt #25 (Step 2756)
+- **Time**: `2026-10-12T00:37:03Z`
+
+send the alignment test again.
+
+---
+
+### Prompt #26 (Step 2760)
+- **Time**: `2026-10-12T00:39:44Z`
+
+drifting/rolling diagonally
+
+---
+
+### Prompt #27 (Step 2766)
+- **Time**: `2026-10-12T00:41:11Z`
+
+still the gif animation, not your test.
+
+---
+
+### Prompt #28 (Step 2773)
+- **Time**: `2026-10-12T00:44:14Z`
+
+now it has your old animation lt104_sample.gif all the time in the screen, but still have diagonal rolling to the top right.
+
+---
+
+### Prompt #29 (Step 2787)
+- **Time**: `2026-10-12T00:45:54Z`
+
+same: your old animation lt104_sample.gif all the time in the screen, but still have diagonal rolling to the top right.
+
+---
+
+### Prompt #30 (Step 2796)
+- **Time**: `2026-10-12T00:48:15Z`
+
+still rolling. saw these items in the animation.
+
+---
+
+### Prompt #31 (Step 2813)
+- **Time**: `2026-10-12T00:50:40Z`
+
+still rowing at the same speed.
+
+---
+
+### Prompt #32 (Step 2822)
+- **Time**: `2026-10-12T00:52:25Z`
+
+still have the old animation.
+
+---
+
+### Prompt #33 (Step 2832)
+- **Time**: `2026-10-12T00:55:45Z`
+
+still the same rolling, same gif. can you fix it.
+
+---
+
+### Prompt #34 (Step 2840)
+- **Time**: `2026-10-12T01:02:27Z`
+
+6 seconds of your old animation with slower diagonal rolling, then factory animation, then white screen.
+
+---
+
+### Prompt #35 (Step 2865)
+- **Time**: `2026-10-12T01:06:55Z`
+
+still rolling the old one.
+
+---
+
+### Prompt #36 (Step 2873)
+- **Time**: `2026-10-12T01:10:59Z`
+
+It showed the blue screen that you have mentioned for a very brief moment, then old animation (slow), then factory animation (a lot slower than original speed),  then white screen.
+
+---
+
+### Prompt #37 (Step 2888)
+- **Time**: `2026-10-12T01:16:39Z`
+
+continue
+
+---
+
+### Prompt #38 (Step 2903)
+- **Time**: `2026-10-12T01:21:38Z`
+
+cycling: white random hortzonital strip on the rolling lt104_sample.gif animation, then factory animation, then white screen.
+
+---
+
+### Prompt #39 (Step 2907)
+- **Time**: `2026-10-12T01:38:32Z`
+
+can you read my video lt104-linux/WhatsApp Video 2026-10-12 at 09.36.15.mp4
+I recorded the entire cycle of this.
+
+---
+
+### Prompt #40 (Step 3000)
+- **Time**: `2026-10-12T01:54:53Z`
+
+can you read again on my video lt104-linux/WhatsApp Video 2026-10-12 at 09.36.15.mp4
+
+now it just start with the cyberpuck audio equalizer and then factory animation and then white screen.
+
+---
+
+### Prompt #41 (Step 3004)
+- **Time**: `2026-10-12T01:58:34Z`
+
+No you have mistaken.
+start with the cyberpuck audio equalizer rolling diagonally with hortzontal white strip, and then factory animation, and then white screen.
+
+---
+
+### Prompt #42 (Step 3013)
+- **Time**: `2026-10-12T02:02:18Z`
+
+Keyboard says Loading ... <n>%.
+and then cannot type with the keyboard, need unplugging and re-plug the keyboard, then it
+start with the cyberpuck audio equalizer rolling diagonally with hortzontal white strip, and then factory animation, and then white screen.
+
+---
+
+### Prompt #43 (Step 3017)
+- **Time**: `2026-10-12T02:11:20Z`
+
+continue
+
+---
+
+### Prompt #44 (Step 3047)
+- **Time**: `2026-10-12T02:13:40Z`
+
+if flashing a image onto the keyboard will finally succeed, is it possible to flash computer RAM using every 3 seconds onto the keyboard?
+
+---
+
+### Prompt #45 (Step 3049)
+- **Time**: `2026-10-12T02:20:39Z`
+
+keyboard cannot type after flashing again.
+Your frame test card flashed very briefly when I turn the knob to the animation:
+very briefly (see attached image 1) red line, 160x80 in the middle of screen
+
+---
+
+### Prompt #46 (Step 3101)
+- **Time**: `2026-10-12T02:26:28Z`
+
+yes
+
+---
+
+### Prompt #47 (Step 3108)
+- **Time**: `2026-10-12T02:34:40Z`
+
+nope. still diagonal rolling. have white hortizontal strips.
+can you flash this factory gif officially from langtu?
+lt104-linux/0.gif
+
+---
+
+### Prompt #48 (Step 3137)
+- **Time**: `2026-10-12T02:42:58Z`
+
+keyboard cannot type after flashing again.
+The video after flashing: VID_20261012_103944.mp4
+
+---
+
+### Prompt #49 (Step 3167)
+- **Time**: `2026-10-12T02:45:31Z`
+
+no white screen after flashing this.
+
+---
+
+### Prompt #50 (Step 3396)
+- **Time**: `2026-10-12T03:16:41Z`
+
+1. I can type.
+2. yes the factory animation stay stored, but it is NOT playing upright it is diagonal to the top right. and it has random strips from other part of the image (the same as last time no change).
+
+---
+
+### Prompt #51 (Step 3446)
+- **Time**: `2026-10-12T03:27:03Z`
+
+has to replug the keyboard after your flash.
+same problem.
+it is 4 frames to have the top of a tower in skyline move across from left to right. and it goes upwards with 4 frames have the top of a tower in skyline move across from bottom to top.
+
+---
+
+### Prompt #52 (Step 3496)
+- **Time**: `2026-10-12T03:34:06Z`
+
+can you redo the flash again. I have unplugged it.
+
+---
+
+### Prompt #53 (Step 3512)
+- **Time**: `2026-10-12T03:41:06Z`
+
+no, same
+
+Is the green box centered with the red 
+and white borders visible,or does it also show a diagonal shift / split?
+no, show a diagonal shift
+
+---
+
+### Prompt #54 (Step 3538)
+- **Time**: `2026-10-12T03:45:16Z`
+
+no
+
+---
+
+### Prompt #55 (Step 3570)
+- **Time**: `2026-10-12T03:49:31Z`
+
+Option A: You do not see the green box / test card at all — the screen is still showing the city train station / red-cape character animation (or the cyberpunk animation) with the diagonal rolling
+
+---
+
+### Prompt #56 (Step 3674)
+- **Time**: `2026-10-12T04:27:41Z`
+
+yes. yes. yes, I did it before. so I reset it now?
+
+---
+
+### Prompt #57 (Step 3676)
+- **Time**: `2026-10-12T04:54:53Z`
+
+yes, but it is still keeping the corrupted factory gif image. It does not reset the image.
+yes.
+
+---
+
+### Prompt #58 (Step 3740)
+- **Time**: `2026-10-12T05:09:45Z`
+
+No. Yes.
+
+---
+
+### Prompt #59 (Step 3752)
+- **Time**: `2026-10-12T05:32:22Z`
+
+do this again and I will watch the keyboard screen this time.
+
+---
+
+### Prompt #60 (Step 3761)
+- **Time**: `2026-10-12T05:34:59Z`
+
+I only saw a green hortzontal strip over corrupted factory animation.
+
+---
+
+### Prompt #61 (Step 3773)
+- **Time**: `2026-10-12T05:37:20Z`
+
+no magenta. no purple color at all. still the corrupted factory gif image playing diagonally to the top right corner.
+
+---
+
+### Prompt #62 (Step 3784)
+- **Time**: `2026-10-12T05:42:39Z`
+
+I saw blue flash, not red.
+turn the knob switches to the Clock & Date screen, a Settings Menu
+but pressing the knob is not responsive.
+
+---
+
+### Prompt #63 (Step 3791)
+- **Time**: `2026-10-12T05:43:22Z`
+
+I am planning to flash the original factory image in windows. is that good idea.
+
+---
+
+### Prompt #64 (Step 3793)
+- **Time**: `2026-10-12T06:32:29Z`
+
+lt104_flash.pcapng check this file from wireshark for flashing the 0.gif via usb in windows 11.
+
+---
+
+### Prompt #65 (Step 3839)
+- **Time**: `2026-10-12T06:40:03Z`
+
+yes. yes. no diagonal rolling, no white stripes.
+
+---
+
+### Prompt #66 (Step 3975)
+- **Time**: `2026-10-12T07:00:59Z`
+
+please make the window taller so no scrollbar is required in the window.
+Have you sync the latest code to this gnome extension/gnome app?
+
+---
+
+### Prompt #67 (Step 4046)
+- **Time**: `2026-10-12T07:04:46Z`
+
+flashing using your program in linux does not work. factory image corrupted again. should be fine if flashed by windows version original program. please double check the wireshark file.
+
+---
+
+### Prompt #68 (Step 4156)
+- **Time**: `2026-10-12T07:14:58Z`
+
+but this wireshark file was saved after the flashing is completed.
+
+---
+
+### Prompt #69 (Step 4168)
+- **Time**: `2026-10-12T07:18:22Z`
+
+can you do it now?
+
+---
+
+### Prompt #70 (Step 4212)
+- **Time**: `2026-10-12T07:21:42Z`
+
+you have flashed single_frame_test.gif, and it does not move and intact.
+
+---
+
+### Prompt #71 (Step 4218)
+- **Time**: `2026-10-12T07:25:53Z`
+
+The 0.gif works but will a few sudden green strips, and the keyboard still can type after flashing you gif.
+
+---
+
+### Prompt #72 (Step 4244)
+- **Time**: `2026-10-12T07:54:07Z`
+
+yes
+
+---
+
+### Prompt #73 (Step 4256)
+- **Time**: `2026-10-12T07:58:06Z`
+
+it works but still have hortzontal green strips.
+
+---
+
+### Prompt #74 (Step 4308)
+- **Time**: `2026-10-12T08:33:12Z`
+
+With your Gnome Extension Program, flashing your single_frame_test.gif, lt104_sample.gif are perfect and no defect, but flashing factory 0.gif gives some green hortizontal strips.
+
+---
+
+### Prompt #75 (Step 4318)
+- **Time**: `2026-10-12T08:39:02Z`
+
+0_40f.gif: flashing some fast green strips on the bottom half of screen (top half perfect) and the animation seemed running faster than usual.
+
+---
+
+### Prompt #76 (Step 4342)
+- **Time**: `2026-10-12T08:41:32Z`
+
+flash only at the end of animation. able to type after flashing.
+
+---
+
+### Prompt #77 (Step 4360)
+- **Time**: `2026-10-12T08:43:49Z`
+
+0_smooth36.gif: flash only at the end of animation. able to type after flashing.
+
+---
+
+### Prompt #78 (Step 4386)
+- **Time**: `2026-10-12T08:46:32Z`
+
+the flash happens when the guy hit the gray ground.
+
+---
+
+### Prompt #79 (Step 4406)
+- **Time**: `2026-10-12T08:56:53Z`
+
+It has a green flash on the gray ground when the guy is on the right of the screen and facing left.
+
+---
+
+### Prompt #80 (Step 4446)
+- **Time**: `2026-10-12T09:03:12Z`
+
+now the flashing is a bit less, not a green flash, but a quicker and smaller magenta flash on the ground when guy is on the right and facing left.
+
+---
+
+### Prompt #81 (Step 4458)
+- **Time**: `2026-10-12T09:06:12Z`
+
+perfect now.
+
+---
+
+### Prompt #82 (Step 4466)
+- **Time**: `2026-10-12T09:07:50Z`
+
+why the factory 0.gif is not working or it already works now?
+
+---
+
+### Prompt #83 (Step 4472)
+- **Time**: `2026-10-12T09:10:33Z`
+
+If I flash 0.gif to the keyboard what will happen?
+
+---
+
+### Prompt #84 (Step 4474)
+- **Time**: `2026-10-12T09:12:21Z`
+
+can you remove the extra testing gif in the directory
+
+---
+
+### Prompt #85 (Step 4482)
+- **Time**: `2026-10-12T09:16:14Z`
+
+allow adjust the HUD update interval in the GNOME UI and the web UI.
+
+---
+
+### Prompt #86 (Step 4499)
+- **Time**: `2026-10-12T09:17:12Z`
+
+default is 20 seconds.
+
+---
+
+### Prompt #87 (Step 4581)
+- **Time**: `2026-10-12T09:37:51Z`
+
+The button start and stop HUD all the time.
+make the windows fit in all the buttons.
+
+---
+
+### Prompt #88 (Step 4695)
+- **Time**: `2026-10-12T09:51:21Z`
+
+now can you localize in all the languages for the web interface and gnome extensions that Ubuntu supports. and I will put it onto github?
+
+---
+
+### Prompt #89 (Step 4744)
+- **Time**: `2026-10-12T09:56:12Z`
+
+also add a scheduler option in the UI to sync the clock on the keyboard, sync the keyboard time every 12 hours.
+possible not to turn off the lights when HUD code is flashing to the keyboard?
+
+---
+
+### Prompt #90 (Step 4875)
+- **Time**: `2026-10-12T10:26:25Z`
+
+rearrange the UI they are not the same settings. Group the similar settings together.
+
+---
+
+### Prompt #91 (Step 4904)
+- **Time**: `2026-10-12T10:28:19Z`
+
+the keyboard light is still off during the flashing of the HUD.
+
+---
+
+### Prompt #92 (Step 5033)
+- **Time**: `2026-10-12T10:41:42Z`
+
+the keyboard light is still off during the flashing of the HUD. *2
+
+---
+
+### Prompt #93 (Step 5238)
+- **Time**: `2026-10-12T11:11:00Z`
+
+will it remember my settings if I close the extensions of webservices of this keyboard program?
+
+---
+
+### Prompt #94 (Step 5361)
+- **Time**: `2026-10-12T11:13:18Z`
+
+add GPU v3 license to this software repo. write a detailed description for the github repo.
+
+---
+
+### Prompt #95 (Step 5381)
+- **Time**: `2026-10-12T11:20:53Z`
+
+1. rename the lt104-linux project folder as lt104-keyboard-linux
+2. add explanation on the UIs for why updating HUD turn off the lights for half a second. And recommendation to update every 2 to 5 minutes. 
+3. Translate the untranslated part of the UI again.
+4. Readme of how to install this program.
+
+---
+
+### Prompt #96 (Step 5522)
+- **Time**: `2026-10-12T11:34:02Z`
+
+write a repo description of this small project.
+
+---
+
+### Prompt #97 (Step 5524)
+- **Time**: `2026-10-12T11:37:05Z`
+
+5. Add a release tag as version `1.0.0` to github and local gitlab.
+6. init local repo, add remote repo and commit to master branch, tag release version 1.0.0
+git02 repo
+https://git02.theforwardway.com/hardware/lt104-keyboard-linux.git
+
+github repo
+https://github.com/iiaiiappa/lt104-keyboard-linux.git
+
+---
+
+### Prompt #98 (Step 5573)
+- **Time**: `2026-10-12T11:45:17Z`
+
+Github Access Token = `[REDACTED_GITHUB_ACCESS_TOKEN]`
+
+---
+
+### Prompt #99 (Step 5588)
+- **Time**: `2026-10-12T11:51:57Z`
+
+why cannot open the gnome extension window?
+
+---
+
+### Prompt #100 (Step 5670)
+- **Time**: `2026-10-12T11:55:33Z`
+
+1. make the window fit in all the buttons.
+2. Not able to set keyboard lighting style in the tray icon menu.
+
+---
+
+### Prompt #101 (Step 5891)
+- **Time**: `2026-10-12T11:57:11Z`
+
+why is there a sequence test on the keyboard screen right now?
+
+---
+
+### Prompt #102 (Step 5909)
+- **Time**: `2026-10-12T12:12:11Z`
+
+Not able to turn off backlight with this menu.
+
+---
+
+### Prompt #103 (Step 5926)
+- **Time**: `2026-10-12T12:13:06Z`
+
+1. you still have not make the window fit in all the buttons.
+
+---
+
+### Prompt #104 (Step 5969)
+- **Time**: `2026-10-12T12:34:39Z`
+
+Not able to turn off backlight (Lighting Mode set to `Backlight Off`) from the gnome extension menu and from the website (keyboard control center).
+
+---
+
+### Prompt #105 (Step 6280)
+- **Time**: `2026-10-12T12:37:48Z`
+
+Not able to change the color by clicking any of the 7 color preset in the website Keyboard control center.
+If the Lighting Mode Does not support single color, hide the custom color and color presets automatically in the UI.
+
+---
+
+### Prompt #106 (Step 6410)
+- **Time**: `2026-10-12T13:31:34Z`
+
+1. single HUD update always fails.
+scheduled HUD is okay.
+2. Ripple Trigger + color -> color does not change.
+
+---
+
+### Prompt #107 (Step 6641)
+- **Time**: `2026-10-12T13:54:00Z`
+
+1. HUD default schedule need to change to 120 seconds.
+2. If HUD is running, hide the GIF upload section.
+
+---
+
+### Prompt #108 (Step 6770)
+- **Time**: `2026-10-12T13:56:20Z`
+
+1. attached image 1: Play around too long and having error now.
+2. For "backlight off" lighting mode, need to hide the brightness and animation speed bar on both UI.
+
+---
+
+### Prompt #109 (Step 6835)
+- **Time**: `2026-10-12T14:47:09Z`
+
+1. make dropdown wider instead of doing ... for the text.
+allow a preset of a factory gif animation, restore a very small gif after
+stopping HUD default is `lt104_sample.gif`
+Have a few gif presets to restore after HUD stop (instead of seeing the HUD on the screen halt forever with stale data): `0_perfect36.gif` and `lt104_sample.gif` or "restore none"
+I think you can make the `lt104_sample.gif` a lot shorter and smaller for this purpose -> use the smallest loop for this purpose, and will be the default preset to restore after stoping HUD.
+
+---
+
+### Prompt #110 (Step 7013)
+- **Time**: `2026-10-12T15:21:10Z`
+
+add at restore animation button -> to the right of single HUD refresh button.
+
+---
+
+### Prompt #111 (Step 7103)
+- **Time**: `2026-10-12T18:27:02Z`
+
+when lighting mode= static, changing brightness (1 to 4) result in the same brightness. does not work
+
+---
+
+### Prompt #112 (Step 7306)
+- **Time**: `2026-10-12T18:32:10Z`
+
+In `🌈 RGB Lighting & Backlight`,
+Have a toogle button, if on, it will hide the apply button, and the program will always apply the effect when changing the settings. if off, show the apply button.  The  toogle button is on by default.
+
+---
+
+### Prompt #113 (Step 7395)
+- **Time**: `2026-10-12T18:44:31Z`
+
+1. hide speed setting when lighting mode = static
+2. Can you add a keyboard preview of all the animations with the brightness color and speed involved?
+
+---
+
+### Prompt #114 (Step 7527)
+- **Time**: `2026-10-12T19:01:35Z`
+
+keyboard animation preview add to gnome app too.
+
+---
+
+### Prompt #115 (Step 7595)
+- **Time**: `2026-10-12T19:11:12Z`
+
+1. Found out currently brightness is not the same for all keys when lighting mode = static
+For bigger keys they still have the same brightness as small keys.
+
+2. When turn on/off the HUD or change the GIF reflect that on the animation preview too.
+3. For desktop web: Use two columns for desktop.
+4. Use the keyboards png files on the `/home/iiaiiappa/PatProject/LT104 Driver V1.0/skins/theme1/device`
+
+---
+
+### Prompt #116 (Step 8115)
+- **Time**: `2026-10-12T19:49:00Z`
+
+Many animations of the keyboard is incorrect. May be you have mapped the animations of the keyboard  from the original exe to the animtion name  wrong.
+
+I think Static, Single Light, Single Off,  Blossom, Spectrum Cycle, Breathing, Rainbow Wave are correctly mapped.
+
+May be snow, Rainbow wave, River Stream in the UI are correctly map to keyboard.
+
+Cross Pattern is incorrect.
+
+For `Dual Ripple` Lighting mode, you press a key, colorful keys seperate towards left and right.
+For `Ripple Spread` Lighting mode,you press a key, colorful keys seperate outward circles like a ripple. The ripple width is 3 keys.
+For `Stars` Lighting mode, use the static color to light up all keys in the keyboard first then randomly turn off 2 to 3 keys for 0.5 seconds when animation speed is 1.
+Ripple Trigger is not correct, when a key is pressed, it will only spread left and right on the same row and not on other rows.
+Infinite Stream is not correct, without pressing any keys, it will start from the top row swipe color from left to right, then next lower row from left to right and so on until the most bottom row and start over again.
+
+Shuttle is incorrect for sure. UI and the keyboard have different animations.
+Choose Solid Centre in the UI has all the lights turned on with colors on the keyboard.
+For Neon Glow in the UI, I am not sure.
+
+When the lighting mode from other mode to `Backlight Off`, remember the previous brightness before go to Backlight Off.
+When the lighting mode from `Backlight Off` to others, set the brightness of the keyboard to the previous remembered brightness.
+Put the Backlight Off mode at the end of list.
+
+You have to update the web interface with keyboard png that I provided.
+
+---
+
+### Prompt #117 (Step 8359)
+- **Time**: `2026-10-12T20:10:38Z`
+
+still blank keyboard preview and does not save the auto-sync clock.
+
+---
+
+### Prompt #118 (Step 8532)
+- **Time**: `2026-10-12T20:26:05Z`
+
+please put the lighting blocks behind the keyboard png.
+When Solid centre mode is set at UI, on the real keyboard press, it does not change anything on any keys. The animation is slow flowing one.
+
+---
+
+### Prompt #119 (Step 8551)
+- **Time**: `2026-10-12T20:26:56Z`
+
+*(empty / media-only prompt)*
+
+---
+
+### Prompt #120 (Step 8590)
+- **Time**: `2026-10-12T20:28:37Z`
+
+use the singledevice_keyboardK870T_none.png card for key animation preview.
+
+---
+
+### Prompt #121 (Step 8711)
+- **Time**: `2026-10-12T20:37:26Z`
+
+When Shuttle mode is set at UI, on the real keyboard press, it has no reactions on any keys, and the animation on the real keyboard is a slow flowing one. It is not the a vertical bar of color keys sweeping left and right as suggested by the UI.
+
+---
+
+### Prompt #122 (Step 8768)
+- **Time**: `2026-10-12T20:48:04Z`
+
+BUG: switching from backlight off to neon glow needs to turn on the lights of the keyboard. Now: still does not turn on the lights of keyboard.
+
+---
+
+### Prompt #123 (Step 8946)
+- **Time**: `2026-10-12T21:01:25Z`
+
+You are using wrong animation in shuttle mode again.
+
+When Shuttle mode is set at UI, on the real keyboard press, it has no reactions on any keys, and the animation on the real keyboard is a slow flowing one. It is not the a vertical bar of color keys sweeping left and right as suggested by the UI.
+
+---
+
+### Prompt #124 (Step 8991)
+- **Time**: `2026-10-12T21:09:33Z`
+
+Gentle Rain is 45 degree (backslash shape) of colored keys sweeping from left to right, while other keys are off. Keypress no reaction.
+
+---
+
+### Prompt #125 (Step 9061)
+- **Time**: `2026-10-12T21:17:51Z`
+
+Rolling Hills is having all the keylights off as background. Keypress no reaction.
+
+The slashes are width one key 45 degree slashes with random color lights.
+
+keep looping this, will be the Rolling Hills,
+First, a pair of backslash sweep to left and forwardslash sweep to right, start from the middle of keyboard.
+without a pause, a pair of backslash sweep to right and forwardslash sweep  to left, start from the middle of keyboard.
+
+---
+
+### Prompt #126 (Step 9118)
+- **Time**: `2026-10-12T21:22:42Z`
+
+Rolling hill adjustment,
+No waiting and multiple slashes alternating on the keyboard. do not form a cross in the middle of keyboard for back and forward slash.
+
+---
+
+### Prompt #127 (Step 9144)
+- **Time**: `2026-10-12T21:25:42Z`
+
+Rolling hill adjustment,
+
+I told you do not form any cross, and you did not listen. the slashes to the left goes to the left  without bouncing back.
+the slashes to the right goes to the right without bouncing back.
+
+---
+
+### Prompt #128 (Step 9171)
+- **Time**: `2026-10-12T21:42:49Z`
+
+this is so wrong.
+0% is the left edge of the keyboard, 50% is middle of keyboard, 100% is right edge of the keyboard.
+
+Correct behavior is: The animation start from middle of the keyboard with back slash start at 55% and sweep to right and forward slash start at 45% and sweep to the left. Once the forward slash finished appeared from 50% of keyboard then draw back slash immediately. Once the back slash finished appeared from 50% of keyboard then draw forward slash immediately. Keep alternating. The slashes will reach to the end of keyboard without bouncing back and get discarded by your algo.
+
+---
+
+### Prompt #129 (Step 9200)
+- **Time**: `2026-10-12T21:50:58Z`
+
+refer to WhatsApp Video 2026-10-13 at 05.49.33.mp4
+
+---
+
+### Prompt #130 (Step 9318)
+- **Time**: `2026-10-12T22:00:01Z`
+
+Gentle rain is multiple bash slash sweep from left to right, each slash is 3 keys apart from the next or previous backslash.
+You still not getting it for rolling hills,
+it is back slash and forward slash appear from the 50% middle of keyboard.and the backward and forward slash is 3 keys apart.
+
+---
+
+### Prompt #131 (Step 9436)
+- **Time**: `2026-10-12T22:00:57Z`
+
+why you cannot reverse engineer the animations from the original exe file?
+
+---
+
+### Prompt #132 (Step 9470)
+- **Time**: `2026-10-12T22:07:03Z`
+
+"Gentle rain is multiple bash slash sweep from left to right, each slash is 3 keys apart from the next or previous backslash."
+Right now you are doing one key apart. I said 3 keys apart between each back slash.
+
+---
+
+### Prompt #133 (Step 9517)
+- **Time**: `2026-10-12T22:12:27Z`
+
+why gentle rain animation is having all the keys that turned on flashing? no flashing is required.
+
+---
+
+### Prompt #134 (Step 9576)
+- **Time**: `2026-10-12T22:36:53Z`
+
+gentle rain,
+make the backslash a 1.8 keys with guassian blur, and each backslash is 4 keys apart (from middle of the backslash to middle of next backslash)
+The keys never on and off immediately. They have fade in and out transitions.
+I slowed down your gentle rain animation, you have each formation of slash itself on and off, which is not allowed.
+
+---
+
+### Prompt #135 (Step 9611)
+- **Time**: `2026-10-12T22:45:32Z`
+
+gentle rain,
+make the backslash a 1.8 keys with guassian blur, **and each backslash is 5 keys apart** (from middle of the backslash to middle of next backslash)
+The keys never on and off immediately. They have fade in and out transitions.
+I slowed down your gentle rain animation, you have each formation of slash itself on and off, which is not allowed.
+
+**For each key, it assigns itself a random color that will be sustained for each back slash. the key use another random color for other back slash.**
+
+---
+
+### Prompt #136 (Step 9655)
+- **Time**: `2026-10-12T22:50:12Z`
+
+desktop web: `Update HUD Once` only keep one thunder icon.
+desktop web: when the UI got updated, notify the user.
+This software check the github site for updates. and notify user to update.
+the git repo is 
+https://github.com/iiaiiappa/lt104-keyboard-linux
+why the release is only having zip and tar.gz
+can this project package the code/binary into AppImage/deb/snap  as common linux package formats?
+
+---
+
+### Prompt #137 (Step 10021)
+- **Time**: `2026-10-12T23:00:02Z`
+
+Infinite Stream need to slow down the speed in half. For the stream object, it is not one key moving, it needs to increase the width from 1 key too 5.4 keys in a row moving from left to right with a gaussian blur.
+
+**For each key, it assigns itself a random color that will be sustained for each stream. each key will use another random color for other stream.**
+
+---
+
+### Prompt #138 (Step 10088)
+- **Time**: `2026-10-12T23:30:54Z`
+
+choosing solid center or neon glow will still use the whatever last lighting mode, so these two are not real animation options. Or can you fix it?
+
+---
+
+### Prompt #139 (Step 10197)
+- **Time**: `2026-10-12T23:46:10Z`
+
+1. You cross pattern is wrong. The cross pattern on the LT104 keyboard: using 7 rainbow colors alternating on 5 rows in the keyboard. Each row use different colors from 7 rainbow colors. Each row are changing their own color slowly without using color from other rows.
+Animation Speed 2 -> Each row change to another 7 rainbow colors every 0.5 seconds.
+Pressing keyboard has no reaction.
+
+2. Can you have the Desktop Web UI layout look very close to the Gnome Extensions UI?
+
+3. Create/Append Specifications.md in the lt104-keyboard-linux folder.
+In this .md file,
+1. Can you summarize all my descriptions of all Lighting Modes, which of these lighting mode have custom color option, animation speed option, and/or brightness option? How these lightmodes behave on the keyboard.
+2. Describe the HUD problems and how it works.
+3. Describe the Clock Sync and how it works.
+4. What LCD GIF image format to upload.
+
+---
+
+### Prompt #140 (Step 10317)
+- **Time**: `2026-10-12T23:57:43Z`
+
+the gnome extensions does not open window.
+
+---
+
+### Prompt #141 (Step 10341)
+- **Time**: `2026-10-13T00:12:25Z`
+
+continue.
+
+---
+
+### Prompt #142 (Step 10475)
+- **Time**: `2026-10-13T00:29:45Z`
+
+For rolling hills, insert backslash between forward slash for the left side.
+and insert forward slash between backslash for the right side.
+
+---
+
+### Prompt #143 (Step 10520)
+- **Time**: `2026-10-13T00:34:56Z`
+
+the width of all slashes is 2.5 key wide (use gaussian blur).
+
+---
+
+### Prompt #144 (Step 10543)
+- **Time**: `2026-10-13T00:37:22Z`
+
+for rolling hills, the color of each key is random, and change color every second.
+
+---
+
+### Prompt #145 (Step 10566)
+- **Time**: `2026-10-13T00:43:31Z`
+
+why did you put spectrum cycle into the backlight presets. and why I cannot use custom color anymore? You sliently changing items that I have not asked you to do?
+
+---
+
+### Prompt #146 (Step 10630)
+- **Time**: `2026-10-13T00:53:32Z`
+
+Single Off light mode, has the lights on ALL the time, but whenever user pressing a key, the key's light is off. When not pressing, the key's light back to on.
+
+---
+
+### Prompt #147 (Step 10681)
+- **Time**: `2026-10-13T00:56:05Z`
+
+Single Off lighting mode,
+pressing the keys needs not to give any ripple animation effects.
+This mode does not have random key turning off as the animation hassuggested.
+
+---
+
+### Prompt #148 (Step 10873)
+- **Time**: `2026-10-13T00:58:21Z`
+
+Single Light lighting mode,
+pressing any keyboard keys need not to give any ripple animation effects.
+This mode does not have random key turning on as the animation has suggested.
+Single Light lighting mode, has the lights on OFF, but whenever user pressing a key, the key's light is on. When not pressing, the key's light back to off.
+
+---
+
+### Prompt #149 (Step 10932)
+- **Time**: `2026-10-13T01:09:49Z`
+
+there is a backlight on both edge of keyboard. Do you acknowledge that?
+
+---
+
+### Prompt #150 (Step 10944)
+- **Time**: `2026-10-13T01:11:02Z`
+
+yes. and this backlight can be configured.
+
+---
+
+### Prompt #151 (Step 11056)
+- **Time**: `2026-10-13T01:31:13Z`
+
+1. Pressing keys in `Snow` light mode,  does not have any reaction.
+2. In the gnome extension window, have the keyboard at the top and middle part of the window and use two columns, and then make the keyboard preview 200% larger.
+3. Always has the windows resize larger by default to show all the controls inside the gnome window.
+4. I still have not seen any backlight configuration in the gnome extension window.
+`configure them through the Windows software (or want them controlled directly via our Linux Control Center / GTK / CLI)?` YES.
+
+`Is there a specific Fn key combination or rotary knob menu on the TFT screen that you use to change their lighting modes/colors?`
+Fn + one key. I forgot.
+
+---
+
+### Prompt #152 (Step 11498)
+- **Time**: `2026-10-13T02:01:57Z`
+
+always resize the gnome window to fit in all the controls in the window.
+
+---
+
+### Prompt #153 (Step 11648)
+- **Time**: `2026-10-13T02:04:51Z`
+
+update the web UI  to be as close as gnome extension window.
+
+---
+
+### Prompt #154 (Step 11730)
+- **Time**: `2026-10-13T02:23:14Z`
+
+blank keyboard preview. fix it.
+
+---
+
+### Prompt #155 (Step 11757)
+- **Time**: `2026-10-13T02:26:38Z`
+
+still have the same problem.
+
+---
+
+### Prompt #156 (Step 11804)
+- **Time**: `2026-10-13T02:32:00Z`
+
+Side Edge Backlight (Dual Lightbars) does nothing for the sidelight color, and cannot turn off the edge backlight on keyboard.
+
+---
+
+### Prompt #157 (Step 11808)
+- **Time**: `2026-10-13T02:32:56Z`
+
+continue
+
+---
+
+### Prompt #158 (Step 12065)
+- **Time**: `2026-10-13T11:11:00Z`
+
+continue
+
+---
+
+### Prompt #159 (Step 12092)
+- **Time**: `2026-10-13T11:12:58Z`
+
+When Side Edge Backlight is off, there is no `Side Light Color` setting and hide it.
+
+---
+
+### Prompt #160 (Step 12186)
+- **Time**: `2026-10-13T11:18:30Z`
+
+keyboard animation is blank in the web version of control centre.
+
+---
+
+### Prompt #161 (Step 12249)
+- **Time**: `2026-10-13T11:21:57Z`
+
+http://127.0.0.1:8989/ still blank no keyboard.
+
+---
+
+### Prompt #162 (Step 12299)
+- **Time**: `2026-10-13T11:32:34Z`
+
+The Side Edge Backlight of LT104 has this setting, I think it is possible to set it in windows.
+Off
+Breathing
+Spectum Cycle
+Red
+Orange
+Yellow
+Green
+Cyan
+Blue
+Megenta
+White
+
+---
+
+### Prompt #163 (Step 12428)
+- **Time**: `2026-10-13T11:41:40Z`
+
+yes
+
+---
+
+### Prompt #164 (Step 12509)
+- **Time**: `2026-10-13T11:52:19Z`
+
+1. Change the name `Side Light Color` to `Side Light Color Preview`
+2. The Side Light Color Preview must not editable by user.
+3. These modes does not have `Side Light Color Preview`
+关闭侧翼灯 (Off)
+动态呼吸 (Breathing)
+幻彩循环 (Spectrum Cycle)
+4. Side Edge Backlight (Dual Lightbars) setting: changing it does switch side edge backlight.
+
+---
+
+### Prompt #165 (Step 12590)
+- **Time**: `2026-10-13T13:49:52Z`
+
+1. In the original windows keyboard program there is no Side Edge Backlight settings at all.
+So you just need to hint the users to use Fn+Ins to change the Side Edge Backlight. Keep the list and dropdown but mark as not configurable.
+
+2. there are 12 entries in public/hiben.pcapng this is to set turn off lights if <n> no keyboard activity.
+packet # | n
+1-3 | 30 minutes 
+4-6 | 15 minutes
+7-9 | 5 minutes
+10-12 | do not turn off
+
+---
+
+### Prompt #166 (Step 13071)
+- **Time**: `2026-10-13T14:31:25Z`
+
+gnome keyboard extension: resize the default window size to fit all controls.
+enable the side backlight dropdown box to view all options, but still not configurable.
+
+---
+
