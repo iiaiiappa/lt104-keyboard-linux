@@ -1435,7 +1435,8 @@ HTML_PAGE = """<!DOCTYPE html>
     }
 
     function renderKeyboard() {
-      if (!kbCanvas || !kbCtx) return;
+      if (!kbCanvas || !kbCtx) { requestAnimationFrame(renderKeyboard); return; }
+      try {
       const now = performance.now();
       const t = now / 1000;
 
@@ -1729,6 +1730,7 @@ HTML_PAGE = """<!DOCTYPE html>
         fillRoundRect(kbCtx, 944, 30, 6, 237, 3);
       }
 
+      } catch(e) { /* render error: keep loop alive */ }
       requestAnimationFrame(renderKeyboard);
     }
 
@@ -1737,6 +1739,16 @@ HTML_PAGE = """<!DOCTYPE html>
       kbCanvas = document.getElementById('kb-preview');
       if (!kbCanvas) return;
       kbCtx = kbCanvas.getContext('2d');
+
+      // Force explicit CSS height based on aspect ratio (canvas != img, height:auto doesn't work)
+      function fixCanvasHeight() {
+        const cssW = kbCanvas.offsetWidth;
+        if (cssW > 0) {
+          kbCanvas.style.height = Math.round(cssW * 297 / 954) + 'px';
+        }
+      }
+      fixCanvasHeight();
+      window.addEventListener('resize', fixCanvasHeight);
 
       // Mouse interactive reaction
       function getCanvasPos(e) {
