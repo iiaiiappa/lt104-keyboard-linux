@@ -1326,3 +1326,11 @@ enable the side backlight dropdown box to view all options, but still not config
 
 ---
 
+### Prompt #167
+- **Time**: `2026-10-14T01:39:34+08:00`
+
+keyboard driver
+For stars lighting mode animation of the UI, there is no reaction when pressing the keys on real keyboard, do the same for your simulated keyboard on gnome extensions and web UI.
+
+---
+

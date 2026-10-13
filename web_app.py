@@ -1601,8 +1601,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 2 Single Light, 3 Single Off, 5 Snow, 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
-            if (modeVal !== 2 && modeVal !== 3 && modeVal !== 5 && modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
+            // Active ripples overlay (Modes 2 Single Light, 3 Single Off, 4 Stars, 5 Snow, 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
+            if (modeVal !== 2 && modeVal !== 3 && modeVal !== 4 && modeVal !== 5 && modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1879,7 +1879,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 2 || modeVal === 3 || modeVal === 5 || modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Modes 2, 3 have NO ripples. Modes 5 (Snow), 10, 16, 17, 18, 19 do not react
+        if (modeVal === 2 || modeVal === 3 || modeVal === 4 || modeVal === 5 || modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Modes 2, 3 have NO ripples. Modes 4 (Stars), 5 (Snow), 10, 16, 17, 18, 19 do not react
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];

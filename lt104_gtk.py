@@ -895,8 +895,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (2, 3, 5, 10, 16, 17, 18, 19):
-            # Modes 2, 3 have NO ripples. Modes 5 (Snow), 10, 16, 17, 18, 19 do not react to keypresses.
+        if mode_id in (2, 3, 4, 5, 10, 16, 17, 18, 19):
+            # Modes 2, 3 have NO ripples. Modes 4 (Stars), 5 (Snow), 10, 16, 17, 18, 19 do not react to keypresses.
             self._preview_area.queue_draw()
             return
 
@@ -1302,7 +1302,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (2, 3, 5, 10, 16, 17, 18, 19):
+                    if mode_id not in (2, 3, 4, 5, 10, 16, 17, 18, 19):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)
