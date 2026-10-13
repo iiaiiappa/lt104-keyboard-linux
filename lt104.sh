@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+unset PYTHONHOME PYTHONPATH
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 python3 "$DIR/web_app.py" 8989 &
 PID=$!

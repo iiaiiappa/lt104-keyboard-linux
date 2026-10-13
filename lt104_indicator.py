@@ -142,6 +142,16 @@ def run_indicator(interval=120.0, once=False):
             im = render_hud_image(cpu_pct, ram, disk)
             raw = image_to_rgb565(im)
 
+            # Save latest rendered HUD frame for simulated keyboard UI screen
+            try:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                static_dir = os.path.join(base_dir, "static")
+                os.makedirs(static_dir, exist_ok=True)
+                hud_path = os.path.join(static_dir, "current_hud.png")
+                im.resize((62, 39), Image.Resampling.LANCZOS).save(hud_path)
+            except Exception:
+                pass
+
             # Assemble buffer
             buffer = bytearray(BUFFER_TEMPLATE)
             buffer[HEADER_SIZE : HEADER_SIZE + FRAME_PIXELS] = raw

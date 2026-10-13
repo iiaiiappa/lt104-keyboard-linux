@@ -41,7 +41,9 @@ const EXT_I18N = {
             "rainbow": "Rainbow Wave",
             "stream": "River Stream",
             "off": "Turn Off Backlight"
-        }
+        },
+        "shortcuts_ref": "Shortcuts Reference",
+        "open_product_page": "Open LT-104 Product Page"
     },
     "zh-CN": {
         "header": "狼途 LT-104 控制",
@@ -70,7 +72,9 @@ const EXT_I18N = {
             "rainbow": "彩泉涌动",
             "stream": "随波逐流",
             "off": "关闭背光"
-        }
+        },
+        "shortcuts_ref": "快捷键参考",
+        "open_product_page": "打开 LT-104 产品页面"
     },
     "zh-TW": {
         "header": "狼途 LT-104 控制",
@@ -99,7 +103,9 @@ const EXT_I18N = {
             "rainbow": "彩泉湧動",
             "stream": "隨波逐流",
             "off": "關閉背光"
-        }
+        },
+        "shortcuts_ref": "快捷鍵參考",
+        "open_product_page": "開啟 LT-104 產品頁面"
     },
     "ja": {
         "header": "LangTu LT-104 操作",
@@ -492,6 +498,58 @@ class LT104Indicator extends PanelMenu.Button {
             });
             lightSubMenu.menu.addMenuItem(item);
         });
+
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // Shortcuts Reference submenu
+        let scSubMenu = new PopupMenu.PopupSubMenuMenuItem('⌨️ ' + (t('shortcuts_ref') || 'Shortcuts Reference'));
+        this.menu.addMenuItem(scSubMenu);
+
+        const SHORTCUTS_WIN = [
+            ['Fn+F1', t('sc_win_f1') || 'Media Player'],
+            ['Fn+F2', t('sc_win_f2') || 'Calculator'],
+            ['Fn+F3', t('sc_win_f3') || 'Win+TAB (Task View)'],
+            ['Fn+F4', t('sc_win_f4') || 'Win+E (File Explorer)'],
+            ['Fn+F5', t('sc_win_f5') || 'Backlight Brightness −'],
+            ['Fn+F6', t('sc_win_f6') || 'Backlight Brightness +'],
+            ['Fn+F7', t('sc_win_f7') || 'Previous Track'],
+            ['Fn+F8', t('sc_win_f8') || 'Play/Pause'],
+            ['Fn+F9', t('sc_win_f9') || 'Next Track'],
+            ['Fn+F10', t('sc_win_f10') || 'Mute/Unmute'],
+            ['Fn+F11', t('sc_win_f11') || 'Volume −'],
+            ['Fn+F12', t('sc_win_f12') || 'Volume +'],
+            ['Fn+WIN', t('sc_win_winlock') || 'Lock WIN Key'],
+            ['── Common ──', ''],
+            ['Fn+Esc (3s)', t('sc_factory') || 'Restore Factory Settings'],
+            ['Fn+Ins', t('sc_side_light') || 'Side Backlight (cycle mode & color)'],
+            ['Fn+Q', t('sc_24g') || '2.4G Mode'],
+            ['Fn+W/E/R', t('sc_bt') || 'Bluetooth 1/2/3'],
+            ['Fn+T', t('sc_wired') || 'Wired Mode'],
+        ];
+
+        SHORTCUTS_WIN.forEach(([key, action]) => {
+            if (!action) {
+                scSubMenu.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+                return;
+            }
+            let item = new PopupMenu.PopupMenuItem(key + '  →  ' + action, {reactive: false});
+            item.label.get_clutter_text().set_use_markup(false);
+            scSubMenu.menu.addMenuItem(item);
+        });
+
+        // Product page link
+        let productItem = new PopupMenu.PopupMenuItem('🛍️ ' + (t('open_product_page') || 'Open LT-104 Product Page'));
+        productItem.connect('activate', () => {
+            try {
+                Gio.AppInfo.launch_default_for_uri(
+                    'https://langtustore.com/collections/mechanical-keyboards/products/langtu-lt-104-rgb-tri-mode-mechanical-gaming-keyboard',
+                    null
+                );
+            } catch (e) {
+                console.error('[LT104-Indicator] Failed to open product URL: ' + e);
+            }
+        });
+        this.menu.addMenuItem(productItem);
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 

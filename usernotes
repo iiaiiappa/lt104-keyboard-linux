@@ -1334,3 +1334,47 @@ For stars lighting mode animation of the UI, there is no reaction when pressing 
 
 ---
 
+
+### Prompt #168
+- **Time**: `2026-10-14T01:45:00+08:00`
+
+use the default animation on the simulated keyboard's screen. and the gif needs to be moving.
+If HUD mode is on, use the HUD image as the simulated keyboard's screen.
+If HUD mode is off, use the last uploaded gif image that the user uploaded.
+If user upload a gif to the keyboard, use this upload image as the simulated keyboard's screen.
+
+---
+
+### Prompt #169
+- **Time**: `2026-10-14T01:50:00+08:00`
+
+and if HUD mode update the HUD image on the keyboard, the simulated keyboard needs to use the same updated HUD image too.
+
+---
+
+### Prompt #170
+- **Time**: `2026-10-14T01:57:25+08:00`
+
+attached image 1: add these shortcuts info card into the Shortcuts Reference button
+
+add a button to open the website about this keyboard
+https://langtustore.com/collections/mechanical-keyboards/products/langtu-lt-104-rgb-tri-mode-mechanical-gaming-keyboard
+
+In theforwardwayweb the website about the keyboard driver project, with a simulated keyboard with all these animations, with the default animation gif on the keyboard screen, and the lighting mode, brightness, animation speed, side edge backlight are configurable on the project details page, complete with the github repo link.
+
+---
+
+### Prompt #171
+- **Time**: `2026-10-14T04:05:36+08:00`
+
+continue
+
+---
+
+### Prompt #172
+- **Time**: `2026-10-14T04:19:13+08:00`
+
+continue
+
+---
+

@@ -95,6 +95,8 @@ TRANSLATIONS = {
         "settings_applied": "Settings applied successfully!",
         "update_available": "Update Available ({ver})",
         "update_toast": "New update available ({ver})! Click header to view.",
+        "shortcuts_btn": "Shortcuts",
+        "product_page_btn": "Product Page",
     },
     "zh-CN": {
         "title": "LT-104 键盘控制中心 (Linux 原生)",
@@ -185,6 +187,8 @@ TRANSLATIONS = {
         "settings_applied": "设置已应用生效！",
         "update_available": "发现新版本 ({ver})",
         "update_toast": "软件有新版本可更新 ({ver})！点击顶栏查看。",
+        "shortcuts_btn": "快捷键",
+        "product_page_btn": "产品页面",
     },
     "zh-TW": {
         "title": "LT-104 鍵盤控制中心 (Linux 原生)",
@@ -275,6 +279,8 @@ TRANSLATIONS = {
         "settings_applied": "設定已套用生效！",
         "update_available": "發現新版本 ({ver})",
         "update_toast": "軟體有新版本可更新 ({ver})！點擊頂欄查看。",
+        "shortcuts_btn": "快捷鍵",
+        "product_page_btn": "產品頁面",
     },
     "ja": {
         "title": "LT-104 キーボードコントロールセンター",

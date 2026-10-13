@@ -145,6 +145,23 @@ HTML_PAGE = """<!DOCTYPE html>
     .status-badge.error { background: rgba(224, 27, 36, 0.15); color: #e01b24; border-color: rgba(224, 27, 36, 0.35); }
     .update-badge { background: rgba(53, 132, 228, 0.15); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
     .update-badge:hover { background: rgba(53, 132, 228, 0.25); transform: translateY(-1px); }
+    .icon-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13); border-radius: 20px; color: #ccc; padding: 5px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.2s; }
+    .icon-btn:hover { background: rgba(255,255,255,0.14); color: #fff; transform: translateY(-1px); }
+
+    /* Shortcuts Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #1e1e1e; border: 1px solid #3a3a3a; border-radius: 16px; max-width: 680px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.6); padding: 24px 26px; position: relative; }
+    .modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: #888; font-size: 20px; cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: #fff; }
+    .modal-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .sc-section { margin-bottom: 20px; }
+    .sc-section-title { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #78aeed; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #2e2e2e; }
+    .sc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .sc-table th { text-align: left; padding: 5px 8px; color: #888; font-weight: 600; font-size: 12px; }
+    .sc-table td { padding: 5px 8px; color: #ddd; vertical-align: top; }
+    .sc-table tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+    .sc-key { display: inline-block; background: #2a2a2a; border: 1px solid #444; border-bottom: 2px solid #555; border-radius: 5px; padding: 2px 7px; font-family: monospace; font-size: 12px; color: #facc15; white-space: nowrap; }
 
     /* Top Middle Standalone Preview Card */
     .kb-top-card { background: #181818; border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px 16px; box-shadow: 0 4px 18px rgba(0,0,0,0.3); }
@@ -219,6 +236,8 @@ HTML_PAGE = """<!DOCTYPE html>
           <option value="ru">Русский (Russian)</option>
         </select>
         <a id="update-badge" class="update-badge" href="https://github.com/iiaiiappa/lt104-keyboard-linux" target="_blank" rel="noopener noreferrer">🚀 <span id="update-text">New Update Available</span></a>
+        <button class="icon-btn" onclick="openShortcutsModal()" title="Shortcuts Reference">⌨️ <span id="txt-shortcuts-btn">Shortcuts</span></button>
+        <a class="icon-btn" href="https://langtustore.com/collections/mechanical-keyboards/products/langtu-lt-104-rgb-tri-mode-mechanical-gaming-keyboard" target="_blank" rel="noopener noreferrer" title="LangTu LT-104 Product Page">🛍️ <span id="txt-product-btn">Product Page</span></a>
         <div id="device-badge" class="status-badge">● LT-104 Connected</div>
       </div>
     </div>
@@ -232,9 +251,11 @@ HTML_PAGE = """<!DOCTYPE html>
           <span id="kb-preview-mode-tag" class="pill-badge">静态恒亮 (Static)</span>
         </div>
         <span id="txt-kb-preview-hint" style="font-size: 12px; opacity: 0.9; color: #9a9996;">💡 点击按键触发灯光反馈 · 左右侧翼灯带实时同显</span>
-      </div>
       <div class="kb-canvas-container">
-        <canvas id="kb-preview" width="954" height="297"></canvas>
+        <div style="position: relative; width: 100%; max-width: 954px; aspect-ratio: 954 / 297; margin: 0 auto;">
+          <canvas id="kb-preview" width="954" height="297" style="width: 100%; height: 100%; display: block; border-radius: 8px; cursor: pointer;"></canvas>
+          <img id="kb-lcd-screen-img" src="/static/current_lcd.gif" alt="LCD Screen" style="position: absolute; left: 84.696%; top: 6.061%; width: 6.499%; height: 13.131%; object-fit: fill; border-radius: 2px; pointer-events: none; z-index: 5; display: block;" />
+        </div>
       </div>
     </div>
 
@@ -419,6 +440,78 @@ HTML_PAGE = """<!DOCTYPE html>
 
   <div id="toast" class="toast">Settings applied!</div>
 
+  <!-- Shortcuts Reference Modal -->
+  <div id="shortcuts-modal" class="modal-overlay" onclick="if(event.target===this)closeShortcutsModal()">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeShortcutsModal()">✕</button>
+      <div class="modal-title">⌨️ <span id="sc-modal-title">Keyboard Shortcuts Reference</span></div>
+
+      <!-- Original Key Combination Reference Card Image -->
+      <div style="text-align: center; margin-bottom: 22px; background: #121212; border: 1px solid #333; border-radius: 12px; padding: 14px; overflow: hidden;">
+        <div style="font-size: 12px; color: #9a9996; margin-bottom: 10px; font-weight: 600;">📷 原廠按鍵組合說明卡 (Hardware Key Combination Reference Card)</div>
+        <a href="/static/shortcuts_card.jpg" target="_blank" rel="noopener noreferrer" title="Click to view full image">
+          <img src="/static/shortcuts_card.jpg" alt="Key Combination Reference Card" style="max-width: 100%; max-height: 480px; width: auto; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: inline-block; cursor: zoom-in;" />
+        </a>
+      </div>
+
+      <!-- Win System (Fn + F-key) -->
+      <div class="sc-section">
+        <div class="sc-section-title" id="sc-title-win">🪟 Win System — Fn + F-key Combinations</div>
+        <table class="sc-table">
+          <tr><th id="sc-th-key">Key</th><th id="sc-th-action">Function</th></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F1</span></td><td id="sc-f1-win">Media Player</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F2</span></td><td id="sc-f2-win">Calculator</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F3</span></td><td id="sc-f3-win">Win + TAB (Task View)</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F4</span></td><td id="sc-f4-win">Win + E (File Explorer)</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F5</span></td><td id="sc-f5-win">Backlight Brightness −</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F6</span></td><td id="sc-f6-win">Backlight Brightness +</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F7</span></td><td id="sc-f7-win">Previous Track</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F8</span></td><td id="sc-f8-win">Play / Pause</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F9</span></td><td id="sc-f9-win">Next Track</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F10</span></td><td id="sc-f10-win">Mute / Unmute</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F11</span></td><td id="sc-f11-win">Volume −</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F12</span></td><td id="sc-f12-win">Volume +</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">WIN</span></td><td id="sc-win-lock">Lock WIN Key</td></tr>
+        </table>
+      </div>
+
+      <!-- Mac System (F-key only) -->
+      <div class="sc-section">
+        <div class="sc-section-title" id="sc-title-mac">🍎 Mac System — F-key Direct Functions</div>
+        <table class="sc-table">
+          <tr><th id="sc-th-key2">Key</th><th id="sc-th-action2">Function</th></tr>
+          <tr><td><span class="sc-key">F1</span></td><td id="sc-f1-mac">Screen Brightness −</td></tr>
+          <tr><td><span class="sc-key">F2</span></td><td id="sc-f2-mac">Screen Brightness +</td></tr>
+          <tr><td><span class="sc-key">F3</span></td><td id="sc-f3-mac">Split Screen</td></tr>
+          <tr><td><span class="sc-key">F4</span></td><td id="sc-f4-mac">Call up Siri</td></tr>
+          <tr><td><span class="sc-key">F5</span></td><td id="sc-f5-mac">Keyboard Backlight −</td></tr>
+          <tr><td><span class="sc-key">F6</span></td><td id="sc-f6-mac">Keyboard Backlight +</td></tr>
+          <tr><td><span class="sc-key">F7</span></td><td id="sc-f7-mac">Previous Track</td></tr>
+          <tr><td><span class="sc-key">F8</span></td><td id="sc-f8-mac">Play / Pause</td></tr>
+          <tr><td><span class="sc-key">F9</span></td><td id="sc-f9-mac">Next Track</td></tr>
+          <tr><td><span class="sc-key">F10</span></td><td id="sc-f10-mac">Mute / Unmute</td></tr>
+          <tr><td><span class="sc-key">F11</span></td><td id="sc-f11-mac">Volume −</td></tr>
+          <tr><td><span class="sc-key">F12</span></td><td id="sc-f12-mac">Volume +</td></tr>
+        </table>
+      </div>
+
+      <!-- Common Shortcuts -->
+      <div class="sc-section">
+        <div class="sc-section-title" id="sc-title-common">🔑 Common Shortcuts</div>
+        <table class="sc-table">
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Esc</span> <span style="color:#888;font-size:11px">(hold 3s)</span></td><td id="sc-factory">Restore Factory Settings</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Ins</span></td><td id="sc-side-light">Side Edge Backlight — cycle mode &amp; color</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Q</span></td><td id="sc-24g">Switch to 2.4G Connection Mode</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">W</span></td><td id="sc-bt1">Switch to Bluetooth 1 Mode</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">E</span></td><td id="sc-bt2">Switch to Bluetooth 2 Mode</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">R</span></td><td id="sc-bt3">Switch to Bluetooth 3 Mode</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">T</span></td><td id="sc-wired">Switch to Wired Connection Mode</td></tr>
+          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Knob tap</span></td><td id="sc-knob">Toggle main interface / volume level display</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <script>
     const I18N = __I18N_JSON__;
     const SERVER_CONFIG = __CONFIG_JSON__;
@@ -455,6 +548,10 @@ HTML_PAGE = """<!DOCTYPE html>
     function applyI18n() {
       document.getElementById('page-title').innerText = t('title');
       document.getElementById('txt-header').innerText = '⌨️ ' + t('title');
+      const scBtn = document.getElementById('txt-shortcuts-btn');
+      if (scBtn) scBtn.innerText = t('shortcuts_btn') || 'Shortcuts';
+      const prodBtn = document.getElementById('txt-product-btn');
+      if (prodBtn) prodBtn.innerText = t('product_page_btn') || 'Product Page';
       document.getElementById('txt-rgb-title').innerText = '🌈 ' + t('rgb_card_title');
       document.getElementById('txt-rgb-desc').innerText = t('rgb_card_desc');
       document.getElementById('txt-light-mode').innerText = t('light_mode');
@@ -518,6 +615,20 @@ HTML_PAGE = """<!DOCTYPE html>
       toast.style.opacity = '1';
       setTimeout(() => toast.style.opacity = '0', 2500);
     }
+
+    function openShortcutsModal() {
+      document.getElementById('shortcuts-modal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeShortcutsModal() {
+      document.getElementById('shortcuts-modal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeShortcutsModal();
+    });
 
     const SINGLE_COLOR_MODES = [1, 2, 3, 4, 5, 7];
 
@@ -856,6 +967,10 @@ HTML_PAGE = """<!DOCTYPE html>
         if (data.success) {
           statusEl.innerText = '✅ ' + t('upload_success', { frames: data.frames });
           showToast('📺 ' + t('upload_success', { frames: data.frames }));
+          hudRunning = false;
+          window._lcdTimestamp = Date.now();
+          updateHudUI();
+          updateLcdScreenPreview(true);
           if (typeof reloadLcdGif === 'function') setTimeout(reloadLcdGif, 500);
         } else {
           statusEl.innerText = '❌ ' + t('upload_fail') + ': ' + data.error;
@@ -869,6 +984,21 @@ HTML_PAGE = """<!DOCTYPE html>
 
     let hudRunning = false;
     let currentHudInterval = 120;
+
+    function updateLcdScreenPreview(force) {
+      const img = document.getElementById('kb-lcd-screen-img');
+      if (!img) return;
+      if (hudRunning) {
+        img.src = '/static/current_hud.png?t=' + Date.now();
+      } else {
+        const ts = window._lcdTimestamp || 1;
+        const newSrc = '/static/current_lcd.gif?v=' + ts;
+        if (img.src.indexOf('/static/current_lcd.gif') === -1 || force) {
+          img.src = newSrc;
+        }
+      }
+      img.style.display = 'block';
+    }
 
     function updateHudUI() {
       const badge = document.getElementById('hud-badge');
@@ -896,12 +1026,16 @@ HTML_PAGE = """<!DOCTYPE html>
       try {
         const res = await fetch('/api/hud-status');
         const data = await res.json();
-        hudRunning = data.running;
+        const prevRunning = hudRunning;
+        hudRunning = Boolean(data.running);
         if (data.interval) {
           currentHudInterval = data.interval;
           document.getElementById('hud-interval').value = String(data.interval);
         }
         updateHudUI();
+        if (hudRunning !== prevRunning || hudRunning) {
+          updateLcdScreenPreview(hudRunning !== prevRunning);
+        }
       } catch (e) {}
     }
 
@@ -919,6 +1053,9 @@ HTML_PAGE = """<!DOCTYPE html>
         const data = await res.json();
         if (data.success) {
           showToast(hudRunning ? '⏹️ ' + t('hud_stopped') : '🚀 ' + t('hud_started', { sec: interval }));
+          hudRunning = !hudRunning;
+          updateHudUI();
+          updateLcdScreenPreview(true);
         } else {
           alert('Error: ' + data.error);
         }
@@ -938,6 +1075,9 @@ HTML_PAGE = """<!DOCTYPE html>
         const data = await res.json();
         if (data.success) {
           showToast('⚡ ' + t('hud_once_success'));
+          hudRunning = true;
+          updateHudUI();
+          setTimeout(() => updateLcdScreenPreview(true), 350);
         } else {
           alert('Error: ' + data.error);
         }
@@ -945,6 +1085,7 @@ HTML_PAGE = """<!DOCTYPE html>
         alert('Error: ' + e);
       } finally {
         btn.disabled = false;
+        checkHudStatus();
       }
     }
 
@@ -962,6 +1103,10 @@ HTML_PAGE = """<!DOCTYPE html>
         const data = await res.json();
         if (data.success) {
           showToast('🔄 ' + t('hud_restore_success'));
+          hudRunning = false;
+          window._lcdTimestamp = Date.now();
+          updateHudUI();
+          updateLcdScreenPreview(true);
           if (typeof reloadLcdGif === 'function') setTimeout(reloadLcdGif, 500);
         } else {
           alert('Error: ' + data.error);

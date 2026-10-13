@@ -25,6 +25,7 @@ from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf, Pango
 from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
 
 from config import load_config, save_config
+from PIL import Image, ImageSequence
 
 APP_ID = "com.theforwardway.lt104"
 CLI_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lt104_cli.py")
@@ -125,6 +126,23 @@ class LT104Window(Adw.ApplicationWindow):
         self._status_label.add_css_class("caption")
         header.set_title_widget(self._status_label)
 
+        # Shortcuts Reference button (header start)
+        sc_btn = Gtk.Button(label="⌨️  快捷键")
+        sc_btn.set_tooltip_text("快捷键参考 / Shortcuts Reference")
+        sc_btn.add_css_class("flat")
+        sc_btn.connect("clicked", self._on_show_shortcuts)
+        header.pack_start(sc_btn)
+
+        # Product page button (header end, before window controls)
+        product_btn = Gtk.Button(label="🛍️")
+        product_btn.set_tooltip_text("LangTu LT-104 产品页面 / Product Page")
+        product_btn.add_css_class("flat")
+        product_btn.connect("clicked", lambda _: Gio.AppInfo.launch_default_for_uri(
+            "https://langtustore.com/collections/mechanical-keyboards/products/langtu-lt-104-rgb-tri-mode-mechanical-gaming-keyboard",
+            None
+        ))
+        header.pack_end(product_btn)
+
         # Scrollable main content with natural height propagation
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -168,8 +186,11 @@ class LT104Window(Adw.ApplicationWindow):
         self._hovered_key_idx = -1
         self._last_auto_tap_time = 0.0
         self._last_auto_ripple_time = 0.0
-        self._lcd_surface = None
+        self._lcd_frames = []
+        self._lcd_total_duration = 0.0
         self._last_lcd_mtime = 0.0
+        self._hud_surface = None
+        self._last_hud_mtime = 0.0
 
         # Photorealistic skin surfaces
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -708,6 +729,96 @@ class LT104Window(Adw.ApplicationWindow):
     #  Callbacks                                                            #
     # ------------------------------------------------------------------ #
 
+    def _on_show_shortcuts(self, _btn):
+        """Show a scrollable Shortcuts Reference dialog."""
+        dlg = Adw.Dialog()
+        dlg.set_title("⌨️  快捷键参考 / Shortcuts Reference")
+        dlg.set_content_width(620)
+        dlg.set_content_height(700)
+
+        toolbar = Adw.ToolbarView()
+        hdr = Adw.HeaderBar()
+        toolbar.add_top_bar(hdr)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_propagate_natural_height(True)
+        toolbar.set_content(scroll)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        box.set_margin_top(16)
+        box.set_margin_bottom(16)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        scroll.set_child(box)
+
+        # Original Card Image
+        img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "shortcuts_card.jpg")
+        if os.path.exists(img_path):
+            img_frame = Gtk.Frame()
+            img_frame.add_css_class("card")
+            card_pic = Gtk.Picture.new_for_filename(img_path)
+            card_pic.set_can_shrink(True)
+            card_pic.set_content_fit(Gtk.ContentFit.CONTAIN)
+            card_pic.set_size_request(280, 420)
+            img_frame.set_child(card_pic)
+            box.append(img_frame)
+
+        SHORTCUTS = [
+            ("🪟 Win System — Fn + F-key", [
+                ("Fn + F1",  "Media Player"),
+                ("Fn + F2",  "Calculator"),
+                ("Fn + F3",  "Win + TAB  (Task View)"),
+                ("Fn + F4",  "Win + E  (File Explorer)"),
+                ("Fn + F5",  "Backlight Brightness  −"),
+                ("Fn + F6",  "Backlight Brightness  +"),
+                ("Fn + F7",  "Previous Track"),
+                ("Fn + F8",  "Play / Pause"),
+                ("Fn + F9",  "Next Track"),
+                ("Fn + F10", "Mute / Unmute"),
+                ("Fn + F11", "Volume  −"),
+                ("Fn + F12", "Volume  +"),
+                ("Fn + WIN", "Lock WIN Key"),
+            ]),
+            ("🍎 Mac System — F-key Direct", [
+                ("F1",  "Screen Brightness  −"),
+                ("F2",  "Screen Brightness  +"),
+                ("F3",  "Split Screen"),
+                ("F4",  "Call up Siri"),
+                ("F5",  "Keyboard Backlight  −"),
+                ("F6",  "Keyboard Backlight  +"),
+                ("F7",  "Previous Track"),
+                ("F8",  "Play / Pause"),
+                ("F9",  "Next Track"),
+                ("F10", "Mute / Unmute"),
+                ("F11", "Volume  −"),
+                ("F12", "Volume  +"),
+            ]),
+            ("🔑 Common Shortcuts", [
+                ("Fn + Esc  (hold 3s)", "Restore Factory Settings"),
+                ("Fn + Ins",            "Side Edge Backlight — cycle mode & color"),
+                ("Fn + Q",              "Switch to 2.4G Connection Mode"),
+                ("Fn + W",              "Switch to Bluetooth 1 Mode"),
+                ("Fn + E",              "Switch to Bluetooth 2 Mode"),
+                ("Fn + R",              "Switch to Bluetooth 3 Mode"),
+                ("Fn + T",              "Switch to Wired Connection Mode"),
+                ("Fn + Knob tap",       "Toggle main interface / volume level display"),
+            ]),
+        ]
+
+        for section_title, rows in SHORTCUTS:
+            grp = Adw.PreferencesGroup()
+            grp.set_title(section_title)
+            for key, action in rows:
+                row = Adw.ActionRow()
+                row.set_title(key)
+                row.set_subtitle(action)
+                grp.add(row)
+            box.append(grp)
+
+        dlg.set_child(toolbar)
+        dlg.present(self)
+
     def _on_interval_changed(self, row, param):
         idx = self._interval_row.get_selected()
         sec = self._interval_intervals[idx] if idx < len(self._interval_intervals) else 20
@@ -848,18 +959,44 @@ class LT104Window(Adw.ApplicationWindow):
             base_dir = os.path.dirname(os.path.abspath(__file__))
             lcd_path = os.path.join(base_dir, "static", "current_lcd.gif")
             if not os.path.exists(lcd_path):
-                lcd_path = os.path.join(base_dir, "lt104_sample.gif")
+                for cand in ["0.gif", "lt104_sample.gif"]:
+                    cand_path = os.path.join(base_dir, cand)
+                    if os.path.exists(cand_path):
+                        lcd_path = cand_path
+                        break
             if os.path.exists(lcd_path):
                 mtime = os.path.getmtime(lcd_path)
-                if mtime != self._last_lcd_mtime or self._lcd_surface is None:
-                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(lcd_path, 62, 39, False)
-                    # Convert pixbuf to Cairo ImageSurface
-                    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, 62, 39)
-                    cr = cairo.Context(surf)
-                    Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0)
-                    cr.paint()
-                    self._lcd_surface = surf
-                    self._last_lcd_mtime = mtime
+                if mtime != getattr(self, '_last_lcd_mtime', 0.0) or not getattr(self, '_lcd_frames', None):
+                    im = Image.open(lcd_path)
+                    frames = []
+                    for f in ImageSequence.Iterator(im):
+                        rgba = f.convert("RGBA").resize((62, 39), Image.Resampling.LANCZOS)
+                        raw = bytearray(rgba.tobytes("raw", "BGRA"))
+                        surf = cairo.ImageSurface.create_for_data(raw, cairo.FORMAT_ARGB32, 62, 39)
+                        dur = f.info.get("duration", 80) / 1000.0
+                        if dur <= 0.01:
+                            dur = 0.08
+                        frames.append((surf, dur, raw))
+                    if frames:
+                        self._lcd_frames = frames
+                        self._lcd_total_duration = sum(f[1] for f in frames)
+                        self._last_lcd_mtime = mtime
+        except Exception:
+            pass
+
+    def _load_hud_surface(self):
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            hud_path = os.path.join(base_dir, "static", "current_hud.png")
+            if os.path.exists(hud_path):
+                mtime = os.path.getmtime(hud_path)
+                if mtime != getattr(self, '_last_hud_mtime', 0.0) or getattr(self, '_hud_surface', None) is None:
+                    im = Image.open(hud_path)
+                    rgba = im.convert("RGBA").resize((62, 39), Image.Resampling.LANCZOS)
+                    raw = bytearray(rgba.tobytes("raw", "BGRA"))
+                    self._hud_surface = cairo.ImageSurface.create_for_data(raw, cairo.FORMAT_ARGB32, 62, 39)
+                    self._hud_raw = raw
+                    self._last_hud_mtime = mtime
         except Exception:
             pass
 
@@ -1383,56 +1520,69 @@ class LT104Window(Adw.ApplicationWindow):
         cr.clip()
 
         if getattr(self, '_hud_running', False):
-            # Real-time HUD Mode: Live hardware telemetry & digital clock
-            cr.set_source_rgb(0.012, 0.031, 0.075)
-            cr.paint()
+            self._load_hud_surface()
+            if getattr(self, '_hud_surface', None):
+                cr.set_source_surface(self._hud_surface, 808, 18)
+                cr.paint()
+            else:
+                # Real-time HUD Mode Fallback: Live hardware telemetry & digital clock
+                cr.set_source_rgb(0.012, 0.031, 0.075)
+                cr.paint()
 
-            cr.set_source_rgb(0.22, 0.74, 0.97)
-            cr.select_font_face("monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-            cr.set_font_size(8.0)
-            time_str = time.strftime("%H:%M:%S")
-            cr.move_to(814, 27)
-            cr.show_text(time_str)
+                cr.set_source_rgb(0.22, 0.74, 0.97)
+                cr.select_font_face("monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+                cr.set_font_size(8.0)
+                time_str = time.strftime("%H:%M:%S")
+                cr.move_to(814, 27)
+                cr.show_text(time_str)
 
-            cr.set_source_rgb(0.12, 0.16, 0.23)
-            cr.set_line_width(1.0)
-            cr.move_to(810, 29)
-            cr.line_to(868, 29)
-            cr.stroke()
+                cr.set_source_rgb(0.12, 0.16, 0.23)
+                cr.set_line_width(1.0)
+                cr.move_to(810, 29)
+                cr.line_to(868, 29)
+                cr.stroke()
 
-            # CPU
-            cr.set_source_rgb(0.58, 0.64, 0.72)
-            cr.set_font_size(7.0)
-            cr.move_to(811, 37)
-            cr.show_text("C")
-            cr.set_source_rgb(0.06, 0.72, 0.5)
-            cr.rectangle(820, 32, 12, 5)
-            cr.fill()
-            cr.move_to(846, 37)
-            cr.show_text("18%")
-
-            # RAM
-            cr.set_source_rgb(0.58, 0.64, 0.72)
-            cr.move_to(811, 46)
-            cr.show_text("R")
-            cr.set_source_rgb(0.02, 0.71, 0.83)
-            cr.rectangle(820, 41, 18, 5)
-            cr.fill()
-            cr.move_to(846, 46)
-            cr.show_text("51%")
-
-            # Equalizer
-            for bi in range(7):
-                bx = 811 + bi * 8
-                cr.set_source_rgb(0.06, 0.72, 0.5 if bi % 2 == 0 else 0.83)
-                bar_h = 2 + abs(math.sin(t * 3.5 + bi * 0.9)) * 5
-                cr.rectangle(bx, 56 - bar_h, 6, bar_h)
+                # CPU
+                cr.set_source_rgb(0.58, 0.64, 0.72)
+                cr.set_font_size(7.0)
+                cr.move_to(811, 37)
+                cr.show_text("C")
+                cr.set_source_rgb(0.06, 0.72, 0.5)
+                cr.rectangle(820, 32, 12, 5)
                 cr.fill()
+                cr.move_to(846, 37)
+                cr.show_text("18%")
+
+                # RAM
+                cr.set_source_rgb(0.58, 0.64, 0.72)
+                cr.move_to(811, 46)
+                cr.show_text("R")
+                cr.set_source_rgb(0.02, 0.71, 0.83)
+                cr.rectangle(820, 41, 18, 5)
+                cr.fill()
+                cr.move_to(846, 46)
+                cr.show_text("51%")
+
+                # Equalizer
+                for bi in range(7):
+                    bx = 811 + bi * 8
+                    cr.set_source_rgb(0.06, 0.72, 0.5 if bi % 2 == 0 else 0.83)
+                    bar_h = 2 + abs(math.sin(t * 3.5 + bi * 0.9)) * 5
+                    cr.rectangle(bx, 56 - bar_h, 6, bar_h)
+                    cr.fill()
         else:
-            # GIF Animation Mode: Render active custom/preset LCD GIF
+            # GIF Animation Mode: Render active moving LCD GIF
             self._load_lcd_surface()
-            if self._lcd_surface:
-                cr.set_source_surface(self._lcd_surface, 808, 18)
+            if getattr(self, '_lcd_frames', None) and getattr(self, '_lcd_total_duration', 0.0) > 0:
+                t_in_cycle = t % self._lcd_total_duration
+                accum = 0.0
+                active_surface = self._lcd_frames[0][0]
+                for surf, dur, _ in self._lcd_frames:
+                    accum += dur
+                    if t_in_cycle < accum:
+                        active_surface = surf
+                        break
+                cr.set_source_surface(active_surface, 808, 18)
                 cr.paint()
             else:
                 cr.set_source_rgb(0.012, 0.031, 0.075)
@@ -1651,6 +1801,9 @@ class LT104Window(Adw.ApplicationWindow):
             btn.set_sensitive(True)
             if ok:
                 self._toast("⚡  系统 HUD 遥测已单次推送至屏幕！")
+                self._hud_running = True
+                self._load_hud_surface()
+                self._preview_area.queue_draw()
             else:
                 self._toast("❌  推送失败，请检查键盘连接。")
 
@@ -1678,6 +1831,22 @@ class LT104Window(Adw.ApplicationWindow):
             btn.set_sensitive(True)
             if ok:
                 self._toast(f"🔄  预设动画 ({preset}) 已成功恢复至屏幕！")
+                try:
+                    base_dir = os.path.dirname(os.path.abspath(__file__))
+                    preset_path = os.path.join(base_dir, preset)
+                    if os.path.exists(preset_path):
+                        dst = os.path.join(base_dir, "static", "current_lcd.gif")
+                        im = Image.open(preset_path)
+                        cached_frames = [f.copy().convert("RGB").resize((62, 39), Image.Resampling.LANCZOS) for f in ImageSequence.Iterator(im)]
+                        dur = im.info.get("duration", 80)
+                        cached_frames[0].save(dst, save_all=True, append_images=cached_frames[1:], loop=0, duration=dur)
+                        self._hud_running = False
+                        self._last_lcd_mtime = 0.0
+                        self._lcd_frames = []
+                        self._load_lcd_surface()
+                        self._preview_area.queue_draw()
+                except Exception:
+                    pass
             else:
                 self._toast("❌  恢复动画失败，请检查键盘连接。")
 
@@ -1731,6 +1900,22 @@ class LT104Window(Adw.ApplicationWindow):
             btn.set_label("🚀  上传到键盘屏幕")
             self._progress_bar.set_fraction(1.0)
             self._toast(f"📺  上传成功！已加载 {frames} 帧动画。")
+            try:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                static_dir = os.path.join(base_dir, "static")
+                os.makedirs(static_dir, exist_ok=True)
+                dst = os.path.join(static_dir, "current_lcd.gif")
+                im = Image.open(path)
+                cached_frames = [f.copy().convert("RGB").resize((62, 39), Image.Resampling.LANCZOS) for f in ImageSequence.Iterator(im)]
+                dur = im.info.get("duration", 80)
+                cached_frames[0].save(dst, save_all=True, append_images=cached_frames[1:], loop=0, duration=dur)
+                self._hud_running = False
+                self._last_lcd_mtime = 0.0
+                self._lcd_frames = []
+                self._load_lcd_surface()
+                self._preview_area.queue_draw()
+            except Exception:
+                pass
 
         def err(msg):
             btn.set_sensitive(True)
