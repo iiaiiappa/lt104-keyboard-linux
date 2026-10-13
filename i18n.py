@@ -14,6 +14,7 @@ TRANSLATIONS = {
         "rgb_card_desc": "Apply immediately and save permanently to keyboard EEPROM",
         "light_mode": "Lighting Mode",
         "custom_color": "Custom Color",
+        "side_color_preview": "Side Light Color Preview",
         "color_sub": "Click color swatch to choose",
         "quick_colors": "Quick Colors",
         "brightness": "Brightness",

@@ -428,21 +428,22 @@ class LT104Window(Adw.ApplicationWindow):
         group.add(self._side_mode_row)
 
         self._side_color_row = Adw.ActionRow()
-        self._side_color_row.set_title("侧翼灯带颜色")
-        self._side_color_row.set_subtitle("点击色块自定义两侧灯带静态与呼吸颜色")
+        self._side_color_row.set_title("两侧边缘背光颜色预览 (Side Light Color Preview)")
+        self._side_color_row.set_subtitle("当前硬件档位预设颜色（仅供预览）")
         self._side_color_btn = Gtk.ColorDialogButton()
         self._side_color_btn.set_valign(Gtk.Align.CENTER)
+        self._side_color_btn.set_sensitive(False)  # Read-only non-editable
         side_dialog = Gtk.ColorDialog()
-        side_dialog.set_title("选择侧翼灯带颜色")
+        side_dialog.set_title("侧翼灯带颜色预览")
         side_dialog.set_with_alpha(False)
         self._side_color_btn.set_dialog(side_dialog)
         side_rgba = Gdk.RGBA()
         side_rgba.parse(cfg.get("side_color", "#00e5ff"))
         self._side_color_btn.set_rgba(side_rgba)
-        self._side_color_btn.connect("notify::rgba", self._on_side_color_changed)
         self._side_color_row.add_suffix(self._side_color_btn)
-        # Mode 0: Off, 2: Spectrum Cycle -> hide color picker. Modes 1, 3-10 -> show color
-        self._side_color_row.set_visible(current_side_mode != 0 and current_side_mode != 2)
+        # Mode 0: Off, 1: Breathing, 2: Spectrum Cycle -> NO Side Light Color Preview (hide)
+        # Modes 3-10 (Preset colors) -> show preview
+        self._side_color_row.set_visible(current_side_mode >= 3)
         group.add(self._side_color_row)
 
         # Auto Apply Switch Row
@@ -772,7 +773,7 @@ class LT104Window(Adw.ApplicationWindow):
         side_idx = self._side_mode_row.get_selected() if hasattr(self, '_side_mode_row') else 1
         side_mode = SIDE_LIGHT_MODES[side_idx]["id"] if side_idx < len(SIDE_LIGHT_MODES) else 1
         if hasattr(self, '_side_color_row'):
-            self._side_color_row.set_visible(side_mode != 0 and side_mode != 2)
+            self._side_color_row.set_visible(side_mode >= 3)
         if hasattr(self, '_side_color_btn') and "color" in SIDE_LIGHT_MODES[side_idx] and side_mode >= 3:
             c_hex = SIDE_LIGHT_MODES[side_idx]["color"]
             rgba = Gdk.RGBA()

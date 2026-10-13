@@ -299,10 +299,11 @@ HTML_PAGE = """<!DOCTYPE html>
             </div>
 
             <div class="form-group" id="group-side-color">
-              <label id="txt-side-color">Side Light Color</label>
-              <div class="color-picker-wrap">
-                <input type="color" id="side-color" value="#00e5ff" onchange="onSideColorChange()">
-                <span id="side-color-hex" style="font-family: monospace; font-size: 14px;">#00e5ff</span>
+              <label id="txt-side-color">Side Light Color Preview</label>
+              <div class="color-picker-wrap" style="align-items: center; gap: 10px;">
+                <input type="color" id="side-color" value="#00e5ff" disabled style="pointer-events: none; opacity: 1; cursor: default;">
+                <span id="side-color-hex" style="font-family: monospace; font-size: 14px; color: var(--text);">#00e5ff</span>
+                <span style="font-size: 12px; color: var(--subtext);">(Preset Hardware Color)</span>
               </div>
             </div>
           </div>
@@ -445,6 +446,8 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById('txt-rgb-desc').innerText = t('rgb_card_desc');
       document.getElementById('txt-light-mode').innerText = t('light_mode');
       document.getElementById('txt-custom-color').innerText = t('custom_color');
+      const txtSideColor = document.getElementById('txt-side-color');
+      if (txtSideColor) txtSideColor.innerText = t('side_color_preview') || 'Side Light Color Preview';
       document.getElementById('txt-brightness').innerText = t('brightness');
       document.getElementById('txt-speed').innerText = t('speed');
       document.getElementById('btn-apply-light').innerText = '✨ ' + t('apply_btn');
@@ -523,8 +526,9 @@ HTML_PAGE = """<!DOCTYPE html>
       const modeVal = parseInt(sideMode !== undefined ? sideMode : (document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1));
       const sideColorGroup = document.getElementById('group-side-color');
       if (sideColorGroup) {
-        // Mode 0: Off -> hide color picker. Modes 1: Breathing -> show customizable color picker. Modes 2: Spectrum Cycle -> hide. Modes 3-10: Preset fixed colors -> show with preset color.
-        if (modeVal === 0 || modeVal === 2) {
+        // Mode 0: Off, Mode 1: Breathing, Mode 2: Spectrum Cycle -> NO Side Light Color Preview (hide)
+        // Modes 3 to 10 (Red, Orange, Yellow, Green, Cyan, Blue, Magenta, White) -> show non-editable preview
+        if (modeVal === 0 || modeVal === 1 || modeVal === 2) {
           sideColorGroup.style.display = 'none';
         } else {
           sideColorGroup.style.display = 'block';
