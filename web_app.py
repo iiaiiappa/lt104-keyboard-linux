@@ -503,7 +503,18 @@ HTML_PAGE = """<!DOCTYPE html>
       setTimeout(() => toast.style.opacity = '0', 2500);
     }
 
-    const SINGLE_COLOR_MODES = [1, 2, 3, 4, 5, 7];
+    function updateSideColorVisibility(sideMode) {
+      const modeVal = parseInt(sideMode !== undefined ? sideMode : (document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1));
+      const sideColorGroup = document.getElementById('group-side-color');
+      if (sideColorGroup) {
+        // Mode 0: Off -> hide color picker. Modes 1: Static, 2: Breathing -> show color picker. Modes 3, 4: Neon/Spectrum cycle -> multi-color.
+        if (modeVal === 0 || modeVal === 3 || modeVal === 4) {
+          sideColorGroup.style.display = 'none';
+        } else {
+          sideColorGroup.style.display = 'block';
+        }
+      }
+    }
 
     function updateColorVisibility(mode) {
       const modeVal = parseInt(mode !== undefined ? mode : document.getElementById('light-mode').value) || 1;
@@ -521,6 +532,7 @@ HTML_PAGE = """<!DOCTYPE html>
       const speedGroup = document.getElementById('group-speed');
       if (brightGroup) brightGroup.style.display = isOff ? 'none' : 'block';
       if (speedGroup) speedGroup.style.display = (isOff || isStatic) ? 'none' : 'block';
+      updateSideColorVisibility();
     }
 
     let autoApplyLight = true;
@@ -642,6 +654,8 @@ HTML_PAGE = """<!DOCTYPE html>
     }
 
     function onSideModeChange() {
+      const sideModeVal = parseInt(document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1) || 0;
+      updateSideColorVisibility(sideModeVal);
       if (autoApplyLight) {
         applyLight();
       }
@@ -1018,6 +1032,7 @@ HTML_PAGE = """<!DOCTYPE html>
       if (savedSideMode && document.getElementById('side-mode')) {
         document.getElementById('side-mode').value = String(savedSideMode);
       }
+      updateSideColorVisibility(savedSideMode);
 
       const savedSideColor = localStorage.getItem('lt104_side_color') || SERVER_CONFIG.side_color || '#00e5ff';
       if (savedSideColor && document.getElementById('side-color')) {

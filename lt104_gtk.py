@@ -441,6 +441,8 @@ class LT104Window(Adw.ApplicationWindow):
         self._side_color_btn.set_rgba(side_rgba)
         self._side_color_btn.connect("notify::rgba", self._on_side_color_changed)
         self._side_color_row.add_suffix(self._side_color_btn)
+        # Mode 0: Off, 3: Neon Wave, 4: Spectrum Cycle -> hide color picker
+        self._side_color_row.set_visible(current_side_mode in (1, 2))
         group.add(self._side_color_row)
 
         # Auto Apply Switch Row
@@ -767,6 +769,10 @@ class LT104Window(Adw.ApplicationWindow):
             self._apply_light_silently()
 
     def _on_side_light_changed(self, row, param):
+        side_idx = self._side_mode_row.get_selected() if hasattr(self, '_side_mode_row') else 1
+        side_mode = SIDE_LIGHT_MODES[side_idx]["id"] if side_idx < len(SIDE_LIGHT_MODES) else 1
+        if hasattr(self, '_side_color_row'):
+            self._side_color_row.set_visible(side_mode in (1, 2))
         if hasattr(self, '_preview_area') and self._preview_area:
             self._preview_area.queue_draw()
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
