@@ -1298,7 +1298,7 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         case 17: { // 重峦叠嶂 (Rolling Hills)
-          // Background all off, sharp 1-key width 45° slashes.
+          // Background all off, 2.5-keys wide 45° slashes with Gaussian blur.
           // Slashes emerge from the 50% middle of keyboard:
           // - Left side (cx <= midX): forward slash (/) and inserted backslash (\\\\) alternating, 3 keys apart, sweeping to the left without bouncing.
           // - Right side (cx >= midX): backslash (\\\\) and inserted forward slash (/) alternating, 3 keys apart, sweeping to the right without bouncing.
@@ -1309,7 +1309,7 @@ HTML_PAGE = """<!DOCTYPE html>
           const slashSpacing = 164.0; // Exactly 3 unlit keys apart between slashes (4 * 41px pitch)
           const spawnInterval = slashSpacing / waveSpeed; // Delay between alternating slashes
           const travelDuration = 550.0 / waveSpeed; // Distance to edge
-          const maxDist = 26.0; // Smooth 1-key window (neighbor key at 41px is strictly 0)
+          const sigma = 28.0; // 2.5 keys width Gaussian blur (2.5 * 41px ~ 102.5px full span at 95% width, sigma ~ 28px)
 
           const spawnB = midX - midY;
           const spawnF = midX + midY;
@@ -1340,12 +1340,10 @@ HTML_PAGE = """<!DOCTYPE html>
                 dist = Math.abs(coordB - waveCoord);
               }
 
-              if (dist <= maxDist) {
-                const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
-                if (val > maxVal) {
-                  maxVal = val;
-                  activeHue = ((w * 67) + 180 + 360) % 360;
-                }
+              const val = Math.exp(-(dist * dist) / (2.0 * sigma * sigma));
+              if (val > 0.005 && val > maxVal) {
+                maxVal = val;
+                activeHue = ((w * 67) + 180 + 360) % 360;
               }
             }
 
@@ -1364,12 +1362,10 @@ HTML_PAGE = """<!DOCTYPE html>
                 dist = Math.abs(coordF - waveCoord);
               }
 
-              if (dist <= maxDist) {
-                const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
-                if (val > maxVal) {
-                  maxVal = val;
-                  activeHue = ((w * 67) + 360) % 360;
-                }
+              const val = Math.exp(-(dist * dist) / (2.0 * sigma * sigma));
+              if (val > 0.005 && val > maxVal) {
+                maxVal = val;
+                activeHue = ((w * 67) + 360) % 360;
               }
             }
           }

@@ -908,7 +908,7 @@ class LT104Window(Adw.ApplicationWindow):
             return (min(1.0, total_r), min(1.0, total_g), min(1.0, total_b))
 
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
-            # Background all off, sharp 1-key width 45° slashes.
+            # Background all off, 2.5-keys wide 45° slashes with Gaussian blur.
             # Slashes emerge from the 50% middle of keyboard:
             # - Left side (cx <= mid_x): forward slash (/) and inserted backslash (\) alternating, 3 keys apart, sweeping to the left without bouncing.
             # - Right side (cx >= mid_x): backslash (\) and inserted forward slash (/) alternating, 3 keys apart, sweeping to the right without bouncing.
@@ -919,7 +919,7 @@ class LT104Window(Adw.ApplicationWindow):
             slash_spacing = 164.0  # Exactly 3 unlit keys apart between slashes (4 * 41px pitch)
             spawn_interval = slash_spacing / wave_speed
             travel_duration = 550.0 / wave_speed
-            max_dist = 26.0  # Smooth 1-key window (neighbor key at 41px is strictly 0)
+            sigma = 28.0  # 2.5 keys width Gaussian blur (2.5 * 41px ~ 102.5px full span at 95% width, sigma ~ 28px)
 
             spawn_b = mid_x - mid_y
             spawn_f = mid_x + mid_y
@@ -950,11 +950,10 @@ class LT104Window(Adw.ApplicationWindow):
                         wave_coord = spawn_b - dist_travelled
                         dist = abs(coord_b - wave_coord)
 
-                    if dist <= max_dist:
-                        val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
-                        if val > max_val:
-                            max_val = val
-                            active_hue = ((w * 67.0) + 180.0 + 360.0) % 360.0
+                    val = math.exp(-(dist * dist) / (2.0 * sigma * sigma))
+                    if val > 0.005 and val > max_val:
+                        max_val = val
+                        active_hue = ((w * 67.0) + 180.0 + 360.0) % 360.0
 
                 # Right side (cx >= mid_x): sweeps to the right
                 if cx >= mid_x:
@@ -969,11 +968,10 @@ class LT104Window(Adw.ApplicationWindow):
                         wave_coord = spawn_f + dist_travelled
                         dist = abs(coord_f - wave_coord)
 
-                    if dist <= max_dist:
-                        val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
-                        if val > max_val:
-                            max_val = val
-                            active_hue = ((w * 67.0) + 360.0) % 360.0
+                    val = math.exp(-(dist * dist) / (2.0 * sigma * sigma))
+                    if val > 0.005 and val > max_val:
+                        max_val = val
+                        active_hue = ((w * 67.0) + 360.0) % 360.0
 
             if max_val < 0.01:
                 return (0.0, 0.0, 0.0)
