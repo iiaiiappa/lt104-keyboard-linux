@@ -730,8 +730,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (3, 10, 16, 17, 18, 19):
-            # Single Off (3) has NO ripples. Modes 10, 16, 17, 18, 19 do not react.
+        if mode_id in (2, 3, 10, 16, 17, 18, 19):
+            # Single Light (2) & Single Off (3) have NO ripples. Modes 10, 16, 17, 18, 19 do not react.
             self._preview_area.queue_draw()
             return
 
@@ -793,8 +793,10 @@ class LT104Window(Adw.ApplicationWindow):
             return base_rgb
 
         elif mode == 2:  # 单点亮 (Single Light)
-            f = max(0.04, self._key_flashes[idx])
-            return (base_rgb[0] * f, base_rgb[1] * f, base_rgb[2] * f)
+            # Lights OFF by default. When pressing a key, that key's light is ON. When not pressing, light back to OFF.
+            if idx == getattr(self, '_pressed_key_idx', -1):
+                return base_rgb
+            return (0.0, 0.0, 0.0)
 
         elif mode == 3:  # 单熄灭 (Single Off)
             # Lights on ALL the time. When pressing a key, the key's light is OFF. When not pressing, light is back ON.
@@ -1092,11 +1094,6 @@ class LT104Window(Adw.ApplicationWindow):
             if self._key_flashes[i] > 0.001:
                 self._key_flashes[i] *= 0.94
 
-        # Simulated auto-tap for Single Light (Mode 2) only
-        if mode_id == 2 and (now - self._last_auto_tap_time > 1.3):
-            rand_idx = random.randint(0, len(KB_KEYS) - 1)
-            self._key_flashes[rand_idx] = 1.0
-            self._last_auto_tap_time = now
 
         # Simulated ripple for Ripple Trigger / Dual Ripple / Ripple Spread modes
         if mode_id in (13, 14, 15) and (now - self._last_auto_ripple_time > 2.4):
@@ -1140,7 +1137,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (3, 10, 16, 17, 18, 19):
+                    if mode_id not in (2, 3, 10, 16, 17, 18, 19):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)

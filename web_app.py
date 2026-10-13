@@ -1049,10 +1049,12 @@ HTML_PAGE = """<!DOCTYPE html>
         case 1: // 静态恒亮 (Static)
           return baseRgb;
 
-        case 2: { // 单点亮 (Single Light)
-          const f = Math.max(0.04, keyFlashes[idx]);
-          return [Math.round(baseRgb[0] * f), Math.round(baseRgb[1] * f), Math.round(baseRgb[2] * f)];
-        }
+        case 2: // 单点亮 (Single Light)
+          // Lights OFF by default. When pressing a key, that key's light is ON. When not pressing, light back to OFF.
+          if (idx === pressedKeyIdx) {
+            return baseRgb;
+          }
+          return [0, 0, 0];
 
         case 3: // 单熄灭 (Single Off)
           // Lights on ALL the time. When pressing a key, the key's light is OFF. When not pressing, light is back ON.
@@ -1387,12 +1389,6 @@ HTML_PAGE = """<!DOCTYPE html>
         if (keyFlashes[i] > 0.001) keyFlashes[i] *= 0.94;
       }
 
-      // Simulated auto-tap for Single Light (Mode 2) only
-      if (modeVal === 2 && (now - lastAutoTapTime > 1300)) {
-        const randIdx = Math.floor(Math.random() * KB_KEYS.length);
-        keyFlashes[randIdx] = 1.0;
-        lastAutoTapTime = now;
-      }
 
       // Simulated ripple for Ripple Trigger / Dual Ripple / Ripple Spread modes
       if ((modeVal === 13 || modeVal === 14 || modeVal === 15) && (now - lastAutoRippleTime > 2400)) {
@@ -1440,8 +1436,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 3 Single Off, 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
-            if (modeVal !== 3 && modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
+            // Active ripples overlay (Modes 2 Single Light, 3 Single Off, 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
+            if (modeVal !== 2 && modeVal !== 3 && modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1650,7 +1646,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 3 || modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Mode 3 Single Off has NO ripples. Modes 10, 16, 17, 18, 19 do not react
+        if (modeVal === 2 || modeVal === 3 || modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Modes 2 Single Light & 3 Single Off have NO ripples. Modes 10, 16, 17, 18, 19 do not react
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];

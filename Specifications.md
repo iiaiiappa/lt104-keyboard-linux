@@ -31,7 +31,7 @@ The physical LT-104 keyboard microcontroller firmware contains **19 built-in har
 | Mode ID | Name (ZH / EN) | Custom Color | Speed Slider | Brightness Slider | Keypress Reactivity |
 | :---: | :--- | :---: | :---: | :---: | :---: |
 | **1** | 静态恒亮 (Static) | **Yes** | *Hidden (N/A)* | **Yes (1–4)** | Continuous solid light |
-| **2** | 单点亮 (Single Light) | **Yes** | **Yes** | **Yes (1–4)** | Keypress triggers fade-out |
+| **2** | 单点亮 (Single Light) | **Yes** | **Yes** | **Yes (1–4)** | Keypress illuminates key |
 | **3** | 单熄灭 (Single Off) | **Yes** | **Yes** | **Yes (1–4)** | Keypress extinguishes key |
 | **4** | 繁星点点 (Stars) | **Yes** | **Yes** | **Yes (1–4)** | Autonomous twinkling |
 | **5** | 漫天飞雪 (Snow) | **Yes** | **Yes** | **Yes (1–4)** | Autonomous snow falling |
@@ -60,8 +60,8 @@ The physical LT-104 keyboard microcontroller firmware contains **19 built-in har
 - **Behavior**: All 104 keys remain permanently illuminated in the selected custom RGB color.
 
 #### Mode 2: 单点亮 (Single Light)
-- **Controls**: Custom Color enabled. Speed slider adjusts fade-out duration. Brightness enabled.
-- **Behavior**: The entire keyboard background remains dark. Pressing any key instantly lights up that key in the custom color, which then smoothly fades back to dark.
+- **Controls**: Custom Color enabled. Speed slider enabled. Brightness enabled.
+- **Behavior**: All keys have their backlight OFF by default. Whenever the user presses a key, that key's light turns completely ON in the custom color while pressed/actuated. When the key is released (not pressed), the key's light immediately turns back OFF. Pressing keys produces NO ripple animation effects, and the keyboard does NOT feature random keys turning on or twinkling.
 
 #### Mode 3: 单熄灭 (Single Off)
 - **Controls**: Custom Color enabled. Speed slider enabled. Brightness enabled.
