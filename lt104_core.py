@@ -46,11 +46,17 @@ SINGLE_COLOR_MODES = (1, 2, 3, 4, 5, 7)
 MULTI_COLOR_MODES = tuple(m["id"] for m in LIGHT_MODES if m["id"] not in SINGLE_COLOR_MODES)
 
 SIDE_LIGHT_MODES = [
-    {"id": 0, "name": "关闭侧翼灯 (Off)"},
-    {"id": 1, "name": "静态恒亮 (Static)"},
-    {"id": 2, "name": "呼吸流动 (Breathing)"},
-    {"id": 3, "name": "七彩霓虹 (Neon Wave)"},
-    {"id": 4, "name": "幻彩渐变 (Spectrum Cycle)"},
+    {"id": 0,  "name": "关闭侧翼灯 (Off)",              "color": "#000000"},
+    {"id": 1,  "name": "动态呼吸 (Breathing)",          "color": "#00e5ff"},
+    {"id": 2,  "name": "幻彩循环 (Spectrum Cycle)",     "color": "#00e5ff"},
+    {"id": 3,  "name": "红色 (Red)",                   "color": "#ff0000"},
+    {"id": 4,  "name": "橙色 (Orange)",                "color": "#ff7f00"},
+    {"id": 5,  "name": "黄色 (Yellow)",                "color": "#ffff00"},
+    {"id": 6,  "name": "绿色 (Green)",                 "color": "#00ff00"},
+    {"id": 7,  "name": "青色 (Cyan)",                  "color": "#00ffff"},
+    {"id": 8,  "name": "蓝色 (Blue)",                  "color": "#0000ff"},
+    {"id": 9,  "name": "品红 (Magenta)",               "color": "#ff00ff"},
+    {"id": 10, "name": "白色 (White)",                 "color": "#ffffff"},
 ]
 
 

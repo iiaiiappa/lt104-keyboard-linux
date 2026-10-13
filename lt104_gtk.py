@@ -441,8 +441,8 @@ class LT104Window(Adw.ApplicationWindow):
         self._side_color_btn.set_rgba(side_rgba)
         self._side_color_btn.connect("notify::rgba", self._on_side_color_changed)
         self._side_color_row.add_suffix(self._side_color_btn)
-        # Mode 0: Off, 3: Neon Wave, 4: Spectrum Cycle -> hide color picker
-        self._side_color_row.set_visible(current_side_mode in (1, 2))
+        # Mode 0: Off, 2: Spectrum Cycle -> hide color picker. Modes 1, 3-10 -> show color
+        self._side_color_row.set_visible(current_side_mode != 0 and current_side_mode != 2)
         group.add(self._side_color_row)
 
         # Auto Apply Switch Row
@@ -772,7 +772,12 @@ class LT104Window(Adw.ApplicationWindow):
         side_idx = self._side_mode_row.get_selected() if hasattr(self, '_side_mode_row') else 1
         side_mode = SIDE_LIGHT_MODES[side_idx]["id"] if side_idx < len(SIDE_LIGHT_MODES) else 1
         if hasattr(self, '_side_color_row'):
-            self._side_color_row.set_visible(side_mode in (1, 2))
+            self._side_color_row.set_visible(side_mode != 0 and side_mode != 2)
+        if hasattr(self, '_side_color_btn') and "color" in SIDE_LIGHT_MODES[side_idx] and side_mode >= 3:
+            c_hex = SIDE_LIGHT_MODES[side_idx]["color"]
+            rgba = Gdk.RGBA()
+            rgba.parse(c_hex)
+            self._side_color_btn.set_rgba(rgba)
         if hasattr(self, '_preview_area') and self._preview_area:
             self._preview_area.queue_draw()
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
@@ -1437,18 +1442,13 @@ class LT104Window(Adw.ApplicationWindow):
         side_base = (side_rgba.red, side_rgba.green, side_rgba.blue) if side_rgba else (0.0, 0.9, 1.0)
 
         if side_mode != 0 and bright_mult > 0:
-            if side_mode == 1:       # 静态恒亮
-                sr, sg, sb = side_base
-            elif side_mode == 2:     # 呼吸流动
+            if side_mode == 1:       # 动态呼吸 (Breathing)
                 breath = (math.sin(t * speed_mult * 3.0) + 1.0) * 0.45 + 0.1
                 sr, sg, sb = (side_base[0] * breath, side_base[1] * breath, side_base[2] * breath)
-            elif side_mode == 3:     # 七彩霓虹
-                hue = (t * speed_mult * 80.0) % 360.0
+            elif side_mode == 2:     # 幻彩循环 (Spectrum Cycle)
+                hue = (t * speed_mult * 60.0) % 360.0
                 sr, sg, sb = hsl_to_rgb(hue, 1.0, 0.5)
-            elif side_mode == 4:     # 幻彩渐变
-                hue = (t * speed_mult * 45.0 + 180.0) % 360.0
-                sr, sg, sb = hsl_to_rgb(hue, 1.0, 0.5)
-            else:
+            else:                    # 固定单色 (Modes 3-10: Red, Orange, Yellow, Green, Cyan, Blue, Magenta, White)
                 sr, sg, sb = side_base
 
             sr = max(0.0, min(1.0, sr * bright_mult))

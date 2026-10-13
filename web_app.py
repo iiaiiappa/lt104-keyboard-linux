@@ -505,16 +505,37 @@ HTML_PAGE = """<!DOCTYPE html>
 
     const SINGLE_COLOR_MODES = [1, 2, 3, 4, 5, 7];
 
+    const SIDE_PRESET_COLORS = {
+      0: '#000000',
+      1: '#00e5ff',
+      2: '#00e5ff',
+      3: '#ff0000',
+      4: '#ff7f00',
+      5: '#ffff00',
+      6: '#00ff00',
+      7: '#00ffff',
+      8: '#0000ff',
+      9: '#ff00ff',
+      10: '#ffffff'
+    };
+
     function updateSideColorVisibility(sideMode) {
       const modeVal = parseInt(sideMode !== undefined ? sideMode : (document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1));
       const sideColorGroup = document.getElementById('group-side-color');
       if (sideColorGroup) {
-        // Mode 0: Off -> hide color picker. Modes 1: Static, 2: Breathing -> show color picker. Modes 3, 4: Neon/Spectrum cycle -> multi-color.
-        if (modeVal === 0 || modeVal === 3 || modeVal === 4) {
+        // Mode 0: Off -> hide color picker. Modes 1: Breathing -> show customizable color picker. Modes 2: Spectrum Cycle -> hide. Modes 3-10: Preset fixed colors -> show with preset color.
+        if (modeVal === 0 || modeVal === 2) {
           sideColorGroup.style.display = 'none';
         } else {
           sideColorGroup.style.display = 'block';
         }
+      }
+      if (SIDE_PRESET_COLORS[modeVal] && modeVal >= 3) {
+        const hex = SIDE_PRESET_COLORS[modeVal];
+        const sideColorEl = document.getElementById('side-color');
+        const sideColorHexEl = document.getElementById('side-color-hex');
+        if (sideColorEl) sideColorEl.value = hex;
+        if (sideColorHexEl) sideColorHexEl.innerText = hex;
       }
     }
 
@@ -1701,17 +1722,18 @@ HTML_PAGE = """<!DOCTYPE html>
 
       if (sideModeVal !== 0 && brightMult > 0) {
         let sr = sideBaseRgb[0], sg = sideBaseRgb[1], sb = sideBaseRgb[2];
-        if (sideModeVal === 2) {      // 呼吸流动
+        if (sideModeVal === 1) {        // 动态呼吸 (Breathing)
           const breath = (Math.sin(t * speedMult * 3.0) + 1.0) * 0.45 + 0.1;
           sr = Math.round(sr * breath);
           sg = Math.round(sg * breath);
           sb = Math.round(sb * breath);
-        } else if (sideModeVal === 3) { // 七彩霓虹
-          const hue = (t * speedMult * 80.0) % 360.0;
+        } else if (sideModeVal === 2) { // 幻彩循环 (Spectrum Cycle)
+          const hue = (t * speedMult * 60.0) % 360.0;
           [sr, sg, sb] = hslToRgb(hue, 1.0, 0.5);
-        } else if (sideModeVal === 4) { // 幻彩渐变
-          const hue = (t * speedMult * 45.0 + 180.0) % 360.0;
-          [sr, sg, sb] = hslToRgb(hue, 1.0, 0.5);
+        } else if (SIDE_PRESET_COLORS[sideModeVal]) {
+          // Modes 3-10: Red, Orange, Yellow, Green, Cyan, Blue, Magenta, White
+          const prRgb = hexToRgb(SIDE_PRESET_COLORS[sideModeVal]);
+          sr = prRgb[0]; sg = prRgb[1]; sb = prRgb[2];
         }
 
         sr = Math.round(Math.min(255, sr * brightMult));
