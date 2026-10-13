@@ -1688,6 +1688,7 @@ HTML_PAGE = """<!DOCTYPE html>
           kbCtx.textAlign = 'center';
           kbCtx.fillText('LT-104', 839, 39);
         }
+      }
       kbCtx.restore();
 
       // 5. Left & Right Edge Ambient Light Strips (侧翼灯带)
