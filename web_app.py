@@ -503,6 +503,8 @@ HTML_PAGE = """<!DOCTYPE html>
       setTimeout(() => toast.style.opacity = '0', 2500);
     }
 
+    const SINGLE_COLOR_MODES = [1, 2, 3, 4, 5, 7];
+
     function updateSideColorVisibility(sideMode) {
       const modeVal = parseInt(sideMode !== undefined ? sideMode : (document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1));
       const sideColorGroup = document.getElementById('group-side-color');
