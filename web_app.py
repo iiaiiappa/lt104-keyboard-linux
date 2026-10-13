@@ -132,62 +132,78 @@ HTML_PAGE = """<!DOCTYPE html>
       --success: #2ec27e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Cantarell, Ubuntu, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-    .container { max-width: 1280px; width: 100%; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-    .header h1 { font-size: 22px; color: #ffffff; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    body { background: var(--bg); color: var(--text); padding: 18px 24px 32px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+    .container { max-width: 1220px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+    
+    /* HeaderBar styling matching GNOME / Libadwaita */
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #262626; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); flex-wrap: wrap; gap: 12px; }
+    .header h1 { font-size: 19px; color: #ffffff; font-weight: 700; display: flex; align-items: center; gap: 10px; }
     .header-right { display: flex; align-items: center; gap: 12px; }
-    .lang-select { background: var(--card-inner); border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 6px 12px; font-size: 13px; outline: none; cursor: pointer; }
+    .lang-select { background: var(--card-inner); border: 1px solid var(--border); border-radius: 20px; color: #fff; padding: 6px 14px; font-size: 13px; outline: none; cursor: pointer; transition: border-color 0.15s; }
+    .lang-select:focus { border-color: var(--accent); }
     .status-badge { background: rgba(46, 194, 126, 0.15); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.35); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .status-badge.error { background: rgba(224, 27, 36, 0.15); color: #e01b24; border-color: rgba(224, 27, 36, 0.35); }
     .update-badge { background: rgba(53, 132, 228, 0.15); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
     .update-badge:hover { background: rgba(53, 132, 228, 0.25); transform: translateY(-1px); }
-    
-    .main-layout { display: flex; flex-direction: column; gap: 20px; }
-    @media (min-width: 1024px) {
-      .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+
+    /* Top Middle Standalone Preview Card */
+    .kb-top-card { background: #181818; border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px 16px; box-shadow: 0 4px 18px rgba(0,0,0,0.3); }
+    .kb-top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: var(--subtext); flex-wrap: wrap; gap: 8px; }
+    .kb-top-header-left { display: flex; align-items: center; gap: 8px; }
+    .status-dot-pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2ec27e; box-shadow: 0 0 8px #2ec27e; }
+    .pill-badge { background: rgba(53, 132, 228, 0.2); border: 1px solid rgba(53, 132, 228, 0.4); padding: 2px 10px; border-radius: 12px; font-size: 12px; color: #78aeed; font-weight: 500; }
+    .kb-canvas-container { width: 100%; display: flex; justify-content: center; overflow: hidden; background: #121212; border-radius: 10px; border: 1px solid #282828; padding: 4px; }
+    #kb-preview { width: 100%; max-width: 954px; height: auto; display: block; border-radius: 8px; cursor: pointer; }
+
+    /* 2-Column Responsive Layout Below Preview */
+    .main-layout { display: flex; flex-direction: column; gap: 16px; }
+    @media (min-width: 980px) {
+      .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
     }
-    .col-left, .col-right { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    .col-left, .col-right { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     
-    .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 22px; margin-bottom: 0px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
-    .card-title { font-size: 17px; margin-bottom: 16px; color: #fff; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card { background: var(--card); border-radius: 14px; border: 1px solid var(--border); padding: 20px 22px; box-shadow: 0 3px 14px rgba(0,0,0,0.22); }
+    .card-title { font-size: 16px; margin-bottom: 14px; color: #fff; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card-desc { color: var(--subtext); font-size: 13px; margin-bottom: 16px; line-height: 1.45; }
     
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 7px; }
     label { font-size: 13px; color: var(--subtext); font-weight: 500; }
-    select, input[type="range"], input[type="file"] { background: var(--card-inner); border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 10px 14px; font-size: 14px; outline: none; width: 100%; transition: border 0.15s; }
+    select, input[type="range"], input[type="file"] { background: var(--card-inner); border: 1px solid var(--border); border-radius: 8px; color: #fff; padding: 9px 12px; font-size: 13.5px; outline: none; width: 100%; transition: border 0.15s; }
     select:focus { border-color: var(--accent); }
     
-    .color-picker-wrap { display: flex; align-items: center; gap: 14px; }
-    input[type="color"] { -webkit-appearance: none; border: none; width: 44px; height: 44px; border-radius: 8px; cursor: pointer; background: transparent; }
+    .color-picker-wrap { display: flex; align-items: center; gap: 12px; }
+    input[type="color"] { -webkit-appearance: none; border: none; width: 42px; height: 42px; border-radius: 8px; cursor: pointer; background: transparent; }
     input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
     input[type="color"]::-webkit-color-swatch { border-radius: 8px; border: 2px solid var(--border); }
     
-    .btn { background: var(--accent); color: #ffffff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    /* Buttons with Libadwaita pill style */
+    .btn { background: var(--accent); color: #ffffff; border: none; padding: 9px 18px; border-radius: 20px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
     .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
     .btn-secondary { background: var(--card-inner); color: #fff; border: 1px solid var(--border); }
     .btn-secondary:hover { background: #3d3d3d; }
+    .btn-full { width: 100%; }
     
-    .presets { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-    .preset-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff3; cursor: pointer; transition: transform 0.15s; }
+    .presets { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .preset-btn { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff3; cursor: pointer; transition: transform 0.15s; }
     .preset-btn:hover { transform: scale(1.15); border-color: #fff; }
 
-
-    .range-val { font-size: 13px; color: var(--accent); float: right; }
+    .range-val { font-size: 13px; color: var(--accent); float: right; font-weight: 600; }
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--success); color: #000; padding: 12px 20px; border-radius: 8px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
     .progress-bar-wrap { width: 100%; height: 8px; background: var(--card-inner); border-radius: 4px; overflow: hidden; margin-top: 12px; display: none; }
     .progress-bar { height: 100%; width: 0%; background: var(--accent); transition: width 0.1s ease; }
 
     .switch-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; color: var(--text); user-select: none; }
     .switch-wrap input { display: none; }
-    .slider { position: relative; width: 42px; height: 22px; background-color: #3c3c3c; border-radius: 22px; transition: .25s; display: inline-block; }
+    .slider { position: relative; width: 40px; height: 22px; background-color: #3c3c3c; border-radius: 22px; transition: .25s; display: inline-block; }
     .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .25s; }
     input:checked + .slider { background-color: var(--success); }
-    input:checked + .slider:before { transform: translateX(20px); }
+    input:checked + .slider:before { transform: translateX(18px); }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Top HeaderBar -->
     <div class="header">
       <h1 id="txt-header">⌨️ LT-104 Keyboard Control Center</h1>
       <div class="header-right">
@@ -207,11 +223,28 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- Top Middle: Standalone Keyboard Animation Visualizer Preview Card (Full Width) -->
+    <div class="kb-top-card">
+      <div class="kb-top-header">
+        <div class="kb-top-header-left">
+          <span class="status-dot-pulse"></span>
+          <strong id="txt-kb-preview-title" style="color: var(--text);">即时键盘灯效动画预览</strong>
+          <span id="kb-preview-mode-tag" class="pill-badge">静态恒亮 (Static)</span>
+        </div>
+        <span id="txt-kb-preview-hint" style="font-size: 12px; opacity: 0.9; color: #9a9996;">💡 点击按键触发灯光反馈 · 左右侧翼灯带实时同显</span>
+      </div>
+      <div class="kb-canvas-container">
+        <canvas id="kb-preview" width="954" height="297"></canvas>
+      </div>
+    </div>
+
+    <!-- Two-Column Responsive Settings Layout Below Preview -->
     <div class="main-layout">
+      <!-- Left Column: RGB Lighting Card + TFT Clock Calibration Card -->
       <div class="col-left">
         <!-- RGB Lighting Card -->
         <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
             <div class="card-title" id="txt-rgb-title" style="margin-bottom: 0;">🌈 RGB Lighting & Backlight</div>
             <label class="switch-wrap" style="font-size: 13px;">
               <input type="checkbox" id="chk-auto-apply" checked onchange="toggleAutoApply(this.checked)">
@@ -219,26 +252,9 @@ HTML_PAGE = """<!DOCTYPE html>
               <span id="txt-auto-apply">Live Apply (Auto Apply on Change)</span>
             </label>
           </div>
-          <p style="color: var(--subtext); font-size: 13px; margin-bottom: 16px;" id="txt-rgb-desc">
+          <p class="card-desc" id="txt-rgb-desc">
             Apply immediately and save permanently to keyboard EEPROM
           </p>
-
-          <!-- Keyboard Animation Visualizer Preview -->
-          <div class="kb-preview-wrap" style="background: #141414; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--subtext); flex-wrap: wrap; gap: 8px;">
-              <div style="display: flex; align-items: center; gap: 7px;">
-                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2ec27e; box-shadow: 0 0 8px #2ec27e;"></span>
-                <strong id="txt-kb-preview-title" style="color: var(--text);">Live Keyboard Animation Preview</strong>
-                <span id="kb-preview-mode-tag" style="background: rgba(53, 132, 228, 0.2); border: 1px solid rgba(53, 132, 228, 0.4); padding: 1px 8px; border-radius: 10px; font-size: 11px; color: #78aeed;">静态恒亮 (Static)</span>
-              </div>
-              <span id="txt-kb-preview-hint" style="font-size: 11px; opacity: 0.85; color: #9a9996;">💡 Click any key to trigger lighting reaction</span>
-            </div>
-            <div style="width: 100%; display: flex; justify-content: center; overflow: hidden;">
-              <canvas id="kb-preview" width="954" height="297" style="width: 100%; max-width: 954px; height: auto; display: block; border-radius: 8px; cursor: pointer;"></canvas>
-            </div>
-          </div>
-
-
 
           <div class="grid">
             <div class="form-group">
@@ -290,19 +306,18 @@ HTML_PAGE = """<!DOCTYPE html>
               </div>
             </div>
           </div>
-          <div id="wrap-apply-light" style="margin-top: 20px; display: none;">
-
-            <button class="btn" onclick="applyLight()" id="btn-apply-light">✨ Apply & Save Backlight</button>
+          <div id="wrap-apply-light" style="margin-top: 18px; display: none;">
+            <button class="btn btn-full" onclick="applyLight()" id="btn-apply-light">✨ Apply & Save Backlight</button>
           </div>
         </div>
 
         <!-- Clock Sync Card -->
         <div class="card">
           <div class="card-title" id="txt-clock-title">🕒 TFT Clock Calibration & Auto-Sync</div>
-          <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-clock-desc">
+          <p class="card-desc" id="txt-clock-desc">
             Sync PC time immediately or enable 12-hour automated background service.
           </p>
-          <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #121420; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border);">
+          <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #222222; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);">
             <button class="btn btn-secondary" onclick="syncClock()" id="btn-sync-clock">🕒 Sync Clock to Keyboard LCD</button>
             <label class="switch-wrap">
               <input type="checkbox" id="chk-clock-sched" onchange="toggleClockSchedule(this.checked)">
@@ -313,22 +328,21 @@ HTML_PAGE = """<!DOCTYPE html>
         </div>
       </div>
 
+      <!-- Right Column: Real-time System Monitoring HUD Card + LCD Upload Card -->
       <div class="col-right">
         <!-- Real-time System HUD Card -->
         <div class="card">
           <div class="card-title" id="txt-hud-title">📊 Real-time System Monitoring HUD</div>
-          <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-hud-desc">
+          <p class="card-desc" id="txt-hud-desc">
             Stream live CPU / RAM / Disk telemetry directly to keyboard LCD RAM.
           </p>
           
           <div style="display: flex; flex-direction: column; gap: 14px;">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-              <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="background: linear-gradient(135deg, #059669, #10b981);">📊 Start Real-time System HUD</button>
-              <button class="btn btn-secondary" id="btn-hud-once" onclick="pushHudOnce()">⚡ Update HUD Once</button>
-              <button class="btn btn-secondary" id="btn-restore-anim" onclick="restoreAnimation()">🔄 Restore Animation</button>
-              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
-                <span id="txt-hud-interval">Refresh Interval:</span>
-                <select id="hud-interval" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onIntervalChanged()">
+            <!-- Selectors Row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+                <label id="txt-hud-interval">HUD Refresh Interval:</label>
+                <select id="hud-interval" onchange="onIntervalChanged()">
                   <option value="5" id="opt-5s">5s (Fast)</option>
                   <option value="10" id="opt-10s">10s (Moderate)</option>
                   <option value="20" id="opt-20s">20s</option>
@@ -338,15 +352,25 @@ HTML_PAGE = """<!DOCTYPE html>
                   <option value="300" id="opt-300s">300s (5 min - Power Saving)</option>
                 </select>
               </div>
-              <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--subtext);">
-                <span id="txt-hud-restore">Stop Restore:</span>
-                <select id="hud-restore-preset" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 6px; font-size: 13px;" onchange="onRestorePresetChanged()">
+              <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+                <label id="txt-hud-restore">Stop Restore:</label>
+                <select id="hud-restore-preset" onchange="onRestorePresetChanged()">
                   <option value="lt104_sample.gif" id="opt-restore-sample" selected>lt104_sample.gif (Default Factory)</option>
                   <option value="0_perfect36.gif" id="opt-restore-p36">0_perfect36.gif</option>
                   <option value="none" id="opt-restore-none">Restore None</option>
                 </select>
               </div>
             </div>
+
+            <!-- Buttons: Row 1 (Toggle HUD) & Row 2 (Once & Restore) matching GTK layout -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <button class="btn btn-full" id="btn-toggle-hud" onclick="toggleHud()" style="background: linear-gradient(135deg, #059669, #10b981);">📊 Start Real-time System HUD</button>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-secondary" id="btn-hud-once" onclick="pushHudOnce()">⚡ Update HUD Once</button>
+                <button class="btn btn-secondary" id="btn-restore-anim" onclick="restoreAnimation()">🔄 Restore Animation</button>
+              </div>
+            </div>
+
             <div id="hud-status-text" style="font-size: 13px; color: var(--subtext);">
               <span id="txt-hud-status-label">System HUD Status:</span> <span id="hud-badge" style="color: #94a3b8; font-weight: 600;">Stopped</span> (<span id="txt-hud-note">Direct RAM streaming, zero SPI Flash wear, typing 100% responsive</span>)
             </div>
@@ -359,7 +383,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <!-- LCD Image / GIF Upload Card -->
         <div class="card" id="card-lcd-upload">
           <div class="card-title" id="txt-lcd-title">📺 LCD Image & GIF Upload</div>
-          <p style="color: var(--subtext); font-size: 14px; margin-bottom: 16px;" id="txt-lcd-desc">
+          <p class="card-desc" id="txt-lcd-desc">
             Automatically scaled to 160 × 80 RGB565, multi-frame GIF supported.
           </p>
           <div style="display: flex; flex-direction: column; gap: 14px;">
@@ -371,7 +395,7 @@ HTML_PAGE = """<!DOCTYPE html>
               <div id="upload-status" style="font-size: 13px; color: var(--subtext); margin-top: 4px;"></div>
             </div>
             <div>
-              <button class="btn" onclick="uploadLcdImage()" id="btn-upload-lcd">🚀 Upload to Keyboard LCD</button>
+              <button class="btn btn-full" onclick="uploadLcdImage()" id="btn-upload-lcd">🚀 Upload to Keyboard LCD</button>
             </div>
           </div>
         </div>
