@@ -1332,9 +1332,36 @@ enable the side backlight dropdown box to view all options, but still not config
 keyboard driver
 For stars lighting mode animation of the UI, there is no reaction when pressing the keys on real keyboard, do the same for your simulated keyboard on gnome extensions and web UI.
 
+### Prompt #173
+- **Time**: `2026-10-14T04:30:00+08:00`
+
+update the pve01 lxc for the theforwardway.com
+
 ---
 
+### Prompt #174
+- **Time**: `2026-10-14T04:45:00+08:00`
 
+https://theforwardway.com/#/contact
+the contact form is gone. you need to put it back.
+
+---
+
+### Prompt #175
+- **Time**: `2026-10-14T05:00:00+08:00`
+
+keyboard driver,
+1. theforwardway version: There is a extract knob on the plus sign of num pad. Missing the default gif animation.
+2.why all 3 of them not looking the same. please have the web UI version (web_app.py 8989) of animation on theforwardway keyboard demo.
+
+---
+
+### Prompt #176
+- **Time**: `2026-10-14T05:23:10+08:00`
+
+also the copy the side backlight of "breathing" mode to gnome version.
+
+---
 ### Prompt #168
 - **Time**: `2026-10-14T01:45:00+08:00`
 
