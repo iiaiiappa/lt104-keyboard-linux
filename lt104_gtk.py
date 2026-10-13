@@ -98,7 +98,18 @@ class LT104Window(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title("LT-104 键盘控制中心")
-        self.set_default_size(1180, 900)
+        # Calculate optimal size based on screen monitor work area
+        target_w = 1220
+        target_h = 1160
+        display = Gdk.Display.get_default()
+        if display:
+            monitors = display.get_monitors()
+            if monitors and monitors.get_n_items() > 0:
+                geom = monitors.get_item(0).get_geometry()
+                target_w = min(target_w, max(960, geom.width - 40))
+                target_h = min(target_h, max(720, geom.height - 90))
+
+        self.set_default_size(target_w, target_h)
         self.set_resizable(True)
 
         # ---- Root layout ---- #
@@ -114,10 +125,13 @@ class LT104Window(Adw.ApplicationWindow):
         self._status_label.add_css_class("caption")
         header.set_title_widget(self._status_label)
 
-        # Scrollable main content
+        # Scrollable main content with natural height propagation
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_propagate_natural_height(True)
+        scroll.set_propagate_natural_width(True)
         toolbar_view.set_content(scroll)
+        self._main_scroll = scroll
 
         clamp = Adw.Clamp()
         clamp.set_maximum_size(1140)
@@ -126,6 +140,7 @@ class LT104Window(Adw.ApplicationWindow):
         clamp.set_margin_start(14)
         clamp.set_margin_end(14)
         scroll.set_child(clamp)
+
 
         # Main vertical container: Top Preview Card + 2-Column Setting Cards below
         main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -188,13 +203,43 @@ class LT104Window(Adw.ApplicationWindow):
         # Preview tick timer
         self._preview_timer_id = GLib.timeout_add(33, self._tick_preview)
 
+        # Auto-fit window height dynamically to fit all controls without scrollbar
+        GLib.timeout_add(100, self._auto_fit_window)
+
         # Initial device check once, then poll every 2 seconds
         GLib.idle_add(self._initial_refresh)
         GLib.timeout_add_seconds(2, self._refresh_status)
 
+    def _auto_fit_window(self):
+        """Always resize window to fit all controls without vertical scrollbar."""
+        try:
+            if hasattr(self, '_main_scroll') and self._main_scroll:
+                vadjustment = self._main_scroll.get_vadjustment()
+                upper = vadjustment.get_upper()
+                page_size = vadjustment.get_page_size()
+                curr_w = self.get_width()
+                curr_h = self.get_height()
+                if upper > page_size and upper > 100:
+                    needed_extra = int(upper - page_size) + 16
+                    display = Gdk.Display.get_default()
+                    max_screen_h = 1400
+                    if display:
+                        monitors = display.get_monitors()
+                        if monitors and monitors.get_n_items() > 0:
+                            geom = monitors.get_item(0).get_geometry()
+                            max_screen_h = geom.height - 90
+                    target_h = min(max_screen_h, curr_h + needed_extra)
+                    if target_h > curr_h:
+                        self.set_default_size(curr_w, target_h)
+                        self.queue_resize()
+        except Exception:
+            pass
+        return False
+
     def _initial_refresh(self):
         self._refresh_status()
         return False
+
 
     # ------------------------------------------------------------------ #
     #  Card builders                                                        #
@@ -505,24 +550,29 @@ class LT104Window(Adw.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         box.set_margin_top(4)
 
-        # Buttons Row: Toggle & Once
-        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        # Buttons: Row 1 (Toggle HUD) + Row 2 (Single-shot Once & Restore Anim)
+        btn_box1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._hud_btn = Gtk.Button(label=f"📊  开启即时系统 HUD (每{int(initial_inv)}秒更新)")
         self._hud_btn.add_css_class("pill")
         self._hud_btn.set_hexpand(True)
         self._hud_btn.connect("clicked", self._on_toggle_hud)
-        btn_box.append(self._hud_btn)
+        btn_box1.append(self._hud_btn)
+        box.append(btn_box1)
 
+        btn_box2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._hud_once_btn = Gtk.Button(label="⚡  立即单次刷新")
         self._hud_once_btn.add_css_class("pill")
+        self._hud_once_btn.set_hexpand(True)
         self._hud_once_btn.connect("clicked", self._on_hud_once)
-        btn_box.append(self._hud_once_btn)
+        btn_box2.append(self._hud_once_btn)
 
         self._hud_restore_btn = Gtk.Button(label="🔄  恢复动画")
         self._hud_restore_btn.add_css_class("pill")
+        self._hud_restore_btn.set_hexpand(True)
         self._hud_restore_btn.connect("clicked", self._on_restore_anim)
-        btn_box.append(self._hud_restore_btn)
-        box.append(btn_box)
+        btn_box2.append(self._hud_restore_btn)
+        box.append(btn_box2)
+
 
         # HUD status note
         self._hud_note = Gtk.Label(label="直接写 RAM 缓存，零 Flash 磨损，打字 100% 流畅")
