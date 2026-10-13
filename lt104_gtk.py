@@ -136,6 +136,31 @@ class LT104Window(Adw.ApplicationWindow):
         two_col_box.append(col_left)
         two_col_box.append(col_right)
 
+        # State and settings initialization
+        init_cfg = load_config()
+        self._remembered_brightness = int(init_cfg.get("remembered_brightness", init_cfg.get("brightness", 4))) or 4
+        self._previous_mode_id = int(init_cfg.get("mode", 1))
+        self._dim_star_keys = []
+        self._next_star_change_time = 0.0
+        self._hud_running = False
+        self._key_flashes = [0.0] * len(KB_KEYS)
+        self._active_ripples = []
+        self._hovered_key_idx = -1
+        self._last_auto_tap_time = 0.0
+        self._last_auto_ripple_time = 0.0
+        self._lcd_surface = None
+        self._last_lcd_mtime = 0.0
+
+        # Photorealistic skin surfaces
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        none_png = os.path.join(base_dir, "static", "keyboard_skin_none.png")
+        dark_png = os.path.join(base_dir, "static", "keyboard_skin_dark.png")
+        lit_png = os.path.join(base_dir, "static", "keyboard_skin_lit.png")
+        self._skin_none = cairo.ImageSurface.create_from_png(none_png) if os.path.exists(none_png) else None
+        self._skin_dark = cairo.ImageSurface.create_from_png(dark_png) if os.path.exists(dark_png) else None
+        self._skin_lit = cairo.ImageSurface.create_from_png(lit_png) if os.path.exists(lit_png) else None
+        self._load_lcd_surface()
+
         # ---- Left Column: RGB Card & Clock Sync Card ---- #
         col_left.append(self._build_rgb_card())
         col_left.append(self._build_clock_card())
@@ -149,35 +174,12 @@ class LT104Window(Adw.ApplicationWindow):
         self.set_content(self._toast_overlay)
         self._toast_overlay.set_child(toolbar_view)
 
+        # Preview tick timer
+        self._preview_timer_id = GLib.timeout_add(33, self._tick_preview)
+
         # Initial device check once, then poll every 2 seconds
         GLib.idle_add(self._initial_refresh)
         GLib.timeout_add_seconds(2, self._refresh_status)
-
-        # Keyboard visualizer preview state
-        self._key_flashes = [0.0] * len(KB_KEYS)
-        self._active_ripples = []
-        self._hovered_key_idx = -1
-        self._last_auto_tap_time = 0.0
-        self._last_auto_ripple_time = 0.0
-        self._preview_timer_id = GLib.timeout_add(33, self._tick_preview)
-
-        # Photorealistic skin surfaces
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        none_png = os.path.join(base_dir, "static", "keyboard_skin_none.png")
-        dark_png = os.path.join(base_dir, "static", "keyboard_skin_dark.png")
-        lit_png = os.path.join(base_dir, "static", "keyboard_skin_lit.png")
-        self._skin_none = cairo.ImageSurface.create_from_png(none_png) if os.path.exists(none_png) else None
-        self._skin_dark = cairo.ImageSurface.create_from_png(dark_png) if os.path.exists(dark_png) else None
-        self._skin_lit = cairo.ImageSurface.create_from_png(lit_png) if os.path.exists(lit_png) else None
-        self._lcd_surface = None
-        self._last_lcd_mtime = 0.0
-        self._hud_running = False
-        init_cfg = load_config()
-        self._remembered_brightness = int(init_cfg.get("remembered_brightness", init_cfg.get("brightness", 4))) or 4
-        self._previous_mode_id = int(init_cfg.get("mode", 1))
-        self._dim_star_keys = []
-        self._next_star_change_time = 0.0
-        self._load_lcd_surface()
 
     def _initial_refresh(self):
         self._refresh_status()
@@ -1506,7 +1508,13 @@ class LT104App(Adw.Application):
         self.connect("activate", self.on_activate)
 
     def on_activate(self, app):
-        win = LT104Window(application=app)
+        win = self.get_active_window()
+        if not win:
+            windows = self.get_windows()
+            if windows:
+                win = windows[0]
+        if not win:
+            win = LT104Window(application=app)
         win.present()
 
 

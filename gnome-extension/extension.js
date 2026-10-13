@@ -330,25 +330,30 @@ function runCliAsync(args, successNotifyMsg = null) {
 
 function launchApp() {
     try {
+        let app = Gio.DesktopAppInfo.new('lt104.desktop');
+        if (app) {
+            app.launch([], null);
+            return;
+        }
+    } catch (e) {
+        console.warn('[LT104-Indicator] DesktopAppInfo launch warning: ' + e);
+    }
+
+    try {
         let proc = Gio.Subprocess.new(
             ['/usr/bin/python3', APP_PATH],
             Gio.SubprocessFlags.NONE
         );
         proc.wait_async(null, null);
     } catch (e) {
-        console.error('[LT104-Indicator] Failed to launch GTK App via Subprocess: ' + e);
+        console.error('[LT104-Indicator] Subprocess launch failed: ' + e);
         try {
-            let app = Gio.DesktopAppInfo.new('lt104.desktop');
-            if (app) {
-                app.launch([], null);
-            } else {
-                let appInfo = Gio.AppInfo.create_from_commandline(
-                    '/usr/bin/python3 ' + APP_PATH,
-                    'LT-104 Keyboard',
-                    Gio.AppInfoCreateFlags.NONE
-                );
-                appInfo.launch([], null);
-            }
+            let appInfo = Gio.AppInfo.create_from_commandline(
+                '/usr/bin/python3 ' + APP_PATH,
+                'LT-104 Keyboard',
+                Gio.AppInfoCreateFlags.NONE
+            );
+            appInfo.launch([], null);
         } catch (e2) {
             console.error('[LT104-Indicator] Fallback launch failed: ' + e2);
         }
