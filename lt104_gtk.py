@@ -22,7 +22,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf, Pango
 
-from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
 
 from config import load_config, save_config
 
@@ -410,13 +410,14 @@ class LT104Window(Adw.ApplicationWindow):
         self._speed_row = speed_row
         group.add(speed_row)
 
-        # ---- Side Edge Backlight Controls (侧翼双侧灯带) ---- #
+        # ---- Side Edge Backlight Controls (侧翼双侧灯带 - 硬件快捷键控制) ---- #
         self._side_mode_row = Adw.ComboRow()
-        self._side_mode_row.set_title("两侧边缘背光 (侧翼灯带)")
-        self._side_mode_row.set_subtitle("键盘两侧RGB氛围灯条 · 物理快捷键: Fn + Insert")
+        self._side_mode_row.set_title("两侧边缘背光 (侧翼灯带 - 状态预览)")
+        self._side_mode_row.set_subtitle("💡 纯硬件按键控制：请直接在键盘上按 Fn + Insert 切换模式与颜色（仅供预览，不可软件修改）")
         side_mode_strings = Gtk.StringList.new([m["name"] for m in SIDE_LIGHT_MODES])
         self._side_mode_row.set_model(side_mode_strings)
         self._side_mode_row.set_list_factory(make_wide_list_factory())
+        self._side_mode_row.set_sensitive(False)  # Mark non-configurable by user
         current_side_mode = int(cfg.get("side_mode", 1))
         initial_side_idx = 1
         for idx, sm in enumerate(SIDE_LIGHT_MODES):
@@ -424,7 +425,6 @@ class LT104Window(Adw.ApplicationWindow):
                 initial_side_idx = idx
                 break
         self._side_mode_row.set_selected(initial_side_idx)
-        self._side_mode_row.connect("notify::selected", self._on_side_light_changed)
         group.add(self._side_mode_row)
 
         self._side_color_row = Adw.ActionRow()
@@ -445,6 +445,23 @@ class LT104Window(Adw.ApplicationWindow):
         # Modes 3-10 (Preset colors) -> show preview
         self._side_color_row.set_visible(current_side_mode >= 3)
         group.add(self._side_color_row)
+
+        # ---- Inactivity Sleep Timeout Row (无活动自动熄灭背光) ---- #
+        self._sleep_timer_row = Adw.ComboRow()
+        self._sleep_timer_row.set_title("背光无活动休眠时间 (自动熄灭)")
+        self._sleep_timer_row.set_subtitle("无键盘活动时自动熄灭背光以节省电量并保护硬件")
+        sleep_timer_strings = Gtk.StringList.new([m["name"] for m in SLEEP_TIMER_MODES])
+        self._sleep_timer_row.set_model(sleep_timer_strings)
+        self._sleep_timer_row.set_list_factory(make_wide_list_factory())
+        current_sleep_id = int(cfg.get("sleep_timer", 3))
+        initial_sleep_idx = 0
+        for idx, slm in enumerate(SLEEP_TIMER_MODES):
+            if slm["id"] == current_sleep_id:
+                initial_sleep_idx = idx
+                break
+        self._sleep_timer_row.set_selected(initial_sleep_idx)
+        self._sleep_timer_row.connect("notify::selected", self._on_sleep_timer_changed)
+        group.add(self._sleep_timer_row)
 
         # Auto Apply Switch Row
         self._auto_apply_row = Adw.SwitchRow()
@@ -784,38 +801,28 @@ class LT104Window(Adw.ApplicationWindow):
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
             self._apply_side_light_silently()
 
-    def _on_side_color_changed(self, btn, param):
-        if hasattr(self, '_preview_area') and self._preview_area:
-            self._preview_area.queue_draw()
-        if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
-            self._apply_side_light_silently()
+    def _on_sleep_timer_changed(self, row, param):
+        sleep_idx = self._sleep_timer_row.get_selected() if hasattr(self, '_sleep_timer_row') else 0
+        sleep_id = SLEEP_TIMER_MODES[sleep_idx]["id"] if sleep_idx < len(SLEEP_TIMER_MODES) else 3
+        save_config({"sleep_timer": sleep_id})
 
-    def _apply_side_light_silently(self):
-        if not hasattr(self, '_side_mode_row'):
-            return
-        side_idx = self._side_mode_row.get_selected()
-        side_mode = SIDE_LIGHT_MODES[side_idx]["id"] if side_idx < len(SIDE_LIGHT_MODES) else 1
-        rgba = self._side_color_btn.get_rgba() if hasattr(self, '_side_color_btn') else None
-        r = int(rgba.red * 255) if rgba else 0
-        g = int(rgba.green * 255) if rgba else 229
-        b = int(rgba.blue * 255) if rgba else 255
-        bright = int(self._brightness_scale.get_value()) if hasattr(self, '_brightness_scale') else 4
-        speed = int(self._speed_scale.get_value()) if hasattr(self, '_speed_scale') else 3
-
-        def do_side():
+        def do_sleep():
             try:
                 ctl = LT104Controller()
-                ctl.set_side_light(mode=side_mode, r=r, g=g, b=b, brightness=bright, speed=speed)
+                ctl.set_sleep_timer(sleep_id)
                 ctl.close()
-                save_config({
-                    "side_mode": side_mode,
-                    "side_color": f"#{r:02x}{g:02x}{b:02x}",
-                    "side_r": r, "side_g": g, "side_b": b
-                })
             except Exception:
                 pass
 
-        run_in_thread(do_side)
+        threading.Thread(target=do_sleep, daemon=True).start()
+
+    def _on_side_color_changed(self, btn, param):
+        if hasattr(self, '_preview_area') and self._preview_area:
+            self._preview_area.queue_draw()
+
+    def _apply_side_light_silently(self):
+        pass
+
 
     def _on_preset_clicked(self, btn, hex_c):
 
@@ -1529,11 +1536,14 @@ class LT104Window(Adw.ApplicationWindow):
         side_g = int(side_rgba.green * 255) if side_rgba else 229
         side_b = int(side_rgba.blue * 255) if side_rgba else 255
 
+        sleep_idx = self._sleep_timer_row.get_selected() if hasattr(self, '_sleep_timer_row') else 0
+        sleep_id = SLEEP_TIMER_MODES[sleep_idx]["id"] if sleep_idx < len(SLEEP_TIMER_MODES) else 3
+
         def do_light():
             ctl = LT104Controller()
             ctl.set_light(mode=mode_id, r=r, g=g, b=b, brightness=brightness, speed=speed)
             try:
-                ctl.set_side_light(mode=side_mode, r=side_r, g=side_g, b=side_b, brightness=brightness, speed=speed)
+                ctl.set_sleep_timer(sleep_id)
             except Exception:
                 pass
             ctl.close()
@@ -1545,13 +1555,14 @@ class LT104Window(Adw.ApplicationWindow):
                 "speed": speed,
                 "side_mode": side_mode,
                 "side_color": f"#{side_r:02x}{side_g:02x}{side_b:02x}",
-                "side_r": side_r, "side_g": side_g, "side_b": side_b
+                "side_r": side_r, "side_g": side_g, "side_b": side_b,
+                "sleep_timer": sleep_id
             })
 
         def done(_):
             btn.set_sensitive(True)
             btn.set_label("✨  即时应用并保存灯效")
-            self._toast("✅  键盘主灯效及两侧边缘灯带已写入硬体！")
+            self._toast("✅  键盘背光及休眠设置已写入硬体！")
 
         def err(msg):
             btn.set_sensitive(True)

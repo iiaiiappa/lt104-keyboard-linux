@@ -15,7 +15,7 @@ import subprocess
 import signal
 import time
 
-from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
 
 import i18n
 from config import load_config, save_config
@@ -293,9 +293,12 @@ HTML_PAGE = """<!DOCTYPE html>
 
             <div class="form-group" id="group-side-mode">
               <label id="txt-side-mode">Side Edge Backlight (Dual Lightbars)</label>
-              <select id="side-mode" onchange="onSideModeChange()">
+              <select id="side-mode" disabled style="opacity: 0.75; cursor: not-allowed; background: #1a1a1a;">
                 __SIDE_LIGHT_OPTIONS__
               </select>
+              <div id="side-mode-hint" style="font-size: 11px; color: #38bdf8; margin-top: 5px; line-height: 1.4;">
+                💡 Physical hardware control: press <strong style="color: #facc15;">Fn + Ins</strong> on keyboard to cycle modes &amp; colors (Preview only, not configurable via software)
+              </div>
             </div>
 
             <div class="form-group" id="group-side-color">
@@ -304,6 +307,16 @@ HTML_PAGE = """<!DOCTYPE html>
                 <input type="color" id="side-color" value="#00e5ff" disabled style="pointer-events: none; opacity: 1; cursor: default;">
                 <span id="side-color-hex" style="font-family: monospace; font-size: 14px; color: var(--text);">#00e5ff</span>
                 <span style="font-size: 12px; color: var(--subtext);">(Preset Hardware Color)</span>
+              </div>
+            </div>
+
+            <div class="form-group" id="group-sleep-timer">
+              <label id="txt-sleep-timer">Backlight Inactivity Sleep Timer</label>
+              <select id="sleep-timer" onchange="onSleepTimerChange()">
+                __SLEEP_TIMER_OPTIONS__
+              </select>
+              <div id="sleep-timer-hint" style="font-size: 11px; color: var(--subtext); margin-top: 4px;">
+                Automatically turn off keyboard backlight when idle to save power.
               </div>
             </div>
           </div>
@@ -683,8 +696,23 @@ HTML_PAGE = """<!DOCTYPE html>
     function onSideModeChange() {
       const sideModeVal = parseInt(document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1) || 0;
       updateSideColorVisibility(sideModeVal);
-      if (autoApplyLight) {
-        applyLight();
+    }
+
+    async function onSleepTimerChange() {
+      const sleepVal = parseInt(document.getElementById('sleep-timer') ? document.getElementById('sleep-timer').value : 3);
+      localStorage.setItem('lt104_sleep_timer', sleepVal);
+      try {
+        const res = await fetch('/api/set-sleep-timer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sleep_id: sleepVal })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('⏳ ' + (t('settings_applied') || 'Sleep timer updated!'));
+        }
+      } catch (e) {
+        console.error('Failed to set sleep timer:', e);
       }
     }
 
@@ -692,9 +720,6 @@ HTML_PAGE = """<!DOCTYPE html>
       const hex = document.getElementById('side-color').value;
       const el = document.getElementById('side-color-hex');
       if (el) el.innerText = hex;
-      if (autoApplyLight) {
-        applyLight();
-      }
     }
 
     async function applyLight() {
@@ -715,6 +740,8 @@ HTML_PAGE = """<!DOCTYPE html>
       const sideG = parseInt(sideHex.slice(3, 5), 16);
       const sideB = parseInt(sideHex.slice(5, 7), 16);
 
+      const sleepId = parseInt(document.getElementById('sleep-timer') ? document.getElementById('sleep-timer').value : 3);
+
       if (mode === 20) {
         brightness = 0;
         document.getElementById('light-brightness').value = 0;
@@ -733,6 +760,7 @@ HTML_PAGE = """<!DOCTYPE html>
         localStorage.setItem('lt104_light_speed', speed);
         localStorage.setItem('lt104_side_mode', sideMode);
         localStorage.setItem('lt104_side_color', sideHex);
+        localStorage.setItem('lt104_sleep_timer', sleepId);
 
         const res = await fetch('/api/set-light', {
           method: 'POST',
@@ -740,7 +768,8 @@ HTML_PAGE = """<!DOCTYPE html>
           body: JSON.stringify({
             mode, r, g, b, brightness, speed,
             side_mode: sideMode,
-            side_r: sideR, side_g: sideG, side_b: sideB
+            side_r: sideR, side_g: sideG, side_b: sideB,
+            sleep_id: sleepId
           })
         });
         const data = await res.json();
@@ -1066,6 +1095,11 @@ HTML_PAGE = """<!DOCTYPE html>
         document.getElementById('side-color').value = savedSideColor;
         const sideColorHexEl = document.getElementById('side-color-hex');
         if (sideColorHexEl) sideColorHexEl.innerText = savedSideColor;
+      }
+
+      const savedSleepTimer = localStorage.getItem('lt104_sleep_timer') !== null ? localStorage.getItem('lt104_sleep_timer') : (SERVER_CONFIG.sleep_timer !== undefined ? SERVER_CONFIG.sleep_timer : 3);
+      if (savedSleepTimer !== undefined && savedSleepTimer !== null && document.getElementById('sleep-timer')) {
+        document.getElementById('sleep-timer').value = String(savedSleepTimer);
       }
 
 
@@ -1874,8 +1908,13 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
             for sm in SIDE_LIGHT_MODES:
                 side_options_html += f'<option value="{sm["id"]}">{sm["name"]}</option>\n'
 
+            sleep_options_html = ""
+            for slm in SLEEP_TIMER_MODES:
+                sleep_options_html += f'<option value="{slm["id"]}">{slm["name"]}</option>\n'
+
             html = HTML_PAGE.replace("__LIGHT_OPTIONS__", options_html)
             html = html.replace("__SIDE_LIGHT_OPTIONS__", side_options_html)
+            html = html.replace("__SLEEP_TIMER_OPTIONS__", sleep_options_html)
             html = html.replace("__I18N_JSON__", json.dumps(i18n.TRANSLATIONS))
             html = html.replace("__CONFIG_JSON__", json.dumps(load_config()))
             html = html.replace("__KB_KEYS_JSON__", json.dumps(KB_KEYS))
@@ -1984,13 +2023,17 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
 
                 ctl = LT104Controller()
                 ctl.set_light(mode=mode, r=r, g=g, b=b, brightness=brightness, speed=speed)
-                try:
-                    ctl.set_side_light(mode=side_mode, r=side_r, g=side_g, b=side_b, brightness=brightness, speed=speed)
-                except Exception:
-                    pass
+
+                sleep_id = body.get("sleep_id")
+                if sleep_id is not None:
+                    try:
+                        ctl.set_sleep_timer(int(sleep_id))
+                    except Exception:
+                        pass
+
                 ctl.close()
 
-                save_config({
+                cfg_to_save = {
                     "mode": mode,
                     "color": f"#{r:02x}{g:02x}{b:02x}",
                     "r": r, "g": g, "b": b,
@@ -1999,13 +2042,35 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                     "side_mode": side_mode,
                     "side_color": f"#{side_r:02x}{side_g:02x}{side_b:02x}",
                     "side_r": side_r, "side_g": side_g, "side_b": side_b
-                })
+                }
+                if sleep_id is not None:
+                    cfg_to_save["sleep_timer"] = int(sleep_id)
+                save_config(cfg_to_save)
+
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True}).encode())
             except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode())
 
+        elif self.path == "/api/set-sleep-timer":
+            content_len = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(content_len).decode())
+            try:
+                sleep_id = int(body.get("sleep_id", 3))
+                ctl = LT104Controller()
+                ctl.set_sleep_timer(sleep_id)
+                ctl.close()
+                save_config({"sleep_timer": sleep_id})
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "sleep_id": sleep_id}).encode())
+            except Exception as e:
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()

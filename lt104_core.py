@@ -59,6 +59,17 @@ SIDE_LIGHT_MODES = [
     {"id": 10, "name": "白色 (White)",                 "color": "#ffffff"},
 ]
 
+# Backlight Inactivity Sleep Timeout Options
+# Reversed from DeviceDriver.exe (0x436d00, 0x436cf0) and hiben.pcapng (Packets 75..870)
+# Opcode sequence: [0x04, 0x18] -> [0x04, 0x17, ..., byte[8]=0x01] -> payload[byte[6]=idx, byte[8]=idx, 0xAA, 0x55] -> [0x04, 0x02] -> [0x04, 0xF0]
+SLEEP_TIMER_MODES = [
+    {"id": 3, "name": "30 分钟 (30 Minutes)",          "minutes": 30},
+    {"id": 1, "name": "15 分钟 (15 Minutes)",          "minutes": 15},
+    {"id": 2, "name": "5 分钟 (5 Minutes)",            "minutes": 5},
+    {"id": 0, "name": "不休眠 (Never / Do not turn off)", "minutes": 0},
+]
+
+
 
 def supports_single_color(mode):
     """Check if the given lighting mode supports custom single color."""
@@ -338,6 +349,60 @@ class LT104Controller:
         self._send_with_ack(0x04, 0x02)   # apply
         self._send_with_ack(0x04, 0xF0)   # save to EEPROM
         return True
+
+    # ------------------------------------------------------------------ #
+    #  Inactivity Sleep Timeout (Turn off lights if no activity)         #
+    # ------------------------------------------------------------------ #
+
+    def set_sleep_timer(self, sleep_id=3):
+        """
+        Configure keyboard backlight inactivity sleep timer (turn off lights if idle).
+        Opcodes reversed from DeviceDriver.exe (0x436d00, 0x436cf0) and hiben.pcapng:
+          1. [0x04, 0x18] (setup/handshake)
+          2. [0x04, 0x17, ..., byte[8]=0x01] (inactivity/channel setup)
+          3. payload: 64-byte packet with byte[6]=sleep_id, byte[8]=sleep_id,
+             byte[1]=0x01, byte[62]=0xAA, byte[63]=0x55
+          4. [0x04, 0x02] (apply)
+          5. [0x04, 0xF0] (save to EEPROM)
+
+        Args:
+            sleep_id: 3 = 30 minutes, 1 = 15 minutes, 2 = 5 minutes, 0 = Do not turn off (Never)
+        """
+        # Map minutes to sleep_id if minutes were passed
+        if sleep_id == 30:
+            sleep_id = 3
+        elif sleep_id == 15:
+            sleep_id = 1
+        elif sleep_id == 5:
+            sleep_id = 2
+        elif sleep_id == 0 or sleep_id is False:
+            sleep_id = 0
+
+        val = int(sleep_id) & 0x03
+
+        self._send_with_ack(0x04, 0x18)
+        self._send_with_ack(0x04, 0x17, extra={8: 0x01})
+
+        pkt = bytearray(64)
+        pkt[0]  = 0x00
+        pkt[1]  = 0x01
+        pkt[2]  = 0x00
+        pkt[3]  = 0x00
+        pkt[4]  = 0x00
+        pkt[5]  = 0x00
+        pkt[6]  = val     # sleep index: 3=30m, 1=15m, 2=5m, 0=never
+        pkt[7]  = 0x00
+        pkt[8]  = val     # combobox cursel echo
+        pkt[62] = 0xAA
+        pkt[63] = 0x55
+
+        self._set_feature(pkt)
+        time.sleep(0.020)
+
+        self._send_with_ack(0x04, 0x02)   # apply
+        self._send_with_ack(0x04, 0xF0)   # save to EEPROM
+        return True
+
 
     # ------------------------------------------------------------------ #
     #  Clock Sync                                                          #
