@@ -1371,8 +1371,27 @@ HTML_PAGE = """<!DOCTYPE html>
           }
 
           if (maxVal < 0.01) return [0, 0, 0];
-          const c = hslToRgb(activeHue, 1.0, 0.5);
-          return [Math.round(c[0] * maxVal), Math.round(c[1] * maxVal), Math.round(c[2] * maxVal)];
+
+          // Per-key random color that smoothly changes every second (scaled by speedMult)
+          const secStep = t * speedMult;
+          const currSec = Math.floor(secStep);
+          const frac = secStep - currSec;
+
+          const getKeySecRgb = (kIdx, sIdx) => {
+            let h = ((kIdx * 0x1f1f1f1f + sIdx * 0x3d3d3d3d) >>> 0);
+            h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+            h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+            const hue = ((h ^ (h >>> 16)) >>> 0) % 360;
+            return hslToRgb(hue, 1.0, 0.5);
+          };
+
+          const c1 = getKeySecRgb(idx, currSec);
+          const c2 = getKeySecRgb(idx, currSec + 1);
+          const crK = c1[0] + (c2[0] - c1[0]) * frac;
+          const cgK = c1[1] + (c2[1] - c1[1]) * frac;
+          const cbK = c1[2] + (c2[2] - c1[2]) * frac;
+
+          return [Math.round(crK * maxVal), Math.round(cgK * maxVal), Math.round(cbK * maxVal)];
         }
 
         case 18: { // 斜风细雨 (Gentle Rain)

@@ -975,8 +975,26 @@ class LT104Window(Adw.ApplicationWindow):
 
             if max_val < 0.01:
                 return (0.0, 0.0, 0.0)
-            c = hsl_to_rgb(active_hue, 1.0, 0.5)
-            return (c[0] * max_val, c[1] * max_val, c[2] * max_val)
+
+            # Per-key random color that smoothly changes every second (scaled by speed_mult)
+            sec_step = t * speed_mult
+            curr_sec = int(sec_step)
+            frac = sec_step - curr_sec
+
+            def get_key_sec_rgb(k_idx, s_idx):
+                h = (k_idx * 0x1f1f1f1f + s_idx * 0x3d3d3d3d) & 0xffffffff
+                h = ((h >> 16) ^ h) * 0x45d9f3b & 0xffffffff
+                h = ((h >> 16) ^ h) * 0x45d9f3b & 0xffffffff
+                hue = ((h >> 16) ^ h) % 360.0
+                return hsl_to_rgb(hue, 1.0, 0.5)
+
+            c1 = get_key_sec_rgb(idx, curr_sec)
+            c2 = get_key_sec_rgb(idx, curr_sec + 1)
+            cr_k = c1[0] + (c2[0] - c1[0]) * frac
+            cg_k = c1[1] + (c2[1] - c1[1]) * frac
+            cb_k = c1[2] + (c2[2] - c1[2]) * frac
+
+            return (cr_k * max_val, cg_k * max_val, cb_k * max_val)
 
         elif mode == 18:  # 斜风细雨 (Gentle Rain)
             # Multiple 45° backslashes (cx - cy) sweeping continuously from left to right.
