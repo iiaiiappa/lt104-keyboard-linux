@@ -910,8 +910,8 @@ class LT104Window(Adw.ApplicationWindow):
         elif mode == 17:  # 重峦叠嶂 (Rolling Hills)
             # Background all off, sharp 1-key width 45° slashes.
             # Slashes emerge from the 50% middle of keyboard:
-            # Backslash sweeps to the right without bouncing back.
-            # Forwardslash sweeps to the left without bouncing back.
+            # - Left side (cx <= mid_x): forward slash (/) and inserted backslash (\) alternating, 3 keys apart, sweeping to the left without bouncing.
+            # - Right side (cx >= mid_x): backslash (\) and inserted forward slash (/) alternating, 3 keys apart, sweeping to the right without bouncing.
             # No cross in the middle of keyboard, 3 keys apart between slashes.
             mid_x = 479.0
             mid_y = 141.5
@@ -936,30 +936,44 @@ class LT104Window(Adw.ApplicationWindow):
                     continue
 
                 dist_travelled = wave_age * wave_speed
-                if w % 2 == 0:
-                    # Backslash: sweeps to the right from 50% center
-                    if cx < mid_x:
-                        continue
-                    coord_b = cx - cy
-                    wave_coord = spawn_b + dist_travelled
-                    dist = abs(coord_b - wave_coord)
-                    if dist <= max_dist:
-                        val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
-                        if val > max_val:
-                            max_val = val
-                            active_hue = ((w * 67.0) + 360.0) % 360.0
-                else:
-                    # Forwardslash: sweeps to the left from 50% center
-                    if cx > mid_x:
-                        continue
-                    coord_f = cx + cy
-                    wave_coord = spawn_f - dist_travelled
-                    dist = abs(coord_f - wave_coord)
+
+                # Left side (cx <= mid_x): sweeps to the left
+                if cx <= mid_x:
+                    if w % 2 == 0:
+                        # Forward slash (/) sweeping left
+                        coord_f = cx + cy
+                        wave_coord = spawn_f - dist_travelled
+                        dist = abs(coord_f - wave_coord)
+                    else:
+                        # Inserted backslash (\) between forward slashes sweeping left
+                        coord_b = cx - cy
+                        wave_coord = spawn_b - dist_travelled
+                        dist = abs(coord_b - wave_coord)
+
                     if dist <= max_dist:
                         val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
                         if val > max_val:
                             max_val = val
                             active_hue = ((w * 67.0) + 180.0 + 360.0) % 360.0
+
+                # Right side (cx >= mid_x): sweeps to the right
+                if cx >= mid_x:
+                    if w % 2 == 0:
+                        # Backslash (\) sweeping right
+                        coord_b = cx - cy
+                        wave_coord = spawn_b + dist_travelled
+                        dist = abs(coord_b - wave_coord)
+                    else:
+                        # Inserted forward slash (/) between backslashes sweeping right
+                        coord_f = cx + cy
+                        wave_coord = spawn_f + dist_travelled
+                        dist = abs(coord_f - wave_coord)
+
+                    if dist <= max_dist:
+                        val = 0.5 * (1.0 + math.cos((math.pi * dist) / max_dist))
+                        if val > max_val:
+                            max_val = val
+                            active_hue = ((w * 67.0) + 360.0) % 360.0
 
             if max_val < 0.01:
                 return (0.0, 0.0, 0.0)

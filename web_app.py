@@ -1300,8 +1300,8 @@ HTML_PAGE = """<!DOCTYPE html>
         case 17: { // 重峦叠嶂 (Rolling Hills)
           // Background all off, sharp 1-key width 45° slashes.
           // Slashes emerge from the 50% middle of keyboard:
-          // Backslash sweeps to the right without bouncing back.
-          // Forwardslash sweeps to the left without bouncing back.
+          // - Left side (cx <= midX): forward slash (/) and inserted backslash (\\\\) alternating, 3 keys apart, sweeping to the left without bouncing.
+          // - Right side (cx >= midX): backslash (\\\\) and inserted forward slash (/) alternating, 3 keys apart, sweeping to the right without bouncing.
           // No cross in the middle of keyboard, 3 keys apart between slashes.
           const midX = 479.0;
           const midY = 141.5;
@@ -1324,32 +1324,51 @@ HTML_PAGE = """<!DOCTYPE html>
             if (waveAge < 0 || waveAge > travelDuration) continue;
 
             const distTravelled = waveAge * waveSpeed;
-            if (w % 2 === 0) {
-              // Backslash: sweeps to the right from 50% center
-              if (cx < midX) continue;
-              const coordB = cx - cy;
-              const waveCoord = spawnB + distTravelled;
-              const dist = Math.abs(coordB - waveCoord);
-              if (dist <= maxDist) {
-                // Continuous smooth cosine window (1.0 at center, seamlessly 0.0 at maxDist without hard cutoff pop)
-                const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
-                if (val > maxVal) {
-                  maxVal = val;
-                  activeHue = ((w * 67) + 360) % 360;
-                }
+
+            // Left side (cx <= midX): sweeps to the left
+            if (cx <= midX) {
+              let dist = 999.0;
+              if (w % 2 === 0) {
+                // Forward slash (/) sweeping left
+                const coordF = cx + cy;
+                const waveCoord = spawnF - distTravelled;
+                dist = Math.abs(coordF - waveCoord);
+              } else {
+                // Inserted backslash (\\\\) between forward slashes sweeping left
+                const coordB = cx - cy;
+                const waveCoord = spawnB - distTravelled;
+                dist = Math.abs(coordB - waveCoord);
               }
-            } else {
-              // Forwardslash: sweeps to the left from 50% center
-              if (cx > midX) continue;
-              const coordF = cx + cy;
-              const waveCoord = spawnF - distTravelled;
-              const dist = Math.abs(coordF - waveCoord);
+
               if (dist <= maxDist) {
-                // Continuous smooth cosine window (1.0 at center, seamlessly 0.0 at maxDist without hard cutoff pop)
                 const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
                 if (val > maxVal) {
                   maxVal = val;
                   activeHue = ((w * 67) + 180 + 360) % 360;
+                }
+              }
+            }
+
+            // Right side (cx >= midX): sweeps to the right
+            if (cx >= midX) {
+              let dist = 999.0;
+              if (w % 2 === 0) {
+                // Backslash (\\\\) sweeping right
+                const coordB = cx - cy;
+                const waveCoord = spawnB + distTravelled;
+                dist = Math.abs(coordB - waveCoord);
+              } else {
+                // Inserted forward slash (/) between backslashes sweeping right
+                const coordF = cx + cy;
+                const waveCoord = spawnF + distTravelled;
+                dist = Math.abs(coordF - waveCoord);
+              }
+
+              if (dist <= maxDist) {
+                const val = 0.5 * (1.0 + Math.cos((Math.PI * dist) / maxDist));
+                if (val > maxVal) {
+                  maxVal = val;
+                  activeHue = ((w * 67) + 360) % 360;
                 }
               }
             }
