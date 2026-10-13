@@ -293,7 +293,7 @@ HTML_PAGE = """<!DOCTYPE html>
 
             <div class="form-group" id="group-side-mode">
               <label id="txt-side-mode">Side Edge Backlight (Dual Lightbars)</label>
-              <select id="side-mode" disabled style="opacity: 0.75; cursor: not-allowed; background: #1a1a1a;">
+              <select id="side-mode" onchange="onSideModeChange()">
                 __SIDE_LIGHT_OPTIONS__
               </select>
               <div id="side-mode-hint" style="font-size: 11px; color: #38bdf8; margin-top: 5px; line-height: 1.4;">
@@ -695,7 +695,11 @@ HTML_PAGE = """<!DOCTYPE html>
 
     function onSideModeChange() {
       const sideModeVal = parseInt(document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1) || 0;
+      localStorage.setItem('lt104_side_mode', sideModeVal);
       updateSideColorVisibility(sideModeVal);
+      if (window.renderKeyboardPreview) {
+        window.renderKeyboardPreview();
+      }
     }
 
     async function onSleepTimerChange() {

@@ -99,15 +99,15 @@ class LT104Window(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         self.set_title("LT-104 键盘控制中心")
         # Calculate optimal size based on screen monitor work area
-        target_w = 1220
-        target_h = 1160
+        target_w = 1240
+        target_h = 1240
         display = Gdk.Display.get_default()
         if display:
             monitors = display.get_monitors()
             if monitors and monitors.get_n_items() > 0:
                 geom = monitors.get_item(0).get_geometry()
                 target_w = min(target_w, max(960, geom.width - 40))
-                target_h = min(target_h, max(720, geom.height - 90))
+                target_h = min(target_h, max(720, geom.height - 70))
 
         self.set_default_size(target_w, target_h)
         self.set_resizable(True)
@@ -134,24 +134,24 @@ class LT104Window(Adw.ApplicationWindow):
         self._main_scroll = scroll
 
         clamp = Adw.Clamp()
-        clamp.set_maximum_size(1140)
-        clamp.set_margin_top(8)
-        clamp.set_margin_bottom(12)
+        clamp.set_maximum_size(1160)
+        clamp.set_margin_top(6)
+        clamp.set_margin_bottom(8)
         clamp.set_margin_start(14)
         clamp.set_margin_end(14)
         scroll.set_child(clamp)
 
 
         # Main vertical container: Top Preview Card + 2-Column Setting Cards below
-        main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         clamp.set_child(main_vbox)
 
         # 2-Column responsive container below the preview
-        two_col_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        two_col_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
         two_col_box.set_homogeneous(True)
 
-        col_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        col_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        col_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        col_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         two_col_box.append(col_left)
         two_col_box.append(col_right)
 
@@ -222,12 +222,12 @@ class LT104Window(Adw.ApplicationWindow):
                 if upper > page_size and upper > 100:
                     needed_extra = int(upper - page_size) + 16
                     display = Gdk.Display.get_default()
-                    max_screen_h = 1400
+                    max_screen_h = 1600
                     if display:
                         monitors = display.get_monitors()
                         if monitors and monitors.get_n_items() > 0:
                             geom = monitors.get_item(0).get_geometry()
-                            max_screen_h = geom.height - 90
+                            max_screen_h = geom.height - 70
                     target_h = min(max_screen_h, curr_h + needed_extra)
                     if target_h > curr_h:
                         self.set_default_size(curr_w, target_h)
@@ -417,7 +417,8 @@ class LT104Window(Adw.ApplicationWindow):
         side_mode_strings = Gtk.StringList.new([m["name"] for m in SIDE_LIGHT_MODES])
         self._side_mode_row.set_model(side_mode_strings)
         self._side_mode_row.set_list_factory(make_wide_list_factory())
-        self._side_mode_row.set_sensitive(False)  # Mark non-configurable by user
+        # Enabled to allow viewing all options; selection updates local preview only without configuring hardware
+        self._side_mode_row.set_sensitive(True)
         current_side_mode = int(cfg.get("side_mode", 1))
         initial_side_idx = 1
         for idx, sm in enumerate(SIDE_LIGHT_MODES):
@@ -425,6 +426,7 @@ class LT104Window(Adw.ApplicationWindow):
                 initial_side_idx = idx
                 break
         self._side_mode_row.set_selected(initial_side_idx)
+        self._side_mode_row.connect("notify::selected", self._on_side_light_changed)
         group.add(self._side_mode_row)
 
         self._side_color_row = Adw.ActionRow()
