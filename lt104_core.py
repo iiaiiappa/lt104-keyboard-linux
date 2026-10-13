@@ -45,6 +45,15 @@ KB_KEYS = [["esc",19,16,33,33],["F1",100,16,33,33],["F2",141,16,33,33],["F3",182
 SINGLE_COLOR_MODES = (1, 2, 3, 4, 5, 7)
 MULTI_COLOR_MODES = tuple(m["id"] for m in LIGHT_MODES if m["id"] not in SINGLE_COLOR_MODES)
 
+SIDE_LIGHT_MODES = [
+    {"id": 0, "name": "关闭侧翼灯 (Off)"},
+    {"id": 1, "name": "静态恒亮 (Static)"},
+    {"id": 2, "name": "呼吸流动 (Breathing)"},
+    {"id": 3, "name": "七彩霓虹 (Neon Wave)"},
+    {"id": 4, "name": "幻彩渐变 (Spectrum Cycle)"},
+]
+
+
 def supports_single_color(mode):
     """Check if the given lighting mode supports custom single color."""
     return int(mode) in SINGLE_COLOR_MODES
@@ -272,6 +281,49 @@ class LT104Controller:
             pkt[9]  = b_val           # byte 9 = Hardware Brightness (1 to 5)
             pkt[10] = s_val           # byte 10 = Hardware Animation Speed (1 to 5)
             pkt[11] = d_val           # byte 11 = Hardware Direction (0 to 3)
+            pkt[14] = 0xAA
+            pkt[15] = 0x55
+        self._set_feature(pkt)
+        time.sleep(0.020)
+
+        self._send_with_ack(0x04, 0x02)   # apply
+        self._send_with_ack(0x04, 0xF0)   # save to EEPROM
+        return True
+
+    def set_side_light(self, mode=1, r=0, g=255, b=255, brightness=4, speed=3):
+        """
+        Configure physical left & right side edge light strips (Fn+Ins equivalent).
+        Opcodes reversed from DeviceDriver.exe (0x04 0x17 lightbar config channel):
+          1. [0x04, 0x18]
+          2. [0x04, 0x17, ..., byte[8]=0x01]
+          3. payload: [mode, r, g, b, 0x00, ..., brightness, speed, 0x00, 0xAA, 0x55]
+          4. [0x04, 0x02] (apply)
+          5. [0x04, 0xF0] (save to EEPROM)
+        """
+        self._send_with_ack(0x04, 0x18)
+        self._send_with_ack(0x04, 0x17, extra={8: 0x01})
+
+        pkt = bytearray(64)
+        if int(mode) == 0 or int(brightness) == 0:
+            pkt[0]  = 0x80
+            pkt[1]  = 0x00
+            pkt[2]  = 0x00
+            pkt[3]  = 0x00
+            pkt[8]  = 0x00
+            pkt[9]  = 0x00
+            pkt[10] = 0x05
+            pkt[14] = 0xAA
+            pkt[15] = 0x55
+        else:
+            b_val = min(5, max(1, int(brightness)))
+            s_val = min(5, max(1, int(speed)))
+            pkt[0]  = int(mode) & 0xFF
+            pkt[1]  = int(r) & 0xFF
+            pkt[2]  = int(g) & 0xFF
+            pkt[3]  = int(b) & 0xFF
+            pkt[8]  = 0x00
+            pkt[9]  = b_val
+            pkt[10] = s_val
             pkt[14] = 0xAA
             pkt[15] = 0x55
         self._set_feature(pkt)

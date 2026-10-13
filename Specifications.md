@@ -34,7 +34,7 @@ The physical LT-104 keyboard microcontroller firmware contains **19 built-in har
 | **2** | 单点亮 (Single Light) | **Yes** | **Yes** | **Yes (1–4)** | Keypress illuminates key |
 | **3** | 单熄灭 (Single Off) | **Yes** | **Yes** | **Yes (1–4)** | Keypress extinguishes key |
 | **4** | 繁星点点 (Stars) | **Yes** | **Yes** | **Yes (1–4)** | Autonomous twinkling |
-| **5** | 漫天飞雪 (Snow) | **Yes** | **Yes** | **Yes (1–4)** | Autonomous snow falling |
+| **5** | 漫天飞雪 (Snow) | **Yes** | **Yes** | **Yes (1–4)** | **No reaction on keypress** |
 | **6** | 百花争艳 (Blossom) | No | **Yes** | **Yes (1–4)** | Autonomous multi-color bloom |
 | **7** | 动态呼吸 (Breathing) | **Yes** | **Yes** | **Yes (1–4)** | Full-board rhythmic fade |
 | **8** | 光谱循环 (Spectrum Cycle) | No | **Yes** | **Yes (1–4)** | Synchronous full-board RGB cycle |
@@ -73,7 +73,7 @@ The physical LT-104 keyboard microcontroller firmware contains **19 built-in har
 
 #### Mode 5: 漫天飞雪 (Snow)
 - **Controls**: Custom Color enabled. Speed slider adjusts fall speed. Brightness enabled.
-- **Behavior**: Clusters of keys light up and travel vertically downward across the rows in the custom color, simulating falling snowflakes.
+- **Behavior**: Clusters of keys light up and travel vertically downward across the rows in the custom color, simulating falling snowflakes. Pressing keys produces NO reaction or ripple effects.
 
 #### Mode 6: 百花争艳 (Blossom)
 - **Controls**: Multi-color mode (color picker disabled). Speed and brightness adjustable.
@@ -249,3 +249,41 @@ The keyboard supports committing custom static graphics or multi-frame animated 
    - After each block, the host polls Endpoint `0x84` for a hardware ACK byte (`0xAA`) confirming the 48MHz MCU has committed the block to SPI Flash before sending the next chunk.
 3. Commit command `[0x04, 0x02]` and Flash Commit `[0x04, 0xF0]` finalize the upload.
 4. The uploaded GIF is now stored permanently in Slot 1 and loops continuously.
+
+---
+
+## 6. Side Edge Ambient Backlight (侧翼氛围灯带)
+
+The LangTu LT-104 keyboard is equipped with dual diffused RGB LED light strips located on the left and right exterior edges of the chassis (侧翼双侧灯带).
+
+### Physical Hardware Controls
+- **Toggle / Cycle Modes Shortcut**: **`Fn` + `Insert`** (`Fn + Ins`) cycles through side light modes directly on hardware firmware.
+- **Supported Hardware Modes**:
+  1. **关闭 (Off)** (`mode = 0`, opcode `0x80`): Extinguishes both side light strips.
+  2. **静态恒亮 (Static)** (`mode = 1`): Illuminates both side strips continuously in the configured custom RGB color.
+  3. **呼吸流动 (Breathing)** (`mode = 2`): Rhythmic fade-in / fade-out breathing animation in the selected color.
+  4. **七彩霓虹 (Neon Wave)** (`mode = 3`): Multi-color dynamic chromatic wave.
+  5. **幻彩渐变 (Spectrum Cycle)** (`mode = 4`): Synchronous smooth rainbow transition across the color spectrum.
+
+### USB HID Protocol Architecture
+Reengineered from official Windows driver dispatch channel (`0x04 0x17` opcode at `0x36a4e` in `DeviceDriver.exe`):
+1. **Handshake**:
+   - `_send_with_ack(0x04, 0x18)`
+   - `_send_with_ack(0x04, 0x17, extra={8: 0x01})`
+2. **64-Byte Vendor Payload Packet**:
+   - `Byte 0`: Mode index (`1..4`) or `0x80` for Off
+   - `Byte 1`: Red (`0..255`)
+   - `Byte 2`: Green (`0..255`)
+   - `Byte 3`: Blue (`0..255`)
+   - `Byte 9`: Hardware Brightness level (`1..5`)
+   - `Byte 10`: Hardware Animation Speed level (`1..5`)
+   - `Byte 14`: Sync marker `0xAA`
+   - `Byte 15`: Sync marker `0x55`
+3. **Commit & EEPROM Persistence**:
+   - `_send_with_ack(0x04, 0x02)` (Apply immediately)
+   - `_send_with_ack(0x04, 0xF0)` (Write permanently to MCU EEPROM)
+
+### Software & Visualizer Integration
+- **GTK Control Center (`lt104_gtk.py`)**: Dedicated "两侧边缘背光 (侧翼灯带)" combo selector and RGB color picker in the settings card.
+- **200% Keyboard Visualizer**: Real-time dual outer diffuse glow (`x = 1..13` and `x = 941..953`) and intense core lightbars (`x = 4..10` and `x = 944..950`) rendered with Cairo/HTML5 canvas.
+- **CLI Support (`lt104_cli.py`)**: `set-side-light --mode <0-4> --r <0-255> --g <0-255> --b <0-255> --brightness <1-5> --speed <1-5>`.

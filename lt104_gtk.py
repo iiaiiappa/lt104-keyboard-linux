@@ -22,7 +22,8 @@ gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf, Pango
 
-from lt104_core import LT104Controller, LIGHT_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+
 from config import load_config, save_config
 
 APP_ID = "com.theforwardway.lt104"
@@ -97,7 +98,7 @@ class LT104Window(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title("LT-104 键盘控制中心")
-        self.set_default_size(960, 680)
+        self.set_default_size(1180, 900)
         self.set_resizable(True)
 
         # ---- Root layout ---- #
@@ -119,17 +120,20 @@ class LT104Window(Adw.ApplicationWindow):
         toolbar_view.set_content(scroll)
 
         clamp = Adw.Clamp()
-        clamp.set_maximum_size(960)
+        clamp.set_maximum_size(1140)
         clamp.set_margin_top(8)
         clamp.set_margin_bottom(12)
         clamp.set_margin_start(14)
         clamp.set_margin_end(14)
         scroll.set_child(clamp)
 
-        # 2-Column responsive container so all cards and buttons fit simultaneously
+        # Main vertical container: Top Preview Card + 2-Column Setting Cards below
+        main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        clamp.set_child(main_vbox)
+
+        # 2-Column responsive container below the preview
         two_col_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         two_col_box.set_homogeneous(True)
-        clamp.set_child(two_col_box)
 
         col_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         col_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -162,6 +166,12 @@ class LT104Window(Adw.ApplicationWindow):
         self._skin_lit = cairo.ImageSurface.create_from_png(lit_png) if os.path.exists(lit_png) else None
         self._load_lcd_surface()
 
+        # ---- Top Middle: Full-width Standalone Keyboard Preview Card (200% larger) ---- #
+        main_vbox.append(self._build_preview_card())
+
+        # ---- Below: 2-Column Setting Cards ---- #
+        main_vbox.append(two_col_box)
+
         # ---- Left Column: RGB Card & Clock Sync Card ---- #
         col_left.append(self._build_rgb_card())
         col_left.append(self._build_clock_card())
@@ -190,23 +200,19 @@ class LT104Window(Adw.ApplicationWindow):
     #  Card builders                                                        #
     # ------------------------------------------------------------------ #
 
-    def _build_rgb_card(self):
-        group = Adw.PreferencesGroup()
-        group.set_title("🌈  RGB 灯效与背光")
-        group.set_description("立即应用并永久写入键盘 EEPROM")
+    def _build_preview_card(self):
+        """Top-middle full-width preview card with 200% larger keyboard visualizer (284px height)."""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card.add_css_class("card")
+        card.set_margin_bottom(4)
 
         cfg = load_config()
-
         current_mode_id = int(cfg.get("mode", 1))
         initial_mode_idx = 0
         for idx, m in enumerate(LIGHT_MODES):
             if m["id"] == current_mode_id:
                 initial_mode_idx = idx
                 break
-
-        # Keyboard visualizer preview container
-        preview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        preview_box.set_margin_bottom(12)
 
         header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         header_box.set_margin_start(4)
@@ -228,16 +234,16 @@ class LT104Window(Adw.ApplicationWindow):
         spacer.set_hexpand(True)
         header_box.append(spacer)
 
-        hint_lbl = Gtk.Label(label="💡 点击按键触发灯光反馈")
+        hint_lbl = Gtk.Label(label="💡 点击按键触发灯光反馈 · 左右侧翼灯带实时同显")
         hint_lbl.add_css_class("dim-label")
         hint_lbl.set_halign(Gtk.Align.END)
         header_box.append(hint_lbl)
 
-        preview_box.append(header_box)
+        card.append(header_box)
 
-        # Drawing Area
+        # Drawing Area (Height: 284px — 200% larger than original 142px)
         self._preview_area = Gtk.DrawingArea()
-        self._preview_area.set_content_height(142)
+        self._preview_area.set_content_height(284)
         self._preview_area.set_hexpand(True)
         self._preview_area.set_draw_func(self._on_draw_keyboard_preview)
 
@@ -252,8 +258,22 @@ class LT104Window(Adw.ApplicationWindow):
         motion_ctrl.connect("leave", self._on_preview_leave)
         self._preview_area.add_controller(motion_ctrl)
 
-        preview_box.append(self._preview_area)
-        group.add(preview_box)
+        card.append(self._preview_area)
+        return card
+
+    def _build_rgb_card(self):
+        group = Adw.PreferencesGroup()
+        group.set_title("🌈  RGB 灯效与背光")
+        group.set_description("立即应用并永久写入键盘 EEPROM")
+
+        cfg = load_config()
+
+        current_mode_id = int(cfg.get("mode", 1))
+        initial_mode_idx = 0
+        for idx, m in enumerate(LIGHT_MODES):
+            if m["id"] == current_mode_id:
+                initial_mode_idx = idx
+                break
 
         # Mode selector
         self._mode_row = Adw.ComboRow()
@@ -345,10 +365,43 @@ class LT104Window(Adw.ApplicationWindow):
         self._speed_row = speed_row
         group.add(speed_row)
 
+        # ---- Side Edge Backlight Controls (侧翼双侧灯带) ---- #
+        self._side_mode_row = Adw.ComboRow()
+        self._side_mode_row.set_title("两侧边缘背光 (侧翼灯带)")
+        self._side_mode_row.set_subtitle("键盘两侧RGB氛围灯条 · 物理快捷键: Fn + Insert")
+        side_mode_strings = Gtk.StringList.new([m["name"] for m in SIDE_LIGHT_MODES])
+        self._side_mode_row.set_model(side_mode_strings)
+        self._side_mode_row.set_list_factory(make_wide_list_factory())
+        current_side_mode = int(cfg.get("side_mode", 1))
+        initial_side_idx = 1
+        for idx, sm in enumerate(SIDE_LIGHT_MODES):
+            if sm["id"] == current_side_mode:
+                initial_side_idx = idx
+                break
+        self._side_mode_row.set_selected(initial_side_idx)
+        self._side_mode_row.connect("notify::selected", self._on_side_light_changed)
+        group.add(self._side_mode_row)
+
+        self._side_color_row = Adw.ActionRow()
+        self._side_color_row.set_title("侧翼灯带颜色")
+        self._side_color_row.set_subtitle("点击色块自定义两侧灯带静态与呼吸颜色")
+        self._side_color_btn = Gtk.ColorDialogButton()
+        self._side_color_btn.set_valign(Gtk.Align.CENTER)
+        side_dialog = Gtk.ColorDialog()
+        side_dialog.set_title("选择侧翼灯带颜色")
+        side_dialog.set_with_alpha(False)
+        self._side_color_btn.set_dialog(side_dialog)
+        side_rgba = Gdk.RGBA()
+        side_rgba.parse(cfg.get("side_color", "#00e5ff"))
+        self._side_color_btn.set_rgba(side_rgba)
+        self._side_color_btn.connect("notify::rgba", self._on_side_color_changed)
+        self._side_color_row.add_suffix(self._side_color_btn)
+        group.add(self._side_color_row)
+
         # Auto Apply Switch Row
         self._auto_apply_row = Adw.SwitchRow()
         self._auto_apply_row.set_title("即时生效 (调整时自动应用)")
-        self._auto_apply_row.set_subtitle("开启后调整模式、颜色、亮度或速度立即应用，无需手动点击应用按钮")
+        self._auto_apply_row.set_subtitle("开启后调整模式、颜色、亮度、速度或侧边灯立即应用，无需手动点击应用按钮")
         auto_apply_val = cfg.get("light_auto_apply", True)
         self._auto_apply_row.set_active(bool(auto_apply_val))
         self._auto_apply_row.connect("notify::active", self._on_auto_apply_toggled)
@@ -369,6 +422,7 @@ class LT104Window(Adw.ApplicationWindow):
 
         self._on_mode_changed(self._mode_row, None)
         return group
+
 
     def _build_clock_card(self):
         group = Adw.PreferencesGroup()
@@ -662,7 +716,47 @@ class LT104Window(Adw.ApplicationWindow):
         if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
             self._apply_light_silently()
 
+    def _on_side_light_changed(self, row, param):
+        if hasattr(self, '_preview_area') and self._preview_area:
+            self._preview_area.queue_draw()
+        if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
+            self._apply_side_light_silently()
+
+    def _on_side_color_changed(self, btn, param):
+        if hasattr(self, '_preview_area') and self._preview_area:
+            self._preview_area.queue_draw()
+        if hasattr(self, '_auto_apply_row') and self._auto_apply_row.get_active():
+            self._apply_side_light_silently()
+
+    def _apply_side_light_silently(self):
+        if not hasattr(self, '_side_mode_row'):
+            return
+        side_idx = self._side_mode_row.get_selected()
+        side_mode = SIDE_LIGHT_MODES[side_idx]["id"] if side_idx < len(SIDE_LIGHT_MODES) else 1
+        rgba = self._side_color_btn.get_rgba() if hasattr(self, '_side_color_btn') else None
+        r = int(rgba.red * 255) if rgba else 0
+        g = int(rgba.green * 255) if rgba else 229
+        b = int(rgba.blue * 255) if rgba else 255
+        bright = int(self._brightness_scale.get_value()) if hasattr(self, '_brightness_scale') else 4
+        speed = int(self._speed_scale.get_value()) if hasattr(self, '_speed_scale') else 3
+
+        def do_side():
+            try:
+                ctl = LT104Controller()
+                ctl.set_side_light(mode=side_mode, r=r, g=g, b=b, brightness=bright, speed=speed)
+                ctl.close()
+                save_config({
+                    "side_mode": side_mode,
+                    "side_color": f"#{r:02x}{g:02x}{b:02x}",
+                    "side_r": r, "side_g": g, "side_b": b
+                })
+            except Exception:
+                pass
+
+        run_in_thread(do_side)
+
     def _on_preset_clicked(self, btn, hex_c):
+
         rgba = Gdk.RGBA()
         rgba.parse(hex_c)
         self._color_btn.set_rgba(rgba)
@@ -730,8 +824,8 @@ class LT104Window(Adw.ApplicationWindow):
 
         mode_idx = self._mode_row.get_selected()
         mode_id = LIGHT_MODES[mode_idx]["id"] if mode_idx < len(LIGHT_MODES) else 1
-        if mode_id in (2, 3, 10, 16, 17, 18, 19):
-            # Single Light (2) & Single Off (3) have NO ripples. Modes 10, 16, 17, 18, 19 do not react.
+        if mode_id in (2, 3, 5, 10, 16, 17, 18, 19):
+            # Modes 2, 3 have NO ripples. Modes 5 (Snow), 10, 16, 17, 18, 19 do not react to keypresses.
             self._preview_area.queue_draw()
             return
 
@@ -1137,7 +1231,7 @@ class LT104Window(Adw.ApplicationWindow):
                     cy = ky + kh / 2.0
                     r, g, b = self._calc_key_color(mode_id, k, i, t, base_rgb, speed_mult, bright_mult)
 
-                    if mode_id not in (2, 3, 10, 16, 17, 18, 19):
+                    if mode_id not in (2, 3, 5, 10, 16, 17, 18, 19):
                         for rip in self._active_ripples:
                             age = (now - rip["t"])
                             rip_mode = rip.get("mode", mode_id)
@@ -1279,7 +1373,48 @@ class LT104Window(Adw.ApplicationWindow):
                 cr.show_text("LT-104")
 
         cr.restore()
+
+        # 5. Left & Right Edge Ambient Light Strips (侧翼灯带)
+        side_idx = self._side_mode_row.get_selected() if hasattr(self, '_side_mode_row') else 1
+        side_mode = SIDE_LIGHT_MODES[side_idx]["id"] if hasattr(self, '_side_mode_row') and side_idx < len(SIDE_LIGHT_MODES) else 1
+        side_rgba = self._side_color_btn.get_rgba() if hasattr(self, '_side_color_btn') else None
+        side_base = (side_rgba.red, side_rgba.green, side_rgba.blue) if side_rgba else (0.0, 0.9, 1.0)
+
+        if side_mode != 0 and bright_mult > 0:
+            if side_mode == 1:       # 静态恒亮
+                sr, sg, sb = side_base
+            elif side_mode == 2:     # 呼吸流动
+                breath = (math.sin(t * speed_mult * 3.0) + 1.0) * 0.45 + 0.1
+                sr, sg, sb = (side_base[0] * breath, side_base[1] * breath, side_base[2] * breath)
+            elif side_mode == 3:     # 七彩霓虹
+                hue = (t * speed_mult * 80.0) % 360.0
+                sr, sg, sb = hsl_to_rgb(hue, 1.0, 0.5)
+            elif side_mode == 4:     # 幻彩渐变
+                hue = (t * speed_mult * 45.0 + 180.0) % 360.0
+                sr, sg, sb = hsl_to_rgb(hue, 1.0, 0.5)
+            else:
+                sr, sg, sb = side_base
+
+            sr = max(0.0, min(1.0, sr * bright_mult))
+            sg = max(0.0, min(1.0, sg * bright_mult))
+            sb = max(0.0, min(1.0, sb * bright_mult))
+
+            # Outer diffuse glow (Left and Right)
+            cr.set_source_rgba(sr, sg, sb, 0.45)
+            draw_round_rect(cr, 1, 26, 12, 245, 6)
+            cr.fill()
+            draw_round_rect(cr, 941, 26, 12, 245, 6)
+            cr.fill()
+
+            # Core intense lightbar strip
+            cr.set_source_rgba(min(1.0, sr * 1.3), min(1.0, sg * 1.3), min(1.0, sb * 1.3), 0.92)
+            draw_round_rect(cr, 4, 30, 6, 237, 3)
+            cr.fill()
+            draw_round_rect(cr, 944, 30, 6, 237, 3)
+            cr.fill()
+
         cr.restore()
+
 
     def _apply_light_silently(self):
         mode_idx  = self._mode_row.get_selected()
@@ -1330,22 +1465,36 @@ class LT104Window(Adw.ApplicationWindow):
             brightness = self._remembered_brightness if (self._remembered_brightness and self._remembered_brightness > 0) else 4
             self._brightness_scale.set_value(brightness)
 
+        side_idx = self._side_mode_row.get_selected() if hasattr(self, '_side_mode_row') else 1
+        side_mode = SIDE_LIGHT_MODES[side_idx]["id"] if hasattr(self, '_side_mode_row') and side_idx < len(SIDE_LIGHT_MODES) else 1
+        side_rgba = self._side_color_btn.get_rgba() if hasattr(self, '_side_color_btn') else None
+        side_r = int(side_rgba.red * 255) if side_rgba else 0
+        side_g = int(side_rgba.green * 255) if side_rgba else 229
+        side_b = int(side_rgba.blue * 255) if side_rgba else 255
+
         def do_light():
             ctl = LT104Controller()
             ctl.set_light(mode=mode_id, r=r, g=g, b=b, brightness=brightness, speed=speed)
+            try:
+                ctl.set_side_light(mode=side_mode, r=side_r, g=side_g, b=side_b, brightness=brightness, speed=speed)
+            except Exception:
+                pass
             ctl.close()
             save_config({
                 "mode": mode_id,
                 "color": f"#{r:02x}{g:02x}{b:02x}",
                 "r": r, "g": g, "b": b,
                 "brightness": brightness,
-                "speed": speed
+                "speed": speed,
+                "side_mode": side_mode,
+                "side_color": f"#{side_r:02x}{side_g:02x}{side_b:02x}",
+                "side_r": side_r, "side_g": side_g, "side_b": side_b
             })
 
         def done(_):
             btn.set_sensitive(True)
             btn.set_label("✨  即时应用并保存灯效")
-            self._toast("✅  键盘背光已更新并写入硬体！")
+            self._toast("✅  键盘主灯效及两侧边缘灯带已写入硬体！")
 
         def err(msg):
             btn.set_sensitive(True)
@@ -1353,6 +1502,7 @@ class LT104Window(Adw.ApplicationWindow):
             self._error_dialog("灯效应用失败", msg)
 
         run_in_thread(do_light, on_done=done, on_error=err)
+
 
     def _on_sync_clock(self, btn):
         btn.set_sensitive(False)

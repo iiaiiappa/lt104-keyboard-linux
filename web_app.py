@@ -15,7 +15,8 @@ import subprocess
 import signal
 import time
 
-from lt104_core import LT104Controller, LIGHT_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+
 import i18n
 from config import load_config, save_config
 from PIL import Image, ImageSequence
@@ -273,8 +274,24 @@ HTML_PAGE = """<!DOCTYPE html>
               <label><span id="txt-speed">Animation Speed</span> <span id="speed-val" class="range-val">3</span></label>
               <input type="range" id="light-speed" min="0" max="4" value="3" oninput="onSpeedInput(this.value)" onchange="onSpeedChange()">
             </div>
+
+            <div class="form-group" id="group-side-mode">
+              <label id="txt-side-mode">Side Edge Backlight (Dual Lightbars)</label>
+              <select id="side-mode" onchange="onSideModeChange()">
+                __SIDE_LIGHT_OPTIONS__
+              </select>
+            </div>
+
+            <div class="form-group" id="group-side-color">
+              <label id="txt-side-color">Side Light Color</label>
+              <div class="color-picker-wrap">
+                <input type="color" id="side-color" value="#00e5ff" onchange="onSideColorChange()">
+                <span id="side-color-hex" style="font-family: monospace; font-size: 14px;">#00e5ff</span>
+              </div>
+            </div>
           </div>
           <div id="wrap-apply-light" style="margin-top: 20px; display: none;">
+
             <button class="btn" onclick="applyLight()" id="btn-apply-light">✨ Apply & Save Backlight</button>
           </div>
         </div>
@@ -600,6 +617,21 @@ HTML_PAGE = """<!DOCTYPE html>
       document.getElementById(id).innerText = textMap ? textMap[val] : val;
     }
 
+    function onSideModeChange() {
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
+    function onSideColorChange() {
+      const hex = document.getElementById('side-color').value;
+      const el = document.getElementById('side-color-hex');
+      if (el) el.innerText = hex;
+      if (autoApplyLight) {
+        applyLight();
+      }
+    }
+
     async function applyLight() {
       const mode = parseInt(document.getElementById('light-mode').value) || 1;
       const hex = document.getElementById('light-color').value;
@@ -609,6 +641,14 @@ HTML_PAGE = """<!DOCTYPE html>
       const b = parseInt(hex.slice(5, 7), 16);
       let brightness = parseInt(document.getElementById('light-brightness').value);
       const speed = parseInt(document.getElementById('light-speed').value);
+
+      const sideMode = parseInt(document.getElementById('side-mode') ? document.getElementById('side-mode').value : 1) || 1;
+      const sideHex = document.getElementById('side-color') ? document.getElementById('side-color').value : '#00e5ff';
+      const sideColorHexEl = document.getElementById('side-color-hex');
+      if (sideColorHexEl) sideColorHexEl.innerText = sideHex;
+      const sideR = parseInt(sideHex.slice(1, 3), 16);
+      const sideG = parseInt(sideHex.slice(3, 5), 16);
+      const sideB = parseInt(sideHex.slice(5, 7), 16);
 
       if (mode === 20) {
         brightness = 0;
@@ -626,11 +666,17 @@ HTML_PAGE = """<!DOCTYPE html>
         localStorage.setItem('lt104_light_color', hex);
         localStorage.setItem('lt104_light_brightness', brightness);
         localStorage.setItem('lt104_light_speed', speed);
+        localStorage.setItem('lt104_side_mode', sideMode);
+        localStorage.setItem('lt104_side_color', sideHex);
 
         const res = await fetch('/api/set-light', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, r, g, b, brightness, speed })
+          body: JSON.stringify({
+            mode, r, g, b, brightness, speed,
+            side_mode: sideMode,
+            side_r: sideR, side_g: sideG, side_b: sideB
+          })
         });
         const data = await res.json();
         if (data.success) {
@@ -641,6 +687,7 @@ HTML_PAGE = """<!DOCTYPE html>
       } catch (e) {
         alert('Network Error: ' + e);
       }
+
     }
 
     async function syncClock() {
@@ -942,6 +989,19 @@ HTML_PAGE = """<!DOCTYPE html>
       if (savedRestore && document.getElementById('hud-restore-preset')) {
         document.getElementById('hud-restore-preset').value = savedRestore;
       }
+
+      const savedSideMode = localStorage.getItem('lt104_side_mode') || SERVER_CONFIG.side_mode || 1;
+      if (savedSideMode && document.getElementById('side-mode')) {
+        document.getElementById('side-mode').value = String(savedSideMode);
+      }
+
+      const savedSideColor = localStorage.getItem('lt104_side_color') || SERVER_CONFIG.side_color || '#00e5ff';
+      if (savedSideColor && document.getElementById('side-color')) {
+        document.getElementById('side-color').value = savedSideColor;
+        const sideColorHexEl = document.getElementById('side-color-hex');
+        if (sideColorHexEl) sideColorHexEl.innerText = savedSideColor;
+      }
+
 
       const savedAutoApply = localStorage.getItem('lt104_light_auto_apply');
       if (savedAutoApply !== null) {
@@ -1436,8 +1496,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
             let [r, g, b] = calcKeyColor(modeVal, k, i, t, baseRgb, speedMult, brightMult);
 
-            // Active ripples overlay (Modes 2 Single Light, 3 Single Off, 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
-            if (modeVal !== 2 && modeVal !== 3 && modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
+            // Active ripples overlay (Modes 2 Single Light, 3 Single Off, 5 Snow, 10 Cross Pattern, 16 Infinite Stream, 17 Rolling Hills, 18 Gentle Rain, 19 Shuttle do not react to keypresses)
+            if (modeVal !== 2 && modeVal !== 3 && modeVal !== 5 && modeVal !== 10 && modeVal !== 16 && modeVal !== 17 && modeVal !== 18 && modeVal !== 19) {
               for (let j = 0; j < activeRipples.length; j++) {
                 const rip = activeRipples[j];
                 const age = (now - rip.t) / 1000;
@@ -1588,11 +1648,66 @@ HTML_PAGE = """<!DOCTYPE html>
           kbCtx.textAlign = 'center';
           kbCtx.fillText('LT-104', 839, 39);
         }
-      }
       kbCtx.restore();
+
+      // 5. Left & Right Edge Ambient Light Strips (侧翼灯带)
+      const sideModeEl = document.getElementById('side-mode');
+      const sideModeVal = parseInt(sideModeEl ? sideModeEl.value : 1) || 1;
+      const sideColorHex = (document.getElementById('side-color') ? document.getElementById('side-color').value : '#00e5ff');
+      const sideBaseRgb = hexToRgb(sideColorHex);
+
+      if (sideModeVal !== 0 && brightMult > 0) {
+        let sr = sideBaseRgb[0], sg = sideBaseRgb[1], sb = sideBaseRgb[2];
+        if (sideModeVal === 2) {      // 呼吸流动
+          const breath = (Math.sin(t * speedMult * 3.0) + 1.0) * 0.45 + 0.1;
+          sr = Math.round(sr * breath);
+          sg = Math.round(sg * breath);
+          sb = Math.round(sb * breath);
+        } else if (sideModeVal === 3) { // 七彩霓虹
+          const hue = (t * speedMult * 80.0) % 360.0;
+          [sr, sg, sb] = hslToRgb(hue, 1.0, 0.5);
+        } else if (sideModeVal === 4) { // 幻彩渐变
+          const hue = (t * speedMult * 45.0 + 180.0) % 360.0;
+          [sr, sg, sb] = hslToRgb(hue, 1.0, 0.5);
+        }
+
+        sr = Math.round(Math.min(255, sr * brightMult));
+        sg = Math.round(Math.min(255, sg * brightMult));
+        sb = Math.round(Math.min(255, sb * brightMult));
+
+        // Helper to draw rounded rectangle in canvas
+        function fillRoundRect(ctx, x, y, w, h, r) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.lineTo(x + w - r, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+          ctx.lineTo(x + w, y + h - r);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+          ctx.lineTo(x + r, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+          ctx.lineTo(x, y + r);
+          ctx.quadraticCurveTo(x, y, x + r, y);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // Outer glow
+        kbCtx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, 0.45)`;
+        fillRoundRect(kbCtx, 1, 26, 12, 245, 6);
+        fillRoundRect(kbCtx, 941, 26, 12, 245, 6);
+
+        // Core light strip
+        const cr = Math.min(255, Math.round(sr * 1.3));
+        const cg = Math.min(255, Math.round(sg * 1.3));
+        const cb = Math.min(255, Math.round(sb * 1.3));
+        kbCtx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, 0.92)`;
+        fillRoundRect(kbCtx, 4, 30, 6, 237, 3);
+        fillRoundRect(kbCtx, 944, 30, 6, 237, 3);
+      }
 
       requestAnimationFrame(renderKeyboard);
     }
+
 
     function initKeyboardPreview() {
       kbCanvas = document.getElementById('kb-preview');
@@ -1646,7 +1761,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const color = hexToRgb(hex);
         const modeEl = document.getElementById('light-mode');
         const modeVal = parseInt(modeEl ? modeEl.value : 1) || 1;
-        if (modeVal === 2 || modeVal === 3 || modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Modes 2 Single Light & 3 Single Off have NO ripples. Modes 10, 16, 17, 18, 19 do not react
+        if (modeVal === 2 || modeVal === 3 || modeVal === 5 || modeVal === 10 || modeVal === 16 || modeVal === 17 || modeVal === 18 || modeVal === 19) return; // Modes 2, 3 have NO ripples. Modes 5 (Snow), 10, 16, 17, 18, 19 do not react
         if (idx >= 0) {
           keyFlashes[idx] = 1.0;
           const [, kx, ky, kw, kh] = KB_KEYS[idx];
@@ -1674,10 +1789,17 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
             options_html = ""
             for m in LIGHT_MODES:
                 options_html += f'<option value="{m["id"]}">{m["name"]}</option>\n'
+
+            side_options_html = ""
+            for sm in SIDE_LIGHT_MODES:
+                side_options_html += f'<option value="{sm["id"]}">{sm["name"]}</option>\n'
+
             html = HTML_PAGE.replace("__LIGHT_OPTIONS__", options_html)
+            html = html.replace("__SIDE_LIGHT_OPTIONS__", side_options_html)
             html = html.replace("__I18N_JSON__", json.dumps(i18n.TRANSLATIONS))
             html = html.replace("__CONFIG_JSON__", json.dumps(load_config()))
             html = html.replace("__KB_KEYS_JSON__", json.dumps(KB_KEYS))
+
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -1775,8 +1897,17 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                 brightness = int(body.get("brightness", 4))
                 speed = int(body.get("speed", 3))
 
+                side_mode = int(body.get("side_mode", 1))
+                side_r = int(body.get("side_r", 0))
+                side_g = int(body.get("side_g", 229))
+                side_b = int(body.get("side_b", 255))
+
                 ctl = LT104Controller()
                 ctl.set_light(mode=mode, r=r, g=g, b=b, brightness=brightness, speed=speed)
+                try:
+                    ctl.set_side_light(mode=side_mode, r=side_r, g=side_g, b=side_b, brightness=brightness, speed=speed)
+                except Exception:
+                    pass
                 ctl.close()
 
                 save_config({
@@ -1784,13 +1915,17 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
                     "color": f"#{r:02x}{g:02x}{b:02x}",
                     "r": r, "g": g, "b": b,
                     "brightness": brightness,
-                    "speed": speed
+                    "speed": speed,
+                    "side_mode": side_mode,
+                    "side_color": f"#{side_r:02x}{side_g:02x}{side_b:02x}",
+                    "side_r": side_r, "side_g": side_g, "side_b": side_b
                 })
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": True}).encode())
             except Exception as e:
+
                 self.send_response(500)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()

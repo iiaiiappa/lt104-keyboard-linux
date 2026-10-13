@@ -45,6 +45,16 @@ def main():
     p_light.add_argument("--brightness", type=int, default=4)
     p_light.add_argument("--speed", type=int, default=3)
 
+    # set-side-light
+    p_side = subparsers.add_parser("set-side-light")
+    p_side.add_argument("--mode", type=int, default=1, help="Side light mode: 0=Off, 1=Static, 2=Breathing, 3=Neon, 4=Spectrum")
+    p_side.add_argument("--r", type=int, default=0)
+    p_side.add_argument("--g", type=int, default=229)
+    p_side.add_argument("--b", type=int, default=255)
+    p_side.add_argument("--brightness", type=int, default=4)
+    p_side.add_argument("--speed", type=int, default=3)
+
+
     # preset
     p_preset = subparsers.add_parser("preset")
     p_preset.add_argument("name", choices=list(PRESETS.keys()))
@@ -247,6 +257,18 @@ def main():
                 "speed": args.speed
             })
             print("OK: Light set")
+        elif args.cmd == "set-side-light":
+            ctl.set_side_light(mode=args.mode, r=args.r, g=args.g, b=args.b,
+                               brightness=args.brightness, speed=args.speed)
+            save_config({
+                "side_mode": args.mode,
+                "side_color": f"#{args.r:02x}{args.g:02x}{args.b:02x}",
+                "side_r": args.r, "side_g": args.g, "side_b": args.b,
+                "side_brightness": args.brightness,
+                "side_speed": args.speed
+            })
+            print("OK: Side light set")
+
         elif args.cmd == "preset":
             cfg = PRESETS[args.name]
             ctl.set_light(**cfg)
