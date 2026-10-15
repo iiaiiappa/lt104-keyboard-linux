@@ -24,3 +24,5 @@ local_test/
 .DS_Store
 Thumbs.db
 
+packaging/build/
+dist/

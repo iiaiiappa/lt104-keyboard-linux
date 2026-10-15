@@ -1,14 +1,34 @@
 # LangTu LT-104 Keyboard Linux Driver & Control Suite
 
+[![Release](https://img.shields.io/badge/release-v1.0.0-blue.svg)](https://github.com/iiaiiappa/lt104-keyboard-linux/releases/tag/v1.0.0)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux-orange.svg)](https://kernel.org/)
+[![Packages](https://img.shields.io/badge/Packages-DEB%20%7C%20RPM%20%7C%20AppImage-success.svg)](#-package-installation-deb-rpm-appimage)
 [![GTK4](https://img.shields.io/badge/GUI-GTK4%20%2B%20Libadwaita-purple.svg)](https://gnome.pages.gitlab.gnome.org/libadwaita/)
 [![GNOME Shell](https://img.shields.io/badge/GNOME%20Shell-45%20%7C%2046%20%7C%2047-blue.svg)](https://extensions.gnome.org/)
 
 **A 100% native Linux driver, Web UI, Desktop GUI (GTK4/Libadwaita), CLI tool, and GNOME Shell Extension for the LangTu (狼途) LT-104 RGB Mechanical Keyboard with 160×80 TFT LCD Screen (`USB ID 0c45:8009 Microdia/SONiX`).**
 
 Reverse-engineered from the official Windows `DeviceDriver.exe` and USB protocol dumps. Runs entirely on native Linux USB HID interfaces without Wine, virtual machines, or proprietary Windows background daemons.
+
+---
+
+## 📸 Screenshots & Showcase
+
+<div align="center">
+
+### Modern Dark-Mode Web Dashboard (`:8989`)
+<img src="screenshots/web_console.png" alt="LT-104 Web Control Panel" width="850" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);" />
+
+<br/><br/>
+
+### Hardware Shortcuts Reference & TFT LCD Streaming
+| Shortcuts & Key Combinations | 160×80 LCD Frame Stream Sample |
+| :---: | :---: |
+| <img src="screenshots/shortcuts_reference_card.jpg" alt="Shortcuts Reference Card" width="450" /> | <img src="screenshots/lcd_sample_stream.gif" alt="LCD Sample Stream" width="300" /> |
+
+</div>
 
 ---
 
@@ -45,14 +65,64 @@ Full native localization across all interfaces in 9 Ubuntu desktop languages:
 
 ---
 
+## 📦 Package Installation (.deb, .rpm, AppImage)
+
+Pre-built standalone installation packages are available under [**Releases (v1.0.0)**](https://github.com/iiaiiappa/lt104-keyboard-linux/releases/tag/v1.0.0).
+
+### 🐧 Debian / Ubuntu / Linux Mint (`.deb`)
+Download and install the Debian binary package with automatic dependency resolution:
+```bash
+# 1. Download the release package
+wget https://github.com/iiaiiappa/lt104-keyboard-linux/releases/download/v1.0.0/lt104-keyboard-linux_1.0.0_all.deb
+
+# 2. Install via apt
+sudo apt install ./lt104-keyboard-linux_1.0.0_all.deb
+
+# 3. Launch from terminal or Application menu
+lt104        # Launches GTK4 Desktop application
+lt104-web    # Starts Web Control Panel on http://127.0.0.1:8989
+lt104-cli    # Access CLI utility
+```
+
+### 🔴 Fedora / RHEL / openSUSE (`.rpm`)
+Build and install via rpmbuild:
+```bash
+# Build binary RPM package using provided spec file:
+rpmbuild -ba packaging/lt104.spec
+
+# Install the generated RPM:
+sudo dnf install ~/rpmbuild/RPMS/noarch/lt104-keyboard-linux-1.0.0-1.*.noarch.rpm
+```
+
+### 🚀 Universal AppImage (All Linux Distributions)
+Run directly without installing system libraries:
+```bash
+# 1. Make executable
+chmod +x LT104-Keyboard-Center-1.0.0-x86_64.AppImage
+
+# 2. Run GTK4 Desktop App
+./LT104-Keyboard-Center-1.0.0-x86_64.AppImage
+
+# 3. Or run the Web Panel
+./LT104-Keyboard-Center-1.0.0-x86_64.AppImage web
+```
+
+### 🏹 Arch Linux / Manjaro (PKGBUILD)
+```bash
+cd packaging/arch
+makepkg -si
+```
+
+---
+
 ## 🖥️ Four Ways to Control Your Keyboard
 
 | Interface | Description | Launch Command |
 |---|---|---|
-| **Web Console** | Modern dark-mode web dashboard running on port `8989` | `python3 web_app.py 8989` |
-| **Desktop App** | Native GNOME GTK4 + Libadwaita application with toast notifications | `python3 lt104_gtk.py` |
+| **Web Console** | Modern dark-mode web dashboard running on port `8989` | `python3 web_app.py 8989` (or `lt104-web`) |
+| **Desktop App** | Native GNOME GTK4 + Libadwaita application with toast notifications | `python3 lt104_gtk.py` (or `lt104`) |
 | **GNOME Extension** | Top bar system tray menu for quick clock sync, presets, and HUD | `gnome-extensions enable lt104-indicator@theforwardway.com` |
-| **CLI Tool** | Command-line interface for scripts, crontabs, and shortcuts | `python3 lt104_cli.py --help` |
+| **CLI Tool** | Command-line interface for scripts, crontabs, and shortcuts | `python3 lt104_cli.py --help` (or `lt104-cli`) |
 
 ---
 
