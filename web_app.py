@@ -446,68 +446,119 @@ HTML_PAGE = """<!DOCTYPE html>
       <button class="modal-close" onclick="closeShortcutsModal()">✕</button>
       <div class="modal-title">⌨️ <span id="sc-modal-title">Keyboard Shortcuts Reference</span></div>
 
-      <!-- Original Key Combination Reference Card Image -->
-      <div style="text-align: center; margin-bottom: 22px; background: #121212; border: 1px solid #333; border-radius: 12px; padding: 14px; overflow: hidden;">
-        <div style="font-size: 12px; color: #9a9996; margin-bottom: 10px; font-weight: 600;">📷 原廠按鍵組合說明卡 (Hardware Key Combination Reference Card)</div>
-        <a href="/static/shortcuts_card.jpg" target="_blank" rel="noopener noreferrer" title="Click to view full image">
-          <img src="/static/shortcuts_card.jpg" alt="Key Combination Reference Card" style="max-width: 100%; max-height: 480px; width: auto; height: auto; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: inline-block; cursor: zoom-in;" />
-        </a>
+      <!-- Search & OS Picker Controls -->
+      <div style="margin-bottom: 18px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <input type="text" id="sc-search-input" placeholder="🔍 搜索按键或功能 (Search key, function, or action)..."
+                 oninput="filterWebShortcuts()"
+                 style="flex: 1; min-width: 200px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 8px; color: #fff; padding: 9px 13px; font-size: 13px; outline: none;" />
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="os-pills-bar">
+            <button class="os-pill-btn active" data-os="ubuntu" onclick="setShortcutOs('ubuntu')" style="padding: 7px 12px; border-radius: 6px; border: 1px solid #3584e4; background: #3584e4; color: #fff; cursor: pointer; font-size: 12px; font-weight: 600;">🐧 Ubuntu Linux</button>
+            <button class="os-pill-btn" data-os="win" onclick="setShortcutOs('win')" style="padding: 7px 12px; border-radius: 6px; border: 1px solid #3a3a3a; background: #222; color: #bbb; cursor: pointer; font-size: 12px;">🪟 Win System</button>
+            <button class="os-pill-btn" data-os="mac" onclick="setShortcutOs('mac')" style="padding: 7px 12px; border-radius: 6px; border: 1px solid #3a3a3a; background: #222; color: #bbb; cursor: pointer; font-size: 12px;">🍎 Mac System</button>
+            <button class="os-pill-btn" data-os="all" onclick="setShortcutOs('all')" style="padding: 7px 12px; border-radius: 6px; border: 1px solid #3a3a3a; background: #222; color: #bbb; cursor: pointer; font-size: 12px;">🌐 全部系统 (All)</button>
+          </div>
+        </div>
+
+        <!-- Suggestion Banner for Ubuntu -->
+        <div id="sc-ubuntu-hint" style="background: rgba(53, 132, 228, 0.12); border: 1px solid rgba(53, 132, 228, 0.35); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #93c5fd; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;">
+          <span>💡</span>
+          <div>
+            <strong>建议使用 Win 系统模式连接至 Ubuntu</strong>：连接 Ubuntu 时，建议将键盘硬件物理开关拨至 <strong>Win 模式</strong>，以获得最佳 Fn 快捷键与媒体控制键位兼容性。<br>
+            <span style="opacity: 0.85;">(Suggestion: Switch keyboard to Win system mode when connecting to Ubuntu for optimal shortcut compatibility.)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ubuntu Linux (Fn + F-key) -->
+      <div class="sc-section" id="sc-sec-ubuntu" data-os-group="ubuntu">
+        <div class="sc-section-title" id="sc-title-ubuntu">🐧 Ubuntu Linux — Fn + F-key Combinations (建议使用 Win 模式)</div>
+        <table class="sc-table">
+          <thead><tr><th>Key</th><th>Function</th></tr></thead>
+          <tbody>
+            <tr class="sc-row" data-search="fn f1 settings displays 设置 显示器"><td><span class="sc-key">Fn</span>+<span class="sc-key">F1</span></td><td>Settings &gt; Displays (设置 &gt; 显示器)</td></tr>
+            <tr class="sc-row" data-search="fn f2 calculator 计算器"><td><span class="sc-key">Fn</span>+<span class="sc-key">F2</span></td><td>Calculator (计算器)</td></tr>
+            <tr class="sc-row" data-search="fn f3 win tab task switch 任务切换"><td><span class="sc-key">Fn</span>+<span class="sc-key">F3</span></td><td>Same as WIN + TAB (Task Switch 任务切换)</td></tr>
+            <tr class="sc-row" data-search="fn f4 nothing happened 无反应"><td><span class="sc-key">Fn</span>+<span class="sc-key">F4</span></td><td>Nothing Happened (无反应)</td></tr>
+            <tr class="sc-row" data-search="fn f5 backlight brightness 背光亮度 减"><td><span class="sc-key">Fn</span>+<span class="sc-key">F5</span></td><td>Backlight Brightness − (背光亮度 −)</td></tr>
+            <tr class="sc-row" data-search="fn f6 backlight brightness 背光亮度 加"><td><span class="sc-key">Fn</span>+<span class="sc-key">F6</span></td><td>Backlight Brightness + (背光亮度 +)</td></tr>
+            <tr class="sc-row" data-search="fn f7 previous track 上一曲"><td><span class="sc-key">Fn</span>+<span class="sc-key">F7</span></td><td>Previous Track (上一曲)</td></tr>
+            <tr class="sc-row" data-search="fn f8 play pause 播放 暂停"><td><span class="sc-key">Fn</span>+<span class="sc-key">F8</span></td><td>Play / Pause (播放 / 暂停)</td></tr>
+            <tr class="sc-row" data-search="fn f9 next track 下一曲"><td><span class="sc-key">Fn</span>+<span class="sc-key">F9</span></td><td>Next Track (下一曲)</td></tr>
+            <tr class="sc-row" data-search="fn f10 mute unmute 静音 取消静音"><td><span class="sc-key">Fn</span>+<span class="sc-key">F10</span></td><td>Mute / Unmute (静音 / 取消静音)</td></tr>
+            <tr class="sc-row" data-search="fn f11 volume down 音量 减"><td><span class="sc-key">Fn</span>+<span class="sc-key">F11</span></td><td>Volume − (音量 −)</td></tr>
+            <tr class="sc-row" data-search="fn f12 volume up 音量 加"><td><span class="sc-key">Fn</span>+<span class="sc-key">F12</span></td><td>Volume + (音量 +)</td></tr>
+            <tr class="sc-row" data-search="fn win lock 锁定 win 键"><td><span class="sc-key">Fn</span>+<span class="sc-key">WIN</span></td><td>Lock WIN Key (锁定 WIN 键)</td></tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Win System (Fn + F-key) -->
-      <div class="sc-section">
+      <div class="sc-section" id="sc-sec-win" data-os-group="win">
         <div class="sc-section-title" id="sc-title-win">🪟 Win System — Fn + F-key Combinations</div>
         <table class="sc-table">
-          <tr><th id="sc-th-key">Key</th><th id="sc-th-action">Function</th></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F1</span></td><td id="sc-f1-win">Media Player</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F2</span></td><td id="sc-f2-win">Calculator</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F3</span></td><td id="sc-f3-win">Win + TAB (Task View)</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F4</span></td><td id="sc-f4-win">Win + E (File Explorer)</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F5</span></td><td id="sc-f5-win">Backlight Brightness −</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F6</span></td><td id="sc-f6-win">Backlight Brightness +</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F7</span></td><td id="sc-f7-win">Previous Track</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F8</span></td><td id="sc-f8-win">Play / Pause</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F9</span></td><td id="sc-f9-win">Next Track</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F10</span></td><td id="sc-f10-win">Mute / Unmute</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F11</span></td><td id="sc-f11-win">Volume −</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">F12</span></td><td id="sc-f12-win">Volume +</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">WIN</span></td><td id="sc-win-lock">Lock WIN Key</td></tr>
+          <thead><tr><th>Key</th><th>Function</th></tr></thead>
+          <tbody>
+            <tr class="sc-row" data-search="fn f1 media player 媒体播放器"><td><span class="sc-key">Fn</span>+<span class="sc-key">F1</span></td><td id="sc-f1-win">Media Player (媒体播放器)</td></tr>
+            <tr class="sc-row" data-search="fn f2 calculator 计算器"><td><span class="sc-key">Fn</span>+<span class="sc-key">F2</span></td><td id="sc-f2-win">Calculator (计算器)</td></tr>
+            <tr class="sc-row" data-search="fn f3 win tab task view 任务视图"><td><span class="sc-key">Fn</span>+<span class="sc-key">F3</span></td><td id="sc-f3-win">Win + TAB (Task View 任务视图)</td></tr>
+            <tr class="sc-row" data-search="fn f4 win e file explorer 资源管理器"><td><span class="sc-key">Fn</span>+<span class="sc-key">F4</span></td><td id="sc-f4-win">Win + E (File Explorer 文件资源管理器)</td></tr>
+            <tr class="sc-row" data-search="fn f5 backlight brightness 背光亮度 减"><td><span class="sc-key">Fn</span>+<span class="sc-key">F5</span></td><td id="sc-f5-win">Backlight Brightness − (背光亮度 −)</td></tr>
+            <tr class="sc-row" data-search="fn f6 backlight brightness 背光亮度 加"><td><span class="sc-key">Fn</span>+<span class="sc-key">F6</span></td><td id="sc-f6-win">Backlight Brightness + (背光亮度 +)</td></tr>
+            <tr class="sc-row" data-search="fn f7 previous track 上一曲"><td><span class="sc-key">Fn</span>+<span class="sc-key">F7</span></td><td id="sc-f7-win">Previous Track (上一曲)</td></tr>
+            <tr class="sc-row" data-search="fn f8 play pause 播放 暂停"><td><span class="sc-key">Fn</span>+<span class="sc-key">F8</span></td><td id="sc-f8-win">Play / Pause (播放 / 暂停)</td></tr>
+            <tr class="sc-row" data-search="fn f9 next track 下一曲"><td><span class="sc-key">Fn</span>+<span class="sc-key">F9</span></td><td id="sc-f9-win">Next Track (下一曲)</td></tr>
+            <tr class="sc-row" data-search="fn f10 mute unmute 静音 取消静音"><td><span class="sc-key">Fn</span>+<span class="sc-key">F10</span></td><td id="sc-f10-win">Mute / Unmute (静音 / 取消静音)</td></tr>
+            <tr class="sc-row" data-search="fn f11 volume down 音量 减"><td><span class="sc-key">Fn</span>+<span class="sc-key">F11</span></td><td id="sc-f11-win">Volume − (音量 −)</td></tr>
+            <tr class="sc-row" data-search="fn f12 volume up 音量 加"><td><span class="sc-key">Fn</span>+<span class="sc-key">F12</span></td><td id="sc-f12-win">Volume + (音量 +)</td></tr>
+            <tr class="sc-row" data-search="fn win lock 锁定 win 键"><td><span class="sc-key">Fn</span>+<span class="sc-key">WIN</span></td><td id="sc-win-lock">Lock WIN Key (锁定 WIN 键)</td></tr>
+          </tbody>
         </table>
       </div>
 
       <!-- Mac System (F-key only) -->
-      <div class="sc-section">
+      <div class="sc-section" id="sc-sec-mac" data-os-group="mac">
         <div class="sc-section-title" id="sc-title-mac">🍎 Mac System — F-key Direct Functions</div>
         <table class="sc-table">
-          <tr><th id="sc-th-key2">Key</th><th id="sc-th-action2">Function</th></tr>
-          <tr><td><span class="sc-key">F1</span></td><td id="sc-f1-mac">Screen Brightness −</td></tr>
-          <tr><td><span class="sc-key">F2</span></td><td id="sc-f2-mac">Screen Brightness +</td></tr>
-          <tr><td><span class="sc-key">F3</span></td><td id="sc-f3-mac">Split Screen</td></tr>
-          <tr><td><span class="sc-key">F4</span></td><td id="sc-f4-mac">Call up Siri</td></tr>
-          <tr><td><span class="sc-key">F5</span></td><td id="sc-f5-mac">Keyboard Backlight −</td></tr>
-          <tr><td><span class="sc-key">F6</span></td><td id="sc-f6-mac">Keyboard Backlight +</td></tr>
-          <tr><td><span class="sc-key">F7</span></td><td id="sc-f7-mac">Previous Track</td></tr>
-          <tr><td><span class="sc-key">F8</span></td><td id="sc-f8-mac">Play / Pause</td></tr>
-          <tr><td><span class="sc-key">F9</span></td><td id="sc-f9-mac">Next Track</td></tr>
-          <tr><td><span class="sc-key">F10</span></td><td id="sc-f10-mac">Mute / Unmute</td></tr>
-          <tr><td><span class="sc-key">F11</span></td><td id="sc-f11-mac">Volume −</td></tr>
-          <tr><td><span class="sc-key">F12</span></td><td id="sc-f12-mac">Volume +</td></tr>
+          <thead><tr><th>Key</th><th>Function</th></tr></thead>
+          <tbody>
+            <tr class="sc-row" data-search="f1 screen brightness 屏幕亮度 减"><td><span class="sc-key">F1</span></td><td id="sc-f1-mac">Screen Brightness − (屏幕亮度 −)</td></tr>
+            <tr class="sc-row" data-search="f2 screen brightness 屏幕亮度 加"><td><span class="sc-key">F2</span></td><td id="sc-f2-mac">Screen Brightness + (屏幕亮度 +)</td></tr>
+            <tr class="sc-row" data-search="f3 split screen 分屏"><td><span class="sc-key">F3</span></td><td id="sc-f3-mac">Split Screen (分屏显示)</td></tr>
+            <tr class="sc-row" data-search="f4 call up siri 唤出 siri"><td><span class="sc-key">F4</span></td><td id="sc-f4-mac">Call up Siri (唤出 Siri)</td></tr>
+            <tr class="sc-row" data-search="f5 keyboard backlight 键盘背光 减"><td><span class="sc-key">F5</span></td><td id="sc-f5-mac">Keyboard Backlight − (键盘背光 −)</td></tr>
+            <tr class="sc-row" data-search="f6 keyboard backlight 键盘背光 加"><td><span class="sc-key">F6</span></td><td id="sc-f6-mac">Keyboard Backlight + (键盘背光 +)</td></tr>
+            <tr class="sc-row" data-search="f7 previous track 上一曲"><td><span class="sc-key">F7</span></td><td id="sc-f7-mac">Previous Track (上一曲)</td></tr>
+            <tr class="sc-row" data-search="f8 play pause 播放 暂停"><td><span class="sc-key">F8</span></td><td id="sc-f8-mac">Play / Pause (播放 / 暂停)</td></tr>
+            <tr class="sc-row" data-search="f9 next track 下一曲"><td><span class="sc-key">F9</span></td><td id="sc-f9-mac">Next Track (下一曲)</td></tr>
+            <tr class="sc-row" data-search="f10 mute unmute 静音 取消静音"><td><span class="sc-key">F10</span></td><td id="sc-f10-mac">Mute / Unmute (静音 / 取消静音)</td></tr>
+            <tr class="sc-row" data-search="f11 volume down 音量 减"><td><span class="sc-key">F11</span></td><td id="sc-f11-mac">Volume − (音量 −)</td></tr>
+            <tr class="sc-row" data-search="f12 volume up 音量 加"><td><span class="sc-key">F12</span></td><td id="sc-f12-mac">Volume + (音量 +)</td></tr>
+          </tbody>
         </table>
       </div>
 
       <!-- Common Shortcuts -->
-      <div class="sc-section">
-        <div class="sc-section-title" id="sc-title-common">🔑 Common Shortcuts</div>
+      <div class="sc-section" id="sc-sec-common" data-os-group="common">
+        <div class="sc-section-title" id="sc-title-common">🔑 Common Shortcuts (通用硬件快捷键)</div>
         <table class="sc-table">
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Esc</span> <span style="color:#888;font-size:11px">(hold 3s)</span></td><td id="sc-factory">Restore Factory Settings</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Ins</span></td><td id="sc-side-light">Side Edge Backlight — cycle mode &amp; color</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Q</span></td><td id="sc-24g">Switch to 2.4G Connection Mode</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">W</span></td><td id="sc-bt1">Switch to Bluetooth 1 Mode</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">E</span></td><td id="sc-bt2">Switch to Bluetooth 2 Mode</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">R</span></td><td id="sc-bt3">Switch to Bluetooth 3 Mode</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">T</span></td><td id="sc-wired">Switch to Wired Connection Mode</td></tr>
-          <tr><td><span class="sc-key">Fn</span>+<span class="sc-key">Knob tap</span></td><td id="sc-knob">Toggle main interface / volume level display</td></tr>
+          <thead><tr><th>Key</th><th>Function</th></tr></thead>
+          <tbody>
+            <tr class="sc-row" data-search="fn esc factory reset 恢复出厂"><td><span class="sc-key">Fn</span>+<span class="sc-key">Esc</span> <span style="color:#888;font-size:11px">(hold 3s)</span></td><td id="sc-factory">Restore Factory Settings (恢复出厂设置)</td></tr>
+            <tr class="sc-row" data-search="fn ins side edge backlight 侧翼边光 颜色 模式"><td><span class="sc-key">Fn</span>+<span class="sc-key">Ins</span></td><td id="sc-side-light">Side Edge Backlight — cycle mode &amp; color (两侧边光切换模式与颜色)</td></tr>
+            <tr class="sc-row" data-search="fn q 2.4g 无线模式"><td><span class="sc-key">Fn</span>+<span class="sc-key">Q</span></td><td id="sc-24g">Switch to 2.4G Connection Mode (切换 2.4G 无线模式)</td></tr>
+            <tr class="sc-row" data-search="fn w bluetooth 1 蓝牙 1"><td><span class="sc-key">Fn</span>+<span class="sc-key">W</span></td><td id="sc-bt1">Switch to Bluetooth 1 Mode (切换蓝牙 1 模式)</td></tr>
+            <tr class="sc-row" data-search="fn e bluetooth 2 蓝牙 2"><td><span class="sc-key">Fn</span>+<span class="sc-key">E</span></td><td id="sc-bt2">Switch to Bluetooth 2 Mode (切换蓝牙 2 模式)</td></tr>
+            <tr class="sc-row" data-search="fn r bluetooth 3 蓝牙 3"><td><span class="sc-key">Fn</span>+<span class="sc-key">R</span></td><td id="sc-bt3">Switch to Bluetooth 3 Mode (切换蓝牙 3 模式)</td></tr>
+            <tr class="sc-row" data-search="fn t wired 有线模式"><td><span class="sc-key">Fn</span>+<span class="sc-key">T</span></td><td id="sc-wired">Switch to Wired Connection Mode (切换有线模式)</td></tr>
+            <tr class="sc-row" data-search="fn knob tap 旋钮 切换界面 音量"><td><span class="sc-key">Fn</span>+<span class="sc-key">Knob tap</span></td><td id="sc-knob">Toggle main interface / volume level display (切换主界面与音量显示)</td></tr>
+          </tbody>
         </table>
+      </div>
+
+      <!-- Empty Search Result -->
+      <div id="sc-empty-hint" style="display: none; text-align: center; color: #888; padding: 28px 10px; font-size: 13px;">
+        未找到匹配的快捷键 (No matching shortcuts found)
       </div>
     </div>
   </div>
@@ -616,9 +667,85 @@ HTML_PAGE = """<!DOCTYPE html>
       setTimeout(() => toast.style.opacity = '0', 2500);
     }
 
+    let activeShortcutOs = 'ubuntu';
+
+    function setShortcutOs(os) {
+      activeShortcutOs = os;
+      const btns = document.querySelectorAll('.os-pill-btn');
+      btns.forEach(b => {
+        if (b.getAttribute('data-os') === os) {
+          b.classList.add('active');
+          b.style.background = '#3584e4';
+          b.style.borderColor = '#3584e4';
+          b.style.color = '#fff';
+          b.style.fontWeight = '600';
+        } else {
+          b.classList.remove('active');
+          b.style.background = '#222';
+          b.style.borderColor = '#3a3a3a';
+          b.style.color = '#bbb';
+          b.style.fontWeight = 'normal';
+        }
+      });
+      const hint = document.getElementById('sc-ubuntu-hint');
+      if (hint) {
+        hint.style.display = (os === 'ubuntu' || os === 'all') ? 'flex' : 'none';
+      }
+      filterWebShortcuts();
+    }
+
+    function filterWebShortcuts() {
+      const searchInput = document.getElementById('sc-search-input');
+      const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+      const sections = document.querySelectorAll('.sc-section');
+      let totalVisibleRows = 0;
+
+      sections.forEach(sec => {
+        const osGroup = sec.getAttribute('data-os-group');
+        let secMatchOs = false;
+        if (activeShortcutOs === 'all') {
+          secMatchOs = true;
+        } else if (osGroup === 'common') {
+          secMatchOs = true;
+        } else if (osGroup === activeShortcutOs) {
+          secMatchOs = true;
+        }
+
+        if (!secMatchOs) {
+          sec.style.display = 'none';
+          return;
+        }
+
+        const rows = sec.querySelectorAll('.sc-row');
+        let visibleInSec = 0;
+        rows.forEach(row => {
+          const text = (row.getAttribute('data-search') || '' + ' ' + row.innerText).toLowerCase();
+          if (!q || text.includes(q)) {
+            row.style.display = '';
+            visibleInSec++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (visibleInSec > 0) {
+          sec.style.display = '';
+          totalVisibleRows += visibleInSec;
+        } else {
+          sec.style.display = 'none';
+        }
+      });
+
+      const emptyHint = document.getElementById('sc-empty-hint');
+      if (emptyHint) {
+        emptyHint.style.display = (totalVisibleRows === 0) ? 'block' : 'none';
+      }
+    }
+
     function openShortcutsModal() {
       document.getElementById('shortcuts-modal').classList.add('open');
       document.body.style.overflow = 'hidden';
+      filterWebShortcuts();
     }
 
     function closeShortcutsModal() {
@@ -1908,25 +2035,6 @@ HTML_PAGE = """<!DOCTYPE html>
       const sideBaseRgb = hexToRgb(sideColorHex);
 
       if (sideModeVal !== 0 && brightMult > 0) {
-        let sr = sideBaseRgb[0], sg = sideBaseRgb[1], sb = sideBaseRgb[2];
-        if (sideModeVal === 1) {        // 动态呼吸 (Breathing)
-          const breath = (Math.sin(t * speedMult * 3.0) + 1.0) * 0.45 + 0.1;
-          sr = Math.round(sr * breath);
-          sg = Math.round(sg * breath);
-          sb = Math.round(sb * breath);
-        } else if (sideModeVal === 2) { // 幻彩循环 (Spectrum Cycle)
-          const hue = (t * speedMult * 60.0) % 360.0;
-          [sr, sg, sb] = hslToRgb(hue, 1.0, 0.5);
-        } else if (SIDE_PRESET_COLORS[sideModeVal]) {
-          // Modes 3-10: Red, Orange, Yellow, Green, Cyan, Blue, Magenta, White
-          const prRgb = hexToRgb(SIDE_PRESET_COLORS[sideModeVal]);
-          sr = prRgb[0]; sg = prRgb[1]; sb = prRgb[2];
-        }
-
-        sr = Math.round(Math.min(255, sr * brightMult));
-        sg = Math.round(Math.min(255, sg * brightMult));
-        sb = Math.round(Math.min(255, sb * brightMult));
-
         // Helper to draw rounded rectangle in canvas
         function fillRoundRect(ctx, x, y, w, h, r) {
           ctx.beginPath();
@@ -1943,18 +2051,68 @@ HTML_PAGE = """<!DOCTYPE html>
           ctx.fill();
         }
 
-        // Outer glow
-        kbCtx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, 0.45)`;
-        fillRoundRect(kbCtx, 1, 26, 12, 245, 6);
-        fillRoundRect(kbCtx, 941, 26, 12, 245, 6);
+        if (sideModeVal === 1) {
+          // Mode 1: Rainbow color sweeping from top to bottom slowly
+          const sweepPhase = (t * speedMult * 0.35) % 1.0;
+          const lgGlowLeft = kbCtx.createLinearGradient(0, 26, 0, 271);
+          const lgGlowRight = kbCtx.createLinearGradient(0, 26, 0, 271);
+          const lgCoreLeft = kbCtx.createLinearGradient(0, 30, 0, 267);
+          const lgCoreRight = kbCtx.createLinearGradient(0, 30, 0, 267);
 
-        // Core light strip
-        const cr = Math.min(255, Math.round(sr * 1.3));
-        const cg = Math.min(255, Math.round(sg * 1.3));
-        const cb = Math.min(255, Math.round(sb * 1.3));
-        kbCtx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, 0.92)`;
-        fillRoundRect(kbCtx, 4, 30, 6, 237, 3);
-        fillRoundRect(kbCtx, 944, 30, 6, 237, 3);
+          for (let step = 0; step <= 8; step++) {
+            const frac = step / 8.0;
+            const hue = ((((sweepPhase - frac * 0.85) % 1.0) + 1.0) % 1.0) * 360.0;
+            const [r, g, b] = hslToRgb(hue, 1.0, 0.5);
+            const br = Math.round(Math.min(255, r * brightMult));
+            const bg = Math.round(Math.min(255, g * brightMult));
+            const bb = Math.round(Math.min(255, b * brightMult));
+            const cr = Math.round(Math.min(255, br * 1.3));
+            const cg = Math.round(Math.min(255, bg * 1.3));
+            const cb = Math.round(Math.min(255, bb * 1.3));
+
+            lgGlowLeft.addColorStop(frac, `rgba(${br}, ${bg}, ${bb}, 0.45)`);
+            lgGlowRight.addColorStop(frac, `rgba(${br}, ${bg}, ${bb}, 0.45)`);
+            lgCoreLeft.addColorStop(frac, `rgba(${cr}, ${cg}, ${cb}, 0.92)`);
+            lgCoreRight.addColorStop(frac, `rgba(${cr}, ${cg}, ${cb}, 0.92)`);
+          }
+
+          kbCtx.fillStyle = lgGlowLeft;
+          fillRoundRect(kbCtx, 1, 26, 12, 245, 6);
+          kbCtx.fillStyle = lgGlowRight;
+          fillRoundRect(kbCtx, 941, 26, 12, 245, 6);
+
+          kbCtx.fillStyle = lgCoreLeft;
+          fillRoundRect(kbCtx, 4, 30, 6, 237, 3);
+          kbCtx.fillStyle = lgCoreRight;
+          fillRoundRect(kbCtx, 944, 30, 6, 237, 3);
+        } else {
+          let sr = sideBaseRgb[0], sg = sideBaseRgb[1], sb = sideBaseRgb[2];
+          if (sideModeVal === 2) { // 幻彩循环 (Spectrum Cycle)
+            const hue = (t * speedMult * 60.0) % 360.0;
+            [sr, sg, sb] = hslToRgb(hue, 1.0, 0.5);
+          } else if (SIDE_PRESET_COLORS[sideModeVal]) {
+            // Modes 3-10: Red, Orange, Yellow, Green, Cyan, Blue, Magenta, White
+            const prRgb = hexToRgb(SIDE_PRESET_COLORS[sideModeVal]);
+            sr = prRgb[0]; sg = prRgb[1]; sb = prRgb[2];
+          }
+
+          sr = Math.round(Math.min(255, sr * brightMult));
+          sg = Math.round(Math.min(255, sg * brightMult));
+          sb = Math.round(Math.min(255, sb * brightMult));
+
+          // Outer glow
+          kbCtx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, 0.45)`;
+          fillRoundRect(kbCtx, 1, 26, 12, 245, 6);
+          fillRoundRect(kbCtx, 941, 26, 12, 245, 6);
+
+          // Core light strip
+          const cr = Math.min(255, Math.round(sr * 1.3));
+          const cg = Math.min(255, Math.round(sg * 1.3));
+          const cb = Math.min(255, Math.round(sb * 1.3));
+          kbCtx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, 0.92)`;
+          fillRoundRect(kbCtx, 4, 30, 6, 237, 3);
+          fillRoundRect(kbCtx, 944, 30, 6, 237, 3);
+        }
       }
 
       } catch(e) { /* render error: keep loop alive */ }

@@ -730,11 +730,11 @@ class LT104Window(Adw.ApplicationWindow):
     # ------------------------------------------------------------------ #
 
     def _on_show_shortcuts(self, _btn):
-        """Show a scrollable Shortcuts Reference dialog."""
+        """Show a scrollable Shortcuts Reference dialog with OS selector and live search."""
         dlg = Adw.Dialog()
         dlg.set_title("⌨️  快捷键参考 / Shortcuts Reference")
-        dlg.set_content_width(620)
-        dlg.set_content_height(700)
+        dlg.set_content_width(640)
+        dlg.set_content_height(720)
 
         toolbar = Adw.ToolbarView()
         hdr = Adw.HeaderBar()
@@ -745,76 +745,170 @@ class LT104Window(Adw.ApplicationWindow):
         scroll.set_propagate_natural_height(True)
         toolbar.set_content(scroll)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        box.set_margin_top(16)
-        box.set_margin_bottom(16)
-        box.set_margin_start(20)
-        box.set_margin_end(20)
-        scroll.set_child(box)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        main_box.set_margin_top(16)
+        main_box.set_margin_bottom(16)
+        main_box.set_margin_start(20)
+        main_box.set_margin_end(20)
+        scroll.set_child(main_box)
 
-        # Original Card Image
-        img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "shortcuts_card.jpg")
-        if os.path.exists(img_path):
-            img_frame = Gtk.Frame()
-            img_frame.add_css_class("card")
-            card_pic = Gtk.Picture.new_for_filename(img_path)
-            card_pic.set_can_shrink(True)
-            card_pic.set_content_fit(Gtk.ContentFit.CONTAIN)
-            card_pic.set_size_request(280, 420)
-            img_frame.set_child(card_pic)
-            box.append(img_frame)
+        # 1. Search bar & OS Filter controls
+        controls_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        controls_card.add_css_class("card")
+        controls_card.set_margin_bottom(4)
 
-        SHORTCUTS = [
-            ("🪟 Win System — Fn + F-key", [
-                ("Fn + F1",  "Media Player"),
-                ("Fn + F2",  "Calculator"),
-                ("Fn + F3",  "Win + TAB  (Task View)"),
-                ("Fn + F4",  "Win + E  (File Explorer)"),
-                ("Fn + F5",  "Backlight Brightness  −"),
-                ("Fn + F6",  "Backlight Brightness  +"),
-                ("Fn + F7",  "Previous Track"),
-                ("Fn + F8",  "Play / Pause"),
-                ("Fn + F9",  "Next Track"),
-                ("Fn + F10", "Mute / Unmute"),
-                ("Fn + F11", "Volume  −"),
-                ("Fn + F12", "Volume  +"),
-                ("Fn + WIN", "Lock WIN Key"),
+        # Free text search
+        search_entry = Gtk.SearchEntry()
+        search_entry.set_placeholder_text("🔍 搜索快捷键、功能或按键名称 (Search key or function)...")
+        controls_card.append(search_entry)
+
+        # OS Selector row
+        os_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        os_lbl = Gtk.Label(label="选择操作系统 / Select OS:")
+        os_lbl.add_css_class("heading")
+        os_lbl.set_xalign(0.0)
+        os_row.append(os_lbl)
+
+        os_dropdown = Gtk.DropDown.new_from_strings([
+            "🐧 Ubuntu Linux (建议使用 Win 模式连接)",
+            "🪟 Win System (Windows)",
+            "🍎 Mac System (macOS)",
+            "🌐 全部系统 (All Systems)"
+        ])
+        os_dropdown.set_selected(0)
+        os_dropdown.set_hexpand(True)
+        os_row.append(os_dropdown)
+        controls_card.append(os_row)
+
+        # Ubuntu connection hint banner
+        ubuntu_banner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        ubuntu_banner.add_css_class("card")
+        ubuntu_banner.set_margin_top(4)
+        ubuntu_banner.set_margin_bottom(4)
+        hint_icon = Gtk.Label(label="💡")
+        hint_txt = Gtk.Label(label="<b>提示</b>：连接至 Ubuntu Linux 时，建议将键盘硬件开关拨至 <b>Win 模式</b> 以获得最佳键位与 Fn 多媒体控制兼容性。\n(Suggestion: Switch keyboard to Win system mode when connecting to Ubuntu for optimal shortcut compatibility.)")
+        hint_txt.set_use_markup(True)
+        hint_txt.set_wrap(True)
+        hint_txt.set_xalign(0.0)
+        ubuntu_banner.append(hint_icon)
+        ubuntu_banner.append(hint_txt)
+        controls_card.append(ubuntu_banner)
+
+        main_box.append(controls_card)
+
+        # Container for shortcut groups
+        groups_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        main_box.append(groups_box)
+
+        # Empty state label
+        empty_lbl = Gtk.Label(label="未找到匹配的快捷键 (No matching shortcuts found)")
+        empty_lbl.add_css_class("dim-label")
+        empty_lbl.set_margin_top(30)
+        empty_lbl.set_margin_bottom(30)
+        empty_lbl.set_visible(False)
+        main_box.append(empty_lbl)
+
+        SHORTCUTS_DATA = [
+            ("ubuntu", "🐧 Ubuntu Linux — Fn + F-key (建议使用 Win 模式)", [
+                ("Fn + F1",  "Settings > Displays (设置 > 显示器)"),
+                ("Fn + F2",  "Calculator (计算器)"),
+                ("Fn + F3",  "Same as WIN + TAB (Task Switch) (任务切换)"),
+                ("Fn + F4",  "Nothing Happened (无反应)"),
+                ("Fn + F5",  "Backlight Brightness − (背光亮度 −)"),
+                ("Fn + F6",  "Backlight Brightness + (背光亮度 +)"),
+                ("Fn + F7",  "Previous Track (上一曲)"),
+                ("Fn + F8",  "Play / Pause (播放 / 暂停)"),
+                ("Fn + F9",  "Next Track (下一曲)"),
+                ("Fn + F10", "Mute / Unmute (静音 / 取消静音)"),
+                ("Fn + F11", "Volume − (音量 −)"),
+                ("Fn + F12", "Volume + (音量 +)"),
+                ("Fn + WIN", "Lock WIN Key (锁定 WIN 键)"),
             ]),
-            ("🍎 Mac System — F-key Direct", [
-                ("F1",  "Screen Brightness  −"),
-                ("F2",  "Screen Brightness  +"),
-                ("F3",  "Split Screen"),
-                ("F4",  "Call up Siri"),
-                ("F5",  "Keyboard Backlight  −"),
-                ("F6",  "Keyboard Backlight  +"),
-                ("F7",  "Previous Track"),
-                ("F8",  "Play / Pause"),
-                ("F9",  "Next Track"),
-                ("F10", "Mute / Unmute"),
-                ("F11", "Volume  −"),
-                ("F12", "Volume  +"),
+            ("win", "🪟 Win System — Fn + F-key", [
+                ("Fn + F1",  "Media Player (媒体播放器)"),
+                ("Fn + F2",  "Calculator (计算器)"),
+                ("Fn + F3",  "Win + TAB  (Task View 任务视图)"),
+                ("Fn + F4",  "Win + E  (File Explorer 文件资源管理器)"),
+                ("Fn + F5",  "Backlight Brightness − (背光亮度 −)"),
+                ("Fn + F6",  "Backlight Brightness + (背光亮度 +)"),
+                ("Fn + F7",  "Previous Track (上一曲)"),
+                ("Fn + F8",  "Play / Pause (播放 / 暂停)"),
+                ("Fn + F9",  "Next Track (下一曲)"),
+                ("Fn + F10", "Mute / Unmute (静音 / 取消静音)"),
+                ("Fn + F11", "Volume − (音量 −)"),
+                ("Fn + F12", "Volume + (音量 +)"),
+                ("Fn + WIN", "Lock WIN Key (锁定 WIN 键)"),
             ]),
-            ("🔑 Common Shortcuts", [
-                ("Fn + Esc  (hold 3s)", "Restore Factory Settings"),
-                ("Fn + Ins",            "Side Edge Backlight — cycle mode & color"),
-                ("Fn + Q",              "Switch to 2.4G Connection Mode"),
-                ("Fn + W",              "Switch to Bluetooth 1 Mode"),
-                ("Fn + E",              "Switch to Bluetooth 2 Mode"),
-                ("Fn + R",              "Switch to Bluetooth 3 Mode"),
-                ("Fn + T",              "Switch to Wired Connection Mode"),
-                ("Fn + Knob tap",       "Toggle main interface / volume level display"),
+            ("mac", "🍎 Mac System — F-key Direct", [
+                ("F1",  "Screen Brightness − (屏幕亮度 −)"),
+                ("F2",  "Screen Brightness + (屏幕亮度 +)"),
+                ("F3",  "Split Screen (分屏显示)"),
+                ("F4",  "Call up Siri (唤出 Siri)"),
+                ("F5",  "Keyboard Backlight − (键盘背光 −)"),
+                ("F6",  "Keyboard Backlight + (键盘背光 +)"),
+                ("F7",  "Previous Track (上一曲)"),
+                ("F8",  "Play / Pause (播放 / 暂停)"),
+                ("F9",  "Next Track (下一曲)"),
+                ("F10", "Mute / Unmute (静音 / 取消静音)"),
+                ("F11", "Volume − (音量 −)"),
+                ("F12", "Volume + (音量 +)"),
+            ]),
+            ("common", "🔑 Common Shortcuts (通用硬件快捷键)", [
+                ("Fn + Esc  (hold 3s)", "Restore Factory Settings (恢复出厂设置)"),
+                ("Fn + Ins",            "Side Edge Backlight — cycle mode & color (两侧边光切换模式与颜色)"),
+                ("Fn + Q",              "Switch to 2.4G Connection Mode (切换 2.4G 无线模式)"),
+                ("Fn + W",              "Switch to Bluetooth 1 Mode (切换蓝牙 1 模式)"),
+                ("Fn + E",              "Switch to Bluetooth 2 Mode (切换蓝牙 2 模式)"),
+                ("Fn + R",              "Switch to Bluetooth 3 Mode (切换蓝牙 3 模式)"),
+                ("Fn + T",              "Switch to Wired Connection Mode (切换有线模式)"),
+                ("Fn + Knob tap",       "Toggle main interface / volume level display (切换主界面与音量显示)"),
             ]),
         ]
 
-        for section_title, rows in SHORTCUTS:
+        group_widgets = []
+        for os_key, section_title, rows in SHORTCUTS_DATA:
             grp = Adw.PreferencesGroup()
             grp.set_title(section_title)
+            row_items = []
             for key, action in rows:
                 row = Adw.ActionRow()
                 row.set_title(key)
                 row.set_subtitle(action)
                 grp.add(row)
-            box.append(grp)
+                row_items.append((row, key.lower(), action.lower()))
+            groups_box.append(grp)
+            group_widgets.append((grp, os_key, row_items))
+
+        def filter_shortcuts(*_):
+            query = search_entry.get_text().strip().lower()
+            selected_os_idx = os_dropdown.get_selected()
+            target_os = ["ubuntu", "win", "mac", "all"][selected_os_idx]
+
+            ubuntu_banner.set_visible(target_os in ("ubuntu", "all"))
+
+            total_visible_rows = 0
+            for grp, os_key, rows in group_widgets:
+                os_match = (target_os == "all") or (os_key == target_os) or (os_key == "common")
+                if not os_match:
+                    grp.set_visible(False)
+                    continue
+
+                visible_in_grp = 0
+                for row, key_text, action_text in rows:
+                    if not query or query in key_text or query in action_text:
+                        row.set_visible(True)
+                        visible_in_grp += 1
+                        total_visible_rows += 1
+                    else:
+                        row.set_visible(False)
+
+                grp.set_visible(visible_in_grp > 0)
+
+            empty_lbl.set_visible(total_visible_rows == 0)
+
+        search_entry.connect("search-changed", filter_shortcuts)
+        os_dropdown.connect("notify::selected", filter_shortcuts)
+        filter_shortcuts()
 
         dlg.set_child(toolbar)
         dlg.present(self)
@@ -1602,32 +1696,55 @@ class LT104Window(Adw.ApplicationWindow):
         side_base = (side_rgba.red, side_rgba.green, side_rgba.blue) if side_rgba else (0.0, 0.9, 1.0)
 
         if side_mode != 0 and bright_mult > 0:
-            if side_mode == 1:       # 动态呼吸 (Breathing)
-                breath = (math.sin(t * speed_mult * 3.0) + 1.0) * 0.45 + 0.1
-                sr, sg, sb = (side_base[0] * breath, side_base[1] * breath, side_base[2] * breath)
-            elif side_mode == 2:     # 幻彩循环 (Spectrum Cycle)
-                hue = (t * speed_mult * 60.0) % 360.0
-                sr, sg, sb = hsl_to_rgb(hue, 1.0, 0.5)
-            else:                    # 固定单色 (Modes 3-10: Red, Orange, Yellow, Green, Cyan, Blue, Magenta, White)
-                sr, sg, sb = side_base
+            if side_mode == 1:       # 动态呼吸 (Rainbow sweeping top to bottom slowly)
+                sweep_phase = (t * speed_mult * 0.35) % 1.0
 
-            sr = max(0.0, min(1.0, sr * bright_mult))
-            sg = max(0.0, min(1.0, sg * bright_mult))
-            sb = max(0.0, min(1.0, sb * bright_mult))
+                glow_pat = cairo.LinearGradient(0, 26, 0, 271)
+                core_pat = cairo.LinearGradient(0, 30, 0, 267)
+                for step in range(9):
+                    frac = step / 8.0
+                    hue = (((sweep_phase - frac * 0.85) % 1.0) * 360.0)
+                    r, g, b = hsl_to_rgb(hue, 1.0, 0.5)
+                    glow_pat.add_color_stop_rgba(frac, r * bright_mult, g * bright_mult, b * bright_mult, 0.45)
+                    core_pat.add_color_stop_rgba(frac, min(1.0, r * bright_mult * 1.3), min(1.0, g * bright_mult * 1.3), min(1.0, b * bright_mult * 1.3), 0.95)
 
-            # Outer diffuse glow (Left and Right)
-            cr.set_source_rgba(sr, sg, sb, 0.45)
-            draw_round_rect(cr, 1, 26, 12, 245, 6)
-            cr.fill()
-            draw_round_rect(cr, 941, 26, 12, 245, 6)
-            cr.fill()
+                # Outer diffuse glow (Left and Right)
+                cr.set_source(glow_pat)
+                draw_round_rect(cr, 1, 26, 12, 245, 6)
+                cr.fill()
+                draw_round_rect(cr, 941, 26, 12, 245, 6)
+                cr.fill()
 
-            # Core intense lightbar strip
-            cr.set_source_rgba(min(1.0, sr * 1.3), min(1.0, sg * 1.3), min(1.0, sb * 1.3), 0.92)
-            draw_round_rect(cr, 4, 30, 6, 237, 3)
-            cr.fill()
-            draw_round_rect(cr, 944, 30, 6, 237, 3)
-            cr.fill()
+                # Core intense lightbar strip
+                cr.set_source(core_pat)
+                draw_round_rect(cr, 4, 30, 6, 237, 3)
+                cr.fill()
+                draw_round_rect(cr, 944, 30, 6, 237, 3)
+                cr.fill()
+            else:
+                if side_mode == 2:     # 幻彩循环 (Spectrum Cycle)
+                    hue = (t * speed_mult * 60.0) % 360.0
+                    sr, sg, sb = hsl_to_rgb(hue, 1.0, 0.5)
+                else:                  # 固定单色 (Modes 3-10: Red, Orange, Yellow, Green, Cyan, Blue, Magenta, White)
+                    sr, sg, sb = side_base
+
+                sr = max(0.0, min(1.0, sr * bright_mult))
+                sg = max(0.0, min(1.0, sg * bright_mult))
+                sb = max(0.0, min(1.0, sb * bright_mult))
+
+                # Outer diffuse glow (Left and Right)
+                cr.set_source_rgba(sr, sg, sb, 0.45)
+                draw_round_rect(cr, 1, 26, 12, 245, 6)
+                cr.fill()
+                draw_round_rect(cr, 941, 26, 12, 245, 6)
+                cr.fill()
+
+                # Core intense lightbar strip
+                cr.set_source_rgba(min(1.0, sr * 1.3), min(1.0, sg * 1.3), min(1.0, sb * 1.3), 0.92)
+                draw_round_rect(cr, 4, 30, 6, 237, 3)
+                cr.fill()
+                draw_round_rect(cr, 944, 30, 6, 237, 3)
+                cr.fill()
 
         cr.restore()
 

@@ -505,11 +505,26 @@ class LT104Indicator extends PanelMenu.Button {
         let scSubMenu = new PopupMenu.PopupSubMenuMenuItem('⌨️ ' + (t('shortcuts_ref') || 'Shortcuts Reference'));
         this.menu.addMenuItem(scSubMenu);
 
-        const SHORTCUTS_WIN = [
-            ['Fn+F1', t('sc_win_f1') || 'Media Player'],
-            ['Fn+F2', t('sc_win_f2') || 'Calculator'],
-            ['Fn+F3', t('sc_win_f3') || 'Win+TAB (Task View)'],
-            ['Fn+F4', t('sc_win_f4') || 'Win+E (File Explorer)'],
+        const SHORTCUTS = [
+            ['🐧 Ubuntu Linux', 'Suggest to use Win mode (建议使用 Win 模式)'],
+            ['Fn+F1', 'Settings > Displays (设置 > 显示器)'],
+            ['Fn+F2', 'Calculator (计算器)'],
+            ['Fn+F3', 'Same as WIN + TAB (Task Switch 任务切换)'],
+            ['Fn+F4', 'Nothing Happened (无反应)'],
+            ['Fn+F5', 'Backlight Brightness − (背光亮度 −)'],
+            ['Fn+F6', 'Backlight Brightness + (背光亮度 +)'],
+            ['Fn+F7', 'Previous Track (上一曲)'],
+            ['Fn+F8', 'Play / Pause (播放 / 暂停)'],
+            ['Fn+F9', 'Next Track (下一曲)'],
+            ['Fn+F10', 'Mute / Unmute (静音 / 取消静音)'],
+            ['Fn+F11', 'Volume − (音量 −)'],
+            ['Fn+F12', 'Volume + (音量 +)'],
+            ['Fn+WIN', 'Lock WIN Key (锁定 WIN 键)'],
+            ['── Win System ──', ''],
+            ['Fn+F1', t('sc_win_f1') || 'Media Player (媒体播放器)'],
+            ['Fn+F2', t('sc_win_f2') || 'Calculator (计算器)'],
+            ['Fn+F3', t('sc_win_f3') || 'Win+TAB (Task View 任务视图)'],
+            ['Fn+F4', t('sc_win_f4') || 'Win+E (File Explorer 资源管理器)'],
             ['Fn+F5', t('sc_win_f5') || 'Backlight Brightness −'],
             ['Fn+F6', t('sc_win_f6') || 'Backlight Brightness +'],
             ['Fn+F7', t('sc_win_f7') || 'Previous Track'],
@@ -520,19 +535,21 @@ class LT104Indicator extends PanelMenu.Button {
             ['Fn+F12', t('sc_win_f12') || 'Volume +'],
             ['Fn+WIN', t('sc_win_winlock') || 'Lock WIN Key'],
             ['── Common ──', ''],
-            ['Fn+Esc (3s)', t('sc_factory') || 'Restore Factory Settings'],
-            ['Fn+Ins', t('sc_side_light') || 'Side Backlight (cycle mode & color)'],
-            ['Fn+Q', t('sc_24g') || '2.4G Mode'],
-            ['Fn+W/E/R', t('sc_bt') || 'Bluetooth 1/2/3'],
-            ['Fn+T', t('sc_wired') || 'Wired Mode'],
+            ['Fn+Esc (3s)', t('sc_factory') || 'Restore Factory Settings (恢复出厂设置)'],
+            ['Fn+Ins', t('sc_side_light') || 'Side Backlight: cycle mode & color (两侧边光切换)'],
+            ['Fn+Q', t('sc_24g') || '2.4G Mode (2.4G 模式)'],
+            ['Fn+W/E/R', t('sc_bt') || 'Bluetooth 1/2/3 (蓝牙模式)'],
+            ['Fn+T', t('sc_wired') || 'Wired Mode (有线模式)'],
+            ['Fn+Knob', 'Toggle main / volume screen (切换主界面与音量显示)'],
         ];
 
-        SHORTCUTS_WIN.forEach(([key, action]) => {
+        SHORTCUTS.forEach(([key, action]) => {
             if (!action) {
                 scSubMenu.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
                 return;
             }
-            let item = new PopupMenu.PopupMenuItem(key + '  →  ' + action, {reactive: false});
+            let labelText = (key.startsWith('🐧') ? key + ' (' + action + ')' : key + '  →  ' + action);
+            let item = new PopupMenu.PopupMenuItem(labelText, {reactive: false});
             item.label.get_clutter_text().set_use_markup(false);
             scSubMenu.menu.addMenuItem(item);
         });
