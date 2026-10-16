@@ -43,11 +43,23 @@ EVIOCSKEYCODE_V2 = 0x40284504  # _IOW('E', 0x04, struct input_keymap_entry)
 EVIOCGKEYCODE_V2 = 0x80284504  # _IOR('E', 0x04, struct input_keymap_entry)
 
 def is_lt104_input_device(devpath):
-    """Check if input device corresponds to LT-104 2.4G Dongle (05ac:024f) or Sonix (0c45:8009)."""
+    """Check if input device corresponds to LT-104 (Cable 0c45:8009, 2.4G Dongle 05ac:024f, or Bluetooth)."""
     devname = os.path.basename(devpath)
-    syspath = f"/sys/class/input/{devname}/device/id"
-    v_file = os.path.join(syspath, "vendor")
-    p_file = os.path.join(syspath, "product")
+    basepath = f"/sys/class/input/{devname}/device"
+
+    # 1. Check device name (matches Bluetooth LT104 BT5.1_1/2/3, LT84, LangTu)
+    name_file = os.path.join(basepath, "name")
+    if os.path.exists(name_file):
+        try:
+            name = open(name_file).read().strip().lower()
+            if any(k in name for k in ["lt104", "lt84", "langtu"]):
+                return True
+        except Exception:
+            pass
+
+    # 2. Check vendor and product IDs (USB 0c45:8009 and 2.4G Dongle 05ac:024f)
+    v_file = os.path.join(basepath, "id", "vendor")
+    p_file = os.path.join(basepath, "id", "product")
     if os.path.exists(v_file) and os.path.exists(p_file):
         try:
             v = int(open(v_file).read().strip(), 16)

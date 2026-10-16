@@ -15,7 +15,7 @@ import subprocess
 import signal
 import time
 
-from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, KB_KEYS, find_lt104_usb, find_lt104_dongle, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, KB_KEYS, find_lt104_usb, find_lt104_dongle, find_lt104_bluetooth, find_lt104_lcd_hidraw, get_lt104_connection_status
 
 import i18n
 from config import load_config, save_config
@@ -142,10 +142,26 @@ HTML_PAGE = """<!DOCTYPE html>
     .lang-select { background: var(--card-inner); border: 1px solid var(--border); border-radius: 20px; color: #fff; padding: 6px 14px; font-size: 13px; outline: none; cursor: pointer; transition: border-color 0.15s; }
     .lang-select:focus { border-color: var(--accent); }
     .status-badge { background: rgba(46, 194, 126, 0.15); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.35); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-    .status-badge.error { background: rgba(224, 27, 36, 0.15); color: #e01b24; border-color: rgba(224, 27, 36, 0.35); }
+    .status-badge.cable { background: rgba(46, 194, 126, 0.15); color: #2ec27e; border-color: rgba(46, 194, 126, 0.35); }
     .status-badge.dongle { background: rgba(246, 185, 59, 0.15); color: #f5a623; border: 1px solid rgba(246, 185, 59, 0.4); }
-    .dongle-banner { display: none; background: rgba(246, 185, 59, 0.10); border: 1px solid rgba(246, 185, 59, 0.35); border-radius: 12px; padding: 12px 18px; margin: 0 auto 16px auto; max-width: 954px; font-size: 13px; line-height: 1.6; color: #ffbe46; text-align: left; box-sizing: border-box; }
-    .dongle-banner strong { color: #fff; }
+    .status-badge.bluetooth { background: rgba(53, 132, 228, 0.15); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.4); }
+    .status-badge.error { background: rgba(224, 27, 36, 0.15); color: #e01b24; border-color: rgba(224, 27, 36, 0.35); }
+
+    /* Explicit 3-Mode Connection Bar */
+    .conn-mode-bar { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 18px; margin: 0 auto 16px auto; max-width: 954px; box-sizing: border-box; }
+    .conn-mode-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+    .conn-mode-title { font-size: 13.5px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; }
+    .conn-mode-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .conn-pill { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #888; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .conn-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: #666; display: inline-block; }
+    .conn-pill.active.cable { background: rgba(46, 194, 126, 0.18); border-color: rgba(46, 194, 126, 0.45); color: #2ec27e; box-shadow: 0 0 10px rgba(46, 194, 126, 0.25); }
+    .conn-pill.active.cable .dot { background: #2ec27e; box-shadow: 0 0 6px #2ec27e; }
+    .conn-pill.active.dongle { background: rgba(246, 185, 59, 0.18); border-color: rgba(246, 185, 59, 0.45); color: #f5a623; box-shadow: 0 0 10px rgba(246, 185, 59, 0.25); }
+    .conn-pill.active.dongle .dot { background: #f5a623; box-shadow: 0 0 6px #f5a623; }
+    .conn-pill.active.bluetooth { background: rgba(53, 132, 228, 0.18); border-color: rgba(53, 132, 228, 0.45); color: #78aeed; box-shadow: 0 0 10px rgba(53, 132, 228, 0.25); }
+    .conn-pill.active.bluetooth .dot { background: #78aeed; box-shadow: 0 0 6px #78aeed; }
+    .conn-pill.inactive { opacity: 0.55; }
+    .conn-mode-desc { font-size: 12.5px; line-height: 1.5; color: #a0a0a0; text-align: left; }
     .update-badge { background: rgba(53, 132, 228, 0.15); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
     .update-badge:hover { background: rgba(53, 132, 228, 0.25); transform: translateY(-1px); }
     .icon-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13); border-radius: 20px; color: #ccc; padding: 5px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.2s; }
@@ -245,8 +261,18 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- 2.4G Wireless Dongle Mode Notice Banner -->
-    <div id="dongle-banner" class="dongle-banner"></div>
+    <!-- Explicit 3-Mode Connection Status Card -->
+    <div id="conn-mode-bar" class="conn-mode-bar">
+      <div class="conn-mode-header">
+        <span class="conn-mode-title" id="txt-conn-mode-title">⚡ 键盘连接模式 (Connection Mode):</span>
+        <div class="conn-mode-pills">
+          <span id="pill-mode-cable" class="conn-pill"><span class="dot"></span> 🔌 USB Cable (有线)</span>
+          <span id="pill-mode-dongle" class="conn-pill"><span class="dot"></span> 📡 2.4G Dongle (接收器)</span>
+          <span id="pill-mode-bluetooth" class="conn-pill"><span class="dot"></span> 📶 Bluetooth (蓝牙)</span>
+        </div>
+      </div>
+      <div id="conn-mode-desc" class="conn-mode-desc"></div>
+    </div>
 
     <!-- Top Middle: Standalone Keyboard Animation Visualizer Preview Card (Full Width) -->
     <div class="kb-top-card">
@@ -1288,22 +1314,34 @@ HTML_PAGE = """<!DOCTYPE html>
         const res = await fetch('/api/status');
         const data = await res.json();
         const badge = document.getElementById('device-badge');
-        const dongleBanner = document.getElementById('dongle-banner');
-        if (data.mode === 'wired' || (!data.mode && data.connected)) {
-          badge.innerText = '● ' + t('connected');
-          badge.className = 'status-badge';
-          if (dongleBanner) dongleBanner.style.display = 'none';
-        } else if (data.mode === 'dongle' || data.dongle_connected) {
-          badge.innerText = '● ' + t('dongle_status_badge');
+        const pillCable = document.getElementById('pill-mode-cable');
+        const pillDongle = document.getElementById('pill-mode-dongle');
+        const pillBt = document.getElementById('pill-mode-bluetooth');
+        const desc = document.getElementById('conn-mode-desc');
+
+        if (pillCable) pillCable.className = 'conn-pill inactive';
+        if (pillDongle) pillDongle.className = 'conn-pill inactive';
+        if (pillBt) pillBt.className = 'conn-pill inactive';
+
+        if (data.mode === 'usb_cable') {
+          badge.innerText = '● ' + t('mode_cable_badge');
+          badge.className = 'status-badge cable';
+          if (pillCable) pillCable.className = 'conn-pill active cable';
+          if (desc) desc.innerHTML = '<strong>' + t('mode_usb_cable') + '</strong>: ' + t('mode_cable_hint');
+        } else if (data.mode === 'usb_dongle') {
+          badge.innerText = '● ' + t('mode_dongle_badge');
           badge.className = 'status-badge dongle';
-          if (dongleBanner) {
-            dongleBanner.style.display = 'block';
-            dongleBanner.innerHTML = '📡 <strong>' + t('dongle_connected') + '</strong>: ' + t('dongle_mode_hint');
-          }
+          if (pillDongle) pillDongle.className = 'conn-pill active dongle';
+          if (desc) desc.innerHTML = '<strong>' + t('mode_usb_dongle') + '</strong>: ' + t('mode_dongle_hint');
+        } else if (data.mode === 'bluetooth') {
+          badge.innerText = '● ' + t('mode_bluetooth_badge');
+          badge.className = 'status-badge bluetooth';
+          if (pillBt) pillBt.className = 'conn-pill active bluetooth';
+          if (desc) desc.innerHTML = '<strong>' + t('mode_bluetooth') + '</strong>: ' + t('mode_bluetooth_hint', { name: data.device_name || 'LT104 BT' });
         } else {
-          badge.innerText = '● ' + t('disconnected');
+          badge.innerText = '● ' + t('mode_not_present_badge');
           badge.className = 'status-badge error';
-          if (dongleBanner) dongleBanner.style.display = 'none';
+          if (desc) desc.innerHTML = '<strong>' + t('mode_not_present') + '</strong>: ' + t('mode_not_present_hint');
         }
       } catch (e) {}
     }
@@ -2258,20 +2296,20 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(load_config()).encode())
 
         elif self.path == "/api/status":
-            usb_dev = find_lt104_usb()
-            lcd_dev = find_lt104_lcd_hidraw()
-            dongle_dev = find_lt104_dongle()
-            mode = "wired" if usb_dev else ("dongle" if dongle_dev else "disconnected")
+            info = get_lt104_connection_status()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({
-                "connected": bool(usb_dev),
-                "dongle_connected": bool(dongle_dev),
-                "mode": mode,
-                "usb_dev": usb_dev,
-                "lcd_dev": lcd_dev,
-                "dongle_dev": dongle_dev
+                "mode": info["mode"],
+                "mode_name": info["mode_name"],
+                "connected": info["connected"],
+                "can_configure": info["can_configure"],
+                "device_name": info.get("device_name"),
+                "usb_dev": info.get("path") if info["mode"] == "usb_cable" else find_lt104_usb(),
+                "lcd_dev": info.get("lcd_path") if info["mode"] == "usb_cable" else find_lt104_lcd_hidraw(),
+                "dongle_dev": info.get("path") if info["mode"] == "usb_dongle" else find_lt104_dongle(),
+                "bt_dev": info.get("path") if info["mode"] == "bluetooth" else None,
             }).encode())
 
         elif self.path == "/api/hud-status":

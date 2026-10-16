@@ -11,6 +11,7 @@ import select
 import struct
 import fcntl
 import ctypes
+import subprocess
 from PIL import Image
 
 # USBDEVFS_CONTROL ioctl — 'BBHHHI P' = 3+1+2+2+2+4+8 = 22 bytes on x86_64
@@ -117,17 +118,121 @@ def find_lt104_lcd_hidraw():
                 return f'/dev/{name}'
     return None
 
+def find_lt104_bluetooth():
+    """
+    Find if LT-104 is connected via Bluetooth.
+    Checks:
+      1. Linux input subsystem (/sys/class/input/event*) for Bluetooth bus (0005)
+         with name matching LT104, LT84, or LangTu.
+      2. bluetoothctl devices Connected for paired & active LT104/LT84 connections.
+    """
+    # 1. Check sysfs input events for active Bluetooth keyboard interface
+    for ev in glob.glob('/sys/class/input/event*'):
+        try:
+            name_file = os.path.join(ev, 'device', 'name')
+            bus_file  = os.path.join(ev, 'device', 'id', 'bustype')
+            if os.path.exists(name_file):
+                name = open(name_file).read().strip()
+                bus  = open(bus_file).read().strip() if os.path.exists(bus_file) else ''
+                # 0005 is BUS_BLUETOOTH
+                if bus == '0005' or 'bt' in name.lower():
+                    if any(k in name.lower() for k in ['lt104', 'lt84', 'langtu']):
+                        return {"found": True, "name": name, "path": ev, "bus": bus}
+        except Exception:
+            pass
+
+    # 2. Check bluetoothctl for active connected status
+    try:
+        out = subprocess.check_output(
+            ['bluetoothctl', 'devices', 'Connected'],
+            timeout=1,
+            stderr=subprocess.DEVNULL
+        ).decode()
+        for line in out.splitlines():
+            if any(k in line.lower() for k in ['lt104', 'lt84', 'langtu']):
+                parts = line.strip().split(maxsplit=2)
+                mac = parts[1] if len(parts) > 1 else ''
+                name = parts[2] if len(parts) > 2 else line.strip()
+                return {"found": True, "name": name, "mac": mac, "path": f"bluetooth:{mac}"}
+    except Exception:
+        pass
+
+    return None
+
+def get_lt104_connection_status():
+    """
+    Explicitly detects which mode the LT-104 keyboard is connected in,
+    or if it is not present at all.
+    Supported connection modes:
+      1. 'usb_cable'   - Connected via USB Type-C Cable (0c45:8009)
+                         Full configuration supported (Lighting, Clock, LCD, HUD, Typing)
+      2. 'usb_dongle'  - Connected via 2.4G Wireless USB Dongle (05ac:024f)
+                         Typing supported; Cable needed for RGB/Clock/LCD flashing
+      3. 'bluetooth'   - Connected via Bluetooth (LT104 BT5.1 / LT84 BT5.1)
+                         Typing supported; Cable needed for RGB/Clock/LCD flashing
+      4. 'disconnected'- Not present at all
+    """
+    usb = find_lt104_usb()
+    if usb:
+        return {
+            "mode": "usb_cable",
+            "mode_name": "USB Cable",
+            "connected": True,
+            "can_configure": True,
+            "path": usb,
+            "lcd_path": find_lt104_lcd_hidraw(),
+            "device_name": "LT104 Wired (SONiX 0c45:8009)"
+        }
+
+    bt = find_lt104_bluetooth()
+    if bt and bt.get("found"):
+        return {
+            "mode": "bluetooth",
+            "mode_name": "Bluetooth",
+            "connected": True,
+            "can_configure": False,
+            "path": bt.get("path", "bluetooth"),
+            "device_name": bt.get("name", "LT104 Bluetooth")
+        }
+
+    dongle = find_lt104_dongle()
+    if dongle:
+        return {
+            "mode": "usb_dongle",
+            "mode_name": "USB Dongle",
+            "connected": True,
+            "can_configure": False,
+            "path": dongle,
+            "device_name": "LT104 2.4G Wireless Dongle (05ac:024f)"
+        }
+
+    return {
+        "mode": "disconnected",
+        "mode_name": "Not Present",
+        "connected": False,
+        "can_configure": False,
+        "path": None,
+        "device_name": None
+    }
+
 
 class LT104Controller:
     def __init__(self, usb_path=None, lcd_path=None):
         self.usb_path = usb_path or find_lt104_usb()
         if not self.usb_path:
-            if find_lt104_dongle():
+            status = get_lt104_connection_status()
+            if status["mode"] == "usb_dongle":
                 raise RuntimeError(
-                    "已检测到 LT-104 (2.4G 无线接收器模式)。"
-                    "配置背光灯效、时钟校准与屏幕动画需连接 USB 有线数据线 (USB Cable Mode)。"
+                    "当前连接模式为【2.4G 接收器模式】(USB Dongle)。"
+                    "键盘打字完全正常。配置背光灯效、时钟校准与屏幕动画需连接 USB 有线数据线 (USB Cable)。"
                 )
-            raise RuntimeError("未检测到 狼途 LT-104 键盘 (VID 0C45, PID 8009)。请确认 USB 连线已插好！")
+            elif status["mode"] == "bluetooth":
+                dev = status.get("device_name", "LT104 Bluetooth")
+                raise RuntimeError(
+                    f"当前连接模式为【蓝牙无线模式】(Bluetooth: {dev})。"
+                    "键盘打字完全正常。配置背光灯效、时钟校准与屏幕动画需连接 USB 有线数据线 (USB Cable)。"
+                )
+            raise RuntimeError("未检测到 狼途 LT-104 键盘 (未连接)。请确认已插好 USB 有线数据线、2.4G 接收器或已开启蓝牙配对！")
         self.fd = None
         for attempt in range(5):
             try:

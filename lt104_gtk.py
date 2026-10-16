@@ -22,7 +22,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf, Pango
 
-from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_dongle, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_dongle, find_lt104_bluetooth, find_lt104_lcd_hidraw, get_lt104_connection_status
 
 from config import load_config, save_config
 from PIL import Image, ImageSequence
@@ -205,6 +205,9 @@ class LT104Window(Adw.ApplicationWindow):
         # ---- Top Middle: Full-width Standalone Keyboard Preview Card (200% larger) ---- #
         main_vbox.append(self._build_preview_card())
 
+        # ---- Connection Mode Status Card (Explicit 3-Mode Indicator) ---- #
+        main_vbox.append(self._build_connection_status_card())
+
         # ---- Below: 2-Column Setting Cards ---- #
         main_vbox.append(two_col_box)
 
@@ -383,6 +386,11 @@ class LT104Window(Adw.ApplicationWindow):
             "popover, popover.menu { min-width: 340px; }",
             "popover listview { min-width: 320px; }",
             "popover listview row { min-width: 320px; }",
+            ".conn-pill { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 600; background: rgba(255, 255, 255, 0.05); color: #888888; border: 1px solid rgba(255,255,255,0.08); }",
+            ".conn-pill-active-cable { background: rgba(46, 194, 126, 0.2); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.6); }",
+            ".conn-pill-active-dongle { background: rgba(246, 185, 59, 0.2); color: #f5a623; border: 1px solid rgba(246, 185, 59, 0.6); }",
+            ".conn-pill-active-bluetooth { background: rgba(53, 132, 228, 0.2); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.6); }",
+            ".conn-pill-inactive { opacity: 0.45; }",
         ]
         for idx, (hex_c, name) in enumerate(preset_colors):
             btn = Gtk.Button()
@@ -677,18 +685,106 @@ class LT104Window(Adw.ApplicationWindow):
 
     # ------------------------------------------------------------------ #
     #  Status                                                               #
+    def _build_connection_status_card(self):
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        card.add_css_class("card")
+        card.set_margin_top(2)
+        card.set_margin_bottom(2)
+
+        pad_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        pad_box.set_margin_top(10)
+        pad_box.set_margin_bottom(10)
+        pad_box.set_margin_start(14)
+        pad_box.set_margin_end(14)
+        card.append(pad_box)
+
+        # Top row: Left (Icon + Title), Right (3-Mode Segment Pills)
+        top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        top_row.set_hexpand(True)
+        pad_box.append(top_row)
+
+        self._conn_mode_icon = Gtk.Label(label="📡")
+        self._conn_mode_icon.add_css_class("title-3")
+        top_row.append(self._conn_mode_icon)
+
+        self._conn_mode_title = Gtk.Label(label="键盘连接模式: 检测中…")
+        self._conn_mode_title.add_css_class("heading")
+        self._conn_mode_title.set_halign(Gtk.Align.START)
+        self._conn_mode_title.set_hexpand(True)
+        top_row.append(self._conn_mode_title)
+
+        pills_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        pills_box.set_halign(Gtk.Align.END)
+        top_row.append(pills_box)
+
+        self._pill_cable = Gtk.Label(label="🔌 USB Cable (有线)")
+        self._pill_cable.add_css_class("conn-pill")
+        pills_box.append(self._pill_cable)
+
+        self._pill_dongle = Gtk.Label(label="📡 USB Dongle (接收器)")
+        self._pill_dongle.add_css_class("conn-pill")
+        pills_box.append(self._pill_dongle)
+
+        self._pill_bluetooth = Gtk.Label(label="📶 Bluetooth (蓝牙)")
+        self._pill_bluetooth.add_css_class("conn-pill")
+        pills_box.append(self._pill_bluetooth)
+
+        # Bottom row: Capability Description
+        self._conn_mode_desc = Gtk.Label(label="正在检测键盘连接状态…")
+        self._conn_mode_desc.set_halign(Gtk.Align.START)
+        self._conn_mode_desc.add_css_class("caption")
+        self._conn_mode_desc.add_css_class("dim-label")
+        self._conn_mode_desc.set_wrap(True)
+        pad_box.append(self._conn_mode_desc)
+
+        self._conn_status_card = card
+        return card
+
     # ------------------------------------------------------------------ #
 
     def _refresh_status(self):
-        usb = find_lt104_usb()
-        lcd = find_lt104_lcd_hidraw()
-        dongle = find_lt104_dongle()
-        if usb:
-            self._status_label.set_text(f"⌨️  LT-104 已连接  |  LCD: {lcd or '未找到'}")
-        elif dongle:
-            self._status_label.set_text("📡  LT-104 (2.4G 接收器模式 · 配置背光/时钟/屏幕需插有线)")
+        status = get_lt104_connection_status()
+        mode = status["mode"]
+
+        # Reset pill styles
+        for pill in [self._pill_cable, self._pill_dongle, self._pill_bluetooth]:
+            pill.remove_css_class("conn-pill-active-cable")
+            pill.remove_css_class("conn-pill-active-dongle")
+            pill.remove_css_class("conn-pill-active-bluetooth")
+            pill.remove_css_class("conn-pill-inactive")
+            pill.add_css_class("conn-pill-inactive")
+
+        if mode == "usb_cable":
+            lcd = status.get("lcd_path") or "未找到"
+            self._status_label.set_text(f"🔌  LT-104 [USB 有线模式 · 全部功能已就绪]  |  LCD: {lcd}")
+            self._conn_mode_icon.set_text("🔌")
+            self._conn_mode_title.set_text("当前连接模式: USB 有线连接 (USB Cable Mode)")
+            self._conn_mode_desc.set_text("● 已连接 SONiX 0c45:8009。全部硬件功能已就绪：RGB 灯效、时钟同步、屏幕 GIF 动画上传与系统 HUD。")
+            self._pill_cable.remove_css_class("conn-pill-inactive")
+            self._pill_cable.add_css_class("conn-pill-active-cable")
+
+        elif mode == "usb_dongle":
+            self._status_label.set_text("📡  LT-104 [2.4G 接收器模式 · 打字正常 · 配置需插线]")
+            self._conn_mode_icon.set_text("📡")
+            self._conn_mode_title.set_text("当前连接模式: 2.4G 无线接收器 (USB Dongle Mode)")
+            self._conn_mode_desc.set_text("● 已插入 2.4G 接收器 (05ac:024f)。键盘打字完全正常。如需配置背光灯效、时钟校准或屏幕动画，请插上 USB 有线连接线。")
+            self._pill_dongle.remove_css_class("conn-pill-inactive")
+            self._pill_dongle.add_css_class("conn-pill-active-dongle")
+
+        elif mode == "bluetooth":
+            dev_name = status.get("device_name", "LT104 BT")
+            self._status_label.set_text(f"📶  LT-104 [蓝牙无线模式 ({dev_name}) · 打字正常 · 配置需插线]")
+            self._conn_mode_icon.set_text("📶")
+            self._conn_mode_title.set_text(f"当前连接模式: 蓝牙无线连接 ({dev_name})")
+            self._conn_mode_desc.set_text(f"● 已通过蓝牙无线连接 ({dev_name})。键盘打字完全正常。如需配置背光灯效、时钟校准或屏幕动画，请插上 USB 有线连接线。")
+            self._pill_bluetooth.remove_css_class("conn-pill-inactive")
+            self._pill_bluetooth.add_css_class("conn-pill-active-bluetooth")
+
         else:
-            self._status_label.set_text("❌  未检测到 LT-104 键盘")
+            self._status_label.set_text("❌  未检测到 LT-104 键盘 (未连接)")
+            self._conn_mode_icon.set_text("❌")
+            self._conn_mode_title.set_text("当前连接模式: 未检测到键盘 (Not Present / Disconnected)")
+            self._conn_mode_desc.set_text("● 未检测到任何 LT-104 键盘。本键盘支持 3 种连接方式：1) USB 有线数据线  2) 2.4G USB 接收器  3) 蓝牙无线配对。")
 
         self._check_hud_status()
         return True  # repeat via GLib.timeout_add_seconds

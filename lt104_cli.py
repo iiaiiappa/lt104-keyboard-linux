@@ -14,7 +14,7 @@ import subprocess
 import signal
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from lt104_core import LT104Controller, find_lt104_usb, find_lt104_dongle, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, find_lt104_usb, find_lt104_dongle, find_lt104_bluetooth, find_lt104_lcd_hidraw, get_lt104_connection_status
 from config import save_config, load_config
 
 PRESETS = {
@@ -246,16 +246,27 @@ def main():
         return
 
     elif args.cmd == "status":
-        usb = find_lt104_usb()
-        dongle = find_lt104_dongle()
-        lcd = find_lt104_lcd_hidraw()
-        if usb:
-            print(f"CONNECTED (Wired Mode: 0c45:8009 | Sysfs: {usb} | LCD: {lcd or 'N/A'})")
-        elif dongle:
-            print(f"DONGLE (2.4G Wireless Dongle Mode: 05ac:024f | Sysfs: {dongle})")
-            print("Note: Typing is active. USB cable connection is required for RGB/clock/LCD settings.")
+        info = get_lt104_connection_status()
+        mode = info["mode"]
+        if mode == "usb_cable":
+            print("MODE: USB_CABLE (USB Type-C 有线模式)")
+            print("STATUS: Connected via USB Cable (0c45:8009)")
+            print(f"DEVICE: {info.get('path')} | LCD: {info.get('lcd_path') or 'N/A'}")
+            print("FEATURES: Full hardware control active (RGB lighting, clock sync, LCD GIF uploader, HUD telemetry, typing)")
+        elif mode == "usb_dongle":
+            print("MODE: USB_DONGLE (2.4G 无线接收器模式)")
+            print("STATUS: Connected via 2.4G Wireless USB Dongle (05ac:024f)")
+            print(f"DEVICE: {info.get('path')}")
+            print("FEATURES: Keyboard typing active. (Note: USB cable connection is required for RGB/clock/LCD settings)")
+        elif mode == "bluetooth":
+            print("MODE: BLUETOOTH (蓝牙无线模式)")
+            print(f"STATUS: Connected via Bluetooth ({info.get('device_name')})")
+            print(f"DEVICE: {info.get('path')}")
+            print("FEATURES: Keyboard typing active. (Note: USB cable connection is required for RGB/clock/LCD settings)")
         else:
-            print("DISCONNECTED (No LT-104 USB cable or 2.4G dongle detected)")
+            print("MODE: NOT_PRESENT (未检测到键盘 / 未连接)")
+            print("STATUS: Keyboard is not connected in any mode.")
+            print("SUPPORTED MODES: 1) USB Cable  2) 2.4G USB Dongle  3) Bluetooth")
         return
 
     elif args.cmd == "remap-keys":
