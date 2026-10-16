@@ -121,6 +121,11 @@ class LT104Window(Adw.ApplicationWindow):
         header.set_show_end_title_buttons(True)
         toolbar_view.add_top_bar(header)
 
+        # Prominent banner for locked configuration warning when USB cable is disconnected
+        self._banner = Adw.Banner.new("🔒 硬件配置已锁定：当前非 USB 有线连接模式。背光灯效、RTC时钟校准与屏幕上传需要连接 USB Type-C 数据线。")
+        self._banner.set_revealed(False)
+        toolbar_view.add_top_bar(self._banner)
+
         # Status pill in header
         self._status_label = Gtk.Label(label="⌨️  检测中…")
         self._status_label.add_css_class("caption")
@@ -167,6 +172,7 @@ class LT104Window(Adw.ApplicationWindow):
         # 2-Column responsive container below the preview
         two_col_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
         two_col_box.set_homogeneous(True)
+        self._two_col_box = two_col_box
 
         col_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         col_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -390,6 +396,9 @@ class LT104Window(Adw.ApplicationWindow):
             ".conn-pill-active-cable { background: rgba(46, 194, 126, 0.2); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.6); }",
             ".conn-pill-active-dongle { background: rgba(246, 185, 59, 0.2); color: #f5a623; border: 1px solid rgba(246, 185, 59, 0.6); }",
             ".conn-pill-active-bluetooth { background: rgba(53, 132, 228, 0.2); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.6); }",
+            ".conn-pill-warning { background: rgba(230, 97, 0, 0.18); color: #ff9f43; border: 1px dashed rgba(230, 97, 0, 0.6); }",
+            ".conn-pill-locked { background: rgba(224, 27, 36, 0.2); color: #ff7b7b; border: 1px solid rgba(224, 27, 36, 0.6); }",
+            ".conn-pill-unlocked { background: rgba(46, 194, 126, 0.2); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.6); }",
             ".conn-pill-inactive { opacity: 0.45; }",
         ]
         for idx, (hex_c, name) in enumerate(preset_colors):
@@ -729,6 +738,10 @@ class LT104Window(Adw.ApplicationWindow):
         self._pill_bluetooth.add_css_class("conn-pill")
         pills_box.append(self._pill_bluetooth)
 
+        self._lock_badge = Gtk.Label(label="🔒 硬件配置已锁定")
+        self._lock_badge.add_css_class("conn-pill")
+        pills_box.append(self._lock_badge)
+
         # Bottom row: Capability Description
         self._conn_mode_desc = Gtk.Label(label="正在检测键盘连接状态…")
         self._conn_mode_desc.set_halign(Gtk.Align.START)
@@ -745,46 +758,122 @@ class LT104Window(Adw.ApplicationWindow):
     def _refresh_status(self):
         status = get_lt104_connection_status()
         mode = status["mode"]
+        is_cable = (mode == "usb_cable")
+        cable_connected = status.get("cable_connected", False)
+        bt_connected = status.get("bt_connected", False)
+        dongle_status = status.get("dongle_status", "not_plugged")
+
+        # Disable all hardware controls when USB cable is not connected
+        if hasattr(self, '_two_col_box') and self._two_col_box:
+            self._two_col_box.set_sensitive(is_cable)
+
+        # Update lock badge
+        if hasattr(self, '_lock_badge') and self._lock_badge:
+            if is_cable:
+                self._lock_badge.set_text("🔓 硬件配置已就绪")
+                self._lock_badge.remove_css_class("conn-pill-locked")
+                self._lock_badge.add_css_class("conn-pill-unlocked")
+            else:
+                self._lock_badge.set_text("🔒 硬件配置已锁定 (需插USB线)")
+                self._lock_badge.remove_css_class("conn-pill-unlocked")
+                self._lock_badge.add_css_class("conn-pill-locked")
 
         # Reset pill styles
         for pill in [self._pill_cable, self._pill_dongle, self._pill_bluetooth]:
             pill.remove_css_class("conn-pill-active-cable")
             pill.remove_css_class("conn-pill-active-dongle")
             pill.remove_css_class("conn-pill-active-bluetooth")
+            pill.remove_css_class("conn-pill-warning")
             pill.remove_css_class("conn-pill-inactive")
-            pill.add_css_class("conn-pill-inactive")
 
+        # 1. Cable pill
+        if cable_connected:
+            self._pill_cable.set_text("🔌 USB Cable (已连接)")
+            self._pill_cable.add_css_class("conn-pill-active-cable")
+        else:
+            self._pill_cable.set_text("🔌 USB Cable (未连接)")
+            self._pill_cable.add_css_class("conn-pill-inactive")
+
+        # 2. Dongle pill (Accounts for 3 cases: not_plugged, plugged_unlinked, plugged_linked)
+        if dongle_status == "plugged_linked":
+            self._pill_dongle.set_text("📡 2.4G Dongle (已连接)")
+            self._pill_dongle.add_css_class("conn-pill-active-dongle")
+        elif dongle_status == "plugged_unlinked":
+            self._pill_dongle.set_text("📡 2.4G Dongle (已插入·键盘未连接)")
+            self._pill_dongle.add_css_class("conn-pill-warning")
+        else:
+            self._pill_dongle.set_text("📡 2.4G Dongle (未插入)")
+            self._pill_dongle.add_css_class("conn-pill-inactive")
+
+        # 3. Bluetooth pill
+        if bt_connected:
+            batt = status.get("battery")
+            batt_txt = f" · {batt}%" if batt is not None else ""
+            self._pill_bluetooth.set_text(f"📶 Bluetooth (已连接{batt_txt})")
+            self._pill_bluetooth.add_css_class("conn-pill-active-bluetooth")
+        else:
+            self._pill_bluetooth.set_text("📶 Bluetooth (未连接)")
+            self._pill_bluetooth.add_css_class("conn-pill-inactive")
+
+        # 4. Mode details, Header Pill, and Descriptions
         if mode == "usb_cable":
             lcd = status.get("lcd_path") or "未找到"
             self._status_label.set_text(f"🔌  LT-104 [USB 有线模式 · 全部功能已就绪]  |  LCD: {lcd}")
             self._conn_mode_icon.set_text("🔌")
-            self._conn_mode_title.set_text("当前连接模式: USB 有线连接 (USB Cable Mode)")
-            self._conn_mode_desc.set_text("● 已连接 SONiX 0c45:8009。全部硬件功能已就绪：RGB 灯效、时钟同步、屏幕 GIF 动画上传与系统 HUD。")
-            self._pill_cable.remove_css_class("conn-pill-inactive")
-            self._pill_cable.add_css_class("conn-pill-active-cable")
-
-        elif mode == "usb_dongle":
-            self._status_label.set_text("📡  LT-104 [2.4G 接收器模式 · 打字正常 · 配置需插线]")
-            self._conn_mode_icon.set_text("📡")
-            self._conn_mode_title.set_text("当前连接模式: 2.4G 无线接收器 (USB Dongle Mode)")
-            self._conn_mode_desc.set_text("● 已插入 2.4G 接收器 (05ac:024f)。键盘打字完全正常。如需配置背光灯效、时钟校准或屏幕动画，请插上 USB 有线连接线。")
-            self._pill_dongle.remove_css_class("conn-pill-inactive")
-            self._pill_dongle.add_css_class("conn-pill-active-dongle")
+            self._conn_mode_title.set_text("当前主连接模式: USB 有线连接 (USB Cable Mode)")
+            desc = "● 已连接 SONiX 0c45:8009。全部硬件配置与系统 HUD 控制已开启。"
+            if dongle_status == "plugged_unlinked":
+                desc += "\n● 2.4G 接收器已插入电脑 USB 接口，但键盘当前处于有线模式 (未连接至接收器)。"
+            self._conn_mode_desc.set_text(desc)
 
         elif mode == "bluetooth":
             dev_name = status.get("device_name", "LT104 BT")
-            self._status_label.set_text(f"📶  LT-104 [蓝牙无线模式 ({dev_name}) · 打字正常 · 配置需插线]")
+            batt = status.get("battery")
+            batt_info = f" (电池电量: {batt}%)" if batt is not None else ""
+            self._status_label.set_text(f"📶  LT-104 [蓝牙无线模式 ({dev_name}) · 打字正常 · 配置已锁定]")
             self._conn_mode_icon.set_text("📶")
-            self._conn_mode_title.set_text(f"当前连接模式: 蓝牙无线连接 ({dev_name})")
-            self._conn_mode_desc.set_text(f"● 已通过蓝牙无线连接 ({dev_name})。键盘打字完全正常。如需配置背光灯效、时钟校准或屏幕动画，请插上 USB 有线连接线。")
-            self._pill_bluetooth.remove_css_class("conn-pill-inactive")
-            self._pill_bluetooth.add_css_class("conn-pill-active-bluetooth")
+            self._conn_mode_title.set_text(f"当前主连接模式: 蓝牙无线连接 ({dev_name})")
+            desc = f"● 已通过蓝牙无线连接 ({dev_name}){batt_info} · 键盘打字与快捷键映射完全正常。\n● 硬件配置（背光灯效、RTC时钟、TFT屏幕）仅支持 USB 有线模式，下方控件已自动禁用锁定。"
+            if dongle_status == "plugged_unlinked":
+                desc += "\n● 2.4G 接收器状态: 已插入电脑 USB 接口，但键盘当前处于蓝牙模式 (未通过接收器通信)。"
+            else:
+                desc += "\n● 2.4G 接收器状态: 未插入电脑 USB 接口。"
+            self._conn_mode_desc.set_text(desc)
+
+        elif mode == "usb_dongle":
+            self._status_label.set_text("📡  LT-104 [2.4G 接收器模式 · 键盘已连接 · 打字正常 · 配置已锁定]")
+            self._conn_mode_icon.set_text("📡")
+            self._conn_mode_title.set_text("当前主连接模式: 2.4G 无线接收器模式 (USB Dongle Mode)")
+            self._conn_mode_desc.set_text("● 2.4G 接收器已插入 (05ac:024f) 且键盘已连通通信 · 键盘打字完全正常。\n● 硬件配置（背光灯效、RTC时钟、TFT屏幕）仅支持 USB 有线模式，下方控件已自动禁用锁定。")
 
         else:
             self._status_label.set_text("❌  未检测到 LT-104 键盘 (未连接)")
             self._conn_mode_icon.set_text("❌")
-            self._conn_mode_title.set_text("当前连接模式: 未检测到键盘 (Not Present / Disconnected)")
-            self._conn_mode_desc.set_text("● 未检测到任何 LT-104 键盘。本键盘支持 3 种连接方式：1) USB 有线数据线  2) 2.4G USB 接收器  3) 蓝牙无线配对。")
+            self._conn_mode_title.set_text("当前连接状态: 未检测到键盘通信 (Not Present / Disconnected)")
+            if dongle_status == "plugged_unlinked":
+                self._conn_mode_desc.set_text("● 2.4G 接收器已插入电脑 USB 接口，但键盘未连接至接收器（请检查键盘电源是否开启，或旋转旋钮至 2.4G 模式）。\n● 硬件配置（背光、时钟、屏幕）需要插入 USB Type-C 数据线，下方控件已自动锁定。")
+            else:
+                self._conn_mode_desc.set_text("● 未检测到任何 LT-104 键盘通信。本键盘支持 3 种连接方式：1) USB 有线数据线  2) 2.4G USB 接收器  3) 蓝牙无线配对 (下方控件已自动禁用锁定)。")
+
+        # 5. Lock Banner
+        if hasattr(self, '_banner') and self._banner:
+            if is_cable:
+                self._banner.set_revealed(False)
+            else:
+                if mode == "bluetooth":
+                    dev_name = status.get("device_name", "LT104 BT")
+                    if dongle_status == "plugged_unlinked":
+                        self._banner.set_title(f"🔒 蓝牙模式已连接 [{dev_name}]（2.4G接收器已插入·未连接键盘）。配置灯效/时钟/屏幕需插 USB 有线数据线，控件已锁定。")
+                    else:
+                        self._banner.set_title(f"🔒 蓝牙模式已连接 [{dev_name}]（2.4G接收器未插入）。配置灯效/时钟/屏幕需插 USB 有线数据线，控件已锁定。")
+                elif mode == "usb_dongle":
+                    self._banner.set_title("🔒 2.4G 接收器模式（打字正常）。配置灯效、时钟或屏幕需插 USB 有线数据线，控件已锁定。")
+                else:
+                    if dongle_status == "plugged_unlinked":
+                        self._banner.set_title("🔒 2.4G 接收器已插入电脑，但键盘未连接至接收器。配置灯效/时钟/屏幕需插 USB 有线数据线，控件已锁定。")
+                    else:
+                        self._banner.set_title("🔒 未检测到 LT-104 键盘。配置灯效、时钟或屏幕需插 USB 有线数据线，控件已锁定。")
+                self._banner.set_revealed(True)
 
         self._check_hud_status()
         return True  # repeat via GLib.timeout_add_seconds
@@ -1849,6 +1938,8 @@ class LT104Window(Adw.ApplicationWindow):
 
 
     def _apply_light_silently(self):
+        if not find_lt104_usb():
+            return
         mode_idx  = self._mode_row.get_selected()
         mode_id   = LIGHT_MODES[mode_idx]["id"]
         rgba      = self._color_btn.get_rgba()
@@ -1880,6 +1971,10 @@ class LT104Window(Adw.ApplicationWindow):
         run_in_thread(do_light)
 
     def _on_apply_light(self, btn):
+        if not find_lt104_usb():
+            btn.set_sensitive(False)
+            self._toast("⚠️ 需要连接 USB Type-C 有线数据线才能应用硬件配置！")
+            return
         btn.set_sensitive(False)
         btn.set_label("⏳  应用中…")
 
@@ -1941,6 +2036,10 @@ class LT104Window(Adw.ApplicationWindow):
 
 
     def _on_sync_clock(self, btn):
+        if not find_lt104_usb():
+            btn.set_sensitive(False)
+            self._toast("⚠️ 需要连接 USB Type-C 有线数据线才能同步时钟！")
+            return
         btn.set_sensitive(False)
         btn.set_label("⏳  同步中…")
 
@@ -1972,6 +2071,10 @@ class LT104Window(Adw.ApplicationWindow):
             self._toast("⏹️  已停用定时时钟同步")
 
     def _on_toggle_hud(self, btn):
+        if not find_lt104_usb() and not self._hud_running:
+            btn.set_sensitive(False)
+            self._toast("⚠️ 需要连接 USB Type-C 有线数据线才能启动系统 HUD！")
+            return
         btn.set_sensitive(False)
         import subprocess
 
@@ -2093,6 +2196,10 @@ class LT104Window(Adw.ApplicationWindow):
             pass
 
     def _on_upload_lcd(self, btn):
+        if not find_lt104_usb():
+            btn.set_sensitive(False)
+            self._toast("⚠️ 需要连接 USB Type-C 有线数据线才能上传图片！")
+            return
         if not self._selected_file:
             self._toast("❗  请先选择一张图片或 GIF！")
             return

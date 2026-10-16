@@ -12,6 +12,7 @@ import struct
 import fcntl
 import ctypes
 import subprocess
+import re
 from PIL import Image
 
 # USBDEVFS_CONTROL ioctl — 'BBHHHI P' = 3+1+2+2+2+4+8 = 22 bytes on x86_64
@@ -159,61 +160,108 @@ def find_lt104_bluetooth():
 
     return None
 
+
+def get_lt104_battery():
+    """Query battery percentage of LT-104 via upower or bluetoothctl."""
+    try:
+        out = subprocess.check_output(['upower', '-e'], timeout=1, stderr=subprocess.DEVNULL).decode()
+        for line in out.splitlines():
+            if any(k in line.lower() for k in ['e7_01_23_c3_16_0a', 'lt104', 'keyboard']):
+                info = subprocess.check_output(['upower', '-i', line], timeout=1, stderr=subprocess.DEVNULL).decode()
+                m = re.search(r'percentage:\s+(\d+)%', info)
+                if m:
+                    return int(m.group(1))
+    except Exception:
+        pass
+    try:
+        out = subprocess.check_output(['bluetoothctl', 'info', 'E7:01:23:C3:16:0A'], timeout=1, stderr=subprocess.DEVNULL).decode()
+        m = re.search(r'Battery Percentage:.*?\((\d+)\)', out)
+        if m:
+            return int(m.group(1))
+    except Exception:
+        pass
+    return None
+
 def get_lt104_connection_status():
     """
     Explicitly detects which mode the LT-104 keyboard is connected in,
-    or if it is not present at all.
-    Supported connection modes:
-      1. 'usb_cable'   - Connected via USB Type-C Cable (0c45:8009)
-                         Full configuration supported (Lighting, Clock, LCD, HUD, Typing)
-      2. 'usb_dongle'  - Connected via 2.4G Wireless USB Dongle (05ac:024f)
-                         Typing supported; Cable needed for RGB/Clock/LCD flashing
-      3. 'bluetooth'   - Connected via Bluetooth (LT104 BT5.1 / LT84 BT5.1)
-                         Typing supported; Cable needed for RGB/Clock/LCD flashing
-      4. 'disconnected'- Not present at all
+    and reports individual status for all 3 physical interfaces:
+      1. USB Cable (0c45:8009)
+      2. 2.4G USB Dongle (05ac:024f):
+         - "not_plugged": USB dongle is not plugged into the computer.
+         - "plugged_unlinked": USB dongle is plugged in -> keyboard is not connected to the dongle, but dongle is detected.
+         - "plugged_linked": USB dongle is plugged in -> Keyboard is connected to the dongle, and dongle is detected.
+      3. Bluetooth (0005:05ac:024f, LT104 BT5.1_2)
     """
-    usb = find_lt104_usb()
-    if usb:
-        return {
-            "mode": "usb_cable",
-            "mode_name": "USB Cable",
-            "connected": True,
-            "can_configure": True,
-            "path": usb,
-            "lcd_path": find_lt104_lcd_hidraw(),
-            "device_name": "LT104 Wired (SONiX 0c45:8009)"
-        }
+    usb_path = find_lt104_usb()
+    dongle_path = find_lt104_dongle()
+    bt_info = find_lt104_bluetooth()
 
-    bt = find_lt104_bluetooth()
-    if bt and bt.get("found"):
-        return {
-            "mode": "bluetooth",
-            "mode_name": "Bluetooth",
-            "connected": True,
-            "can_configure": False,
-            "path": bt.get("path", "bluetooth"),
-            "device_name": bt.get("name", "LT104 Bluetooth")
-        }
+    cable_connected = bool(usb_path)
+    bt_connected = bool(bt_info and bt_info.get("found"))
+    dongle_detected = bool(dongle_path)
 
-    dongle = find_lt104_dongle()
-    if dongle:
-        return {
-            "mode": "usb_dongle",
-            "mode_name": "USB Dongle",
-            "connected": True,
-            "can_configure": False,
-            "path": dongle,
-            "device_name": "LT104 2.4G Wireless Dongle (05ac:024f)"
-        }
+    # Account for the 3 USB dongle detection states:
+    if not dongle_detected:
+        dongle_status = "not_plugged"
+        dongle_desc = "2.4G 无线接收器未插入电脑"
+    else:
+        # Dongle is plugged in. Determine if keyboard is communicating with the dongle:
+        if cable_connected:
+            dongle_status = "plugged_unlinked"
+            dongle_desc = "2.4G 接收器已插入 USB 接口，但键盘当前处于 USB 有线模式 (未连接至接收器)"
+        elif bt_connected:
+            dongle_status = "plugged_unlinked"
+            dongle_desc = "2.4G 接收器已插入 USB 接口，但键盘当前处于蓝牙无线模式 (未连接至接收器)"
+        else:
+            dongle_status = "plugged_linked"
+            dongle_desc = "2.4G 接收器已插入电脑且键盘已连通通信"
+
+    # Active communication mode:
+    battery = get_lt104_battery() if bt_connected else None
+    if cable_connected:
+        mode = "usb_cable"
+        mode_name = "USB Cable (有线连接模式)"
+        can_configure = True
+        device_name = "LT104 有线模式 (SONiX 0c45:8009)"
+        lcd_path = find_lt104_lcd_hidraw()
+    elif bt_connected:
+        mode = "bluetooth"
+        dev_name = bt_info.get("name", "LT104 BT5.1_2")
+        batt_str = f" · 电量 {battery}%" if battery is not None else ""
+        mode_name = f"Bluetooth (蓝牙无线模式: {dev_name}{batt_str})"
+        can_configure = False
+        device_name = dev_name
+        lcd_path = None
+    elif dongle_detected:
+        mode = "usb_dongle"
+        mode_name = "2.4G USB Dongle (无线接收器模式)"
+        can_configure = False
+        device_name = "LT104 2.4G 接收器 (05ac:024f)"
+        lcd_path = None
+    else:
+        mode = "disconnected"
+        mode_name = "Not Present (未连接)"
+        can_configure = False
+        device_name = None
+        lcd_path = None
 
     return {
-        "mode": "disconnected",
-        "mode_name": "Not Present",
-        "connected": False,
-        "can_configure": False,
-        "path": None,
-        "device_name": None
+        "mode": mode,
+        "mode_name": mode_name,
+        "connected": (mode != "disconnected"),
+        "can_configure": can_configure,
+        "cable_connected": cable_connected,
+        "bt_connected": bt_connected,
+        "dongle_detected": dongle_detected,
+        "dongle_status": dongle_status,
+        "dongle_desc": dongle_desc,
+        "device_name": device_name,
+        "battery": battery,
+        "path": usb_path or (bt_info.get("path") if bt_info else None) or dongle_path,
+        "lcd_path": lcd_path
     }
+
 
 
 class LT104Controller:

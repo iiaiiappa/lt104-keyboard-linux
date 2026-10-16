@@ -160,8 +160,13 @@ HTML_PAGE = """<!DOCTYPE html>
     .conn-pill.active.dongle .dot { background: #f5a623; box-shadow: 0 0 6px #f5a623; }
     .conn-pill.active.bluetooth { background: rgba(53, 132, 228, 0.18); border-color: rgba(53, 132, 228, 0.45); color: #78aeed; box-shadow: 0 0 10px rgba(53, 132, 228, 0.25); }
     .conn-pill.active.bluetooth .dot { background: #78aeed; box-shadow: 0 0 6px #78aeed; }
+    .conn-pill.active.warning { background: rgba(230, 97, 0, 0.18); border: 1px dashed rgba(230, 97, 0, 0.55); color: #ff9f43; }
+    .conn-pill.active.warning .dot { background: #ff9f43; box-shadow: 0 0 6px #ff9f43; }
+    .conn-pill.active.lock { background: rgba(224, 27, 36, 0.18); border-color: rgba(224, 27, 36, 0.45); color: #ff7b7b; }
+    .conn-pill.active.lock .dot { background: #ff7b7b; box-shadow: 0 0 6px #ff7b7b; }
     .conn-pill.inactive { opacity: 0.55; }
     .conn-mode-desc { font-size: 12.5px; line-height: 1.5; color: #a0a0a0; text-align: left; }
+    .main-layout.disabled { opacity: 0.42; pointer-events: none; user-select: none; cursor: not-allowed; filter: grayscale(0.5); }
     .update-badge { background: rgba(53, 132, 228, 0.15); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
     .update-badge:hover { background: rgba(53, 132, 228, 0.25); transform: translateY(-1px); }
     .icon-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13); border-radius: 20px; color: #ccc; padding: 5px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.2s; }
@@ -269,6 +274,7 @@ HTML_PAGE = """<!DOCTYPE html>
           <span id="pill-mode-cable" class="conn-pill"><span class="dot"></span> 🔌 USB Cable (有线)</span>
           <span id="pill-mode-dongle" class="conn-pill"><span class="dot"></span> 📡 2.4G Dongle (接收器)</span>
           <span id="pill-mode-bluetooth" class="conn-pill"><span class="dot"></span> 📶 Bluetooth (蓝牙)</span>
+          <span id="pill-mode-lock" class="conn-pill"><span class="dot"></span> 🔒 硬件配置已锁定</span>
         </div>
       </div>
       <div id="conn-mode-desc" class="conn-mode-desc"></div>
@@ -291,8 +297,14 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- Hardware Settings Locked Warning Banner (Shown when not in USB Cable Mode) -->
+    <div id="settings-locked-banner" style="display: none; background: rgba(224, 27, 36, 0.12); border: 1px solid rgba(224, 27, 36, 0.4); border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; color: #ff8b8b; font-size: 13.5px; align-items: center; gap: 10px;">
+      <span style="font-size: 20px;">🔒</span>
+      <span id="settings-locked-text"></span>
+    </div>
+
     <!-- Two-Column Responsive Settings Layout Below Preview -->
-    <div class="main-layout">
+    <div id="settings-layout" class="main-layout">
       <!-- Left Column: RGB Lighting Card + TFT Clock Calibration Card -->
       <div class="col-left">
         <!-- RGB Lighting Card -->
@@ -1319,29 +1331,122 @@ HTML_PAGE = """<!DOCTYPE html>
         const pillBt = document.getElementById('pill-mode-bluetooth');
         const desc = document.getElementById('conn-mode-desc');
 
-        if (pillCable) pillCable.className = 'conn-pill inactive';
-        if (pillDongle) pillDongle.className = 'conn-pill inactive';
-        if (pillBt) pillBt.className = 'conn-pill inactive';
+        const settingsLayout = document.getElementById('settings-layout');
+        const isCable = (data.mode === 'usb_cable');
+        const pillLock = document.getElementById('pill-mode-lock');
 
+        const bannerLock = document.getElementById('settings-locked-banner');
+        const textLock = document.getElementById('settings-locked-text');
+
+        if (settingsLayout) {
+          if (isCable) {
+            settingsLayout.classList.remove('disabled');
+            settingsLayout.querySelectorAll('button, input, select').forEach(el => el.disabled = false);
+          } else {
+            settingsLayout.classList.add('disabled');
+            settingsLayout.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
+          }
+        }
+
+        if (pillLock) {
+          if (isCable) {
+            pillLock.className = 'conn-pill active cable';
+            pillLock.innerHTML = '<span class="dot"></span> 🔓 ' + t('mode_ready_pill');
+          } else {
+            pillLock.className = 'conn-pill active lock';
+            pillLock.innerHTML = '<span class="dot"></span> 🔒 ' + t('mode_locked_pill');
+          }
+        }
+
+        if (bannerLock && textLock) {
+          if (isCable) {
+            bannerLock.style.display = 'none';
+          } else {
+            bannerLock.style.display = 'flex';
+            if (data.mode === 'bluetooth') {
+              const battStr = (data.battery !== null && data.battery !== undefined) ? ` · 电量 ${data.battery}%` : '';
+              textLock.innerHTML = '<strong>' + t('mode_locked_title') + ':</strong> ' + t('mode_locked_bt_msg', { name: (data.device_name || 'LT104 BT') + battStr });
+            } else if (data.mode === 'usb_dongle') {
+              textLock.innerHTML = '<strong>' + t('mode_locked_title') + ':</strong> ' + t('mode_locked_dongle_msg');
+            } else {
+              textLock.innerHTML = '<strong>' + t('mode_locked_title') + ':</strong> ' + t('mode_locked_none_msg');
+            }
+          }
+        }
+
+        // 1. Cable pill
+        if (pillCable) {
+          if (data.cable_connected) {
+            pillCable.className = 'conn-pill active cable';
+            pillCable.innerHTML = '<span class="dot"></span> 🔌 ' + t('cable_pill_connected');
+          } else {
+            pillCable.className = 'conn-pill inactive';
+            pillCable.innerHTML = '<span class="dot"></span> 🔌 ' + t('cable_pill_disconnected');
+          }
+        }
+
+        // 2. Dongle pill (Accounts for 3 cases: not_plugged, plugged_unlinked, plugged_linked)
+        if (pillDongle) {
+          if (data.dongle_status === 'plugged_linked') {
+            pillDongle.className = 'conn-pill active dongle';
+            pillDongle.innerHTML = '<span class="dot"></span> 📡 ' + t('dongle_pill_linked');
+          } else if (data.dongle_status === 'plugged_unlinked') {
+            pillDongle.className = 'conn-pill active warning';
+            pillDongle.innerHTML = '<span class="dot"></span> 📡 ' + t('dongle_pill_unlinked');
+          } else {
+            pillDongle.className = 'conn-pill inactive';
+            pillDongle.innerHTML = '<span class="dot"></span> 📡 ' + t('dongle_pill_not_plugged');
+          }
+        }
+
+        // 3. Bluetooth pill
+        if (pillBt) {
+          if (data.bt_connected) {
+            const battStr = (data.battery !== null && data.battery !== undefined) ? ` · ${data.battery}%` : '';
+            pillBt.className = 'conn-pill active bluetooth';
+            pillBt.innerHTML = '<span class="dot"></span> 📶 ' + t('bt_pill_connected', { batt: battStr });
+          } else {
+            pillBt.className = 'conn-pill inactive';
+            pillBt.innerHTML = '<span class="dot"></span> 📶 ' + t('bt_pill_disconnected');
+          }
+        }
+
+        // 4. Header Badge & Description
         if (data.mode === 'usb_cable') {
           badge.innerText = '● ' + t('mode_cable_badge');
           badge.className = 'status-badge cable';
-          if (pillCable) pillCable.className = 'conn-pill active cable';
-          if (desc) desc.innerHTML = '<strong>' + t('mode_usb_cable') + '</strong>: ' + t('mode_cable_hint');
+          let descHtml = '<strong>' + t('mode_usb_cable') + '</strong>: ' + t('mode_cable_hint');
+          if (data.dongle_status === 'plugged_unlinked') {
+            descHtml += '<br/><span style="color:#f5a623;">● ' + t('dongle_pill_unlinked') + ': 2.4G 接收器已插入电脑 USB 接口，但键盘处于有线模式。</span>';
+          }
+          if (desc) desc.innerHTML = descHtml;
+        } else if (data.mode === 'bluetooth') {
+          const battStr = (data.battery !== null && data.battery !== undefined) ? ` (${data.battery}%)` : '';
+          badge.innerText = '● ' + t('mode_bluetooth_badge') + battStr;
+          badge.className = 'status-badge bluetooth';
+          let descHtml = '<strong>' + t('mode_bluetooth') + '</strong>: ';
+          if (data.dongle_status === 'plugged_unlinked') {
+            descHtml += t('mode_bt_with_dongle_hint', { name: (data.device_name || 'LT104 BT') + battStr });
+          } else {
+            descHtml += t('mode_bt_no_dongle_hint', { name: (data.device_name || 'LT104 BT') + battStr });
+          }
+          descHtml += ' <span style="color:#ff7b7b;">🔒 下方硬件配置控件已锁定。</span>';
+          if (desc) desc.innerHTML = descHtml;
         } else if (data.mode === 'usb_dongle') {
           badge.innerText = '● ' + t('mode_dongle_badge');
           badge.className = 'status-badge dongle';
-          if (pillDongle) pillDongle.className = 'conn-pill active dongle';
-          if (desc) desc.innerHTML = '<strong>' + t('mode_usb_dongle') + '</strong>: ' + t('mode_dongle_hint');
-        } else if (data.mode === 'bluetooth') {
-          badge.innerText = '● ' + t('mode_bluetooth_badge');
-          badge.className = 'status-badge bluetooth';
-          if (pillBt) pillBt.className = 'conn-pill active bluetooth';
-          if (desc) desc.innerHTML = '<strong>' + t('mode_bluetooth') + '</strong>: ' + t('mode_bluetooth_hint', { name: data.device_name || 'LT104 BT' });
+          if (desc) desc.innerHTML = '<strong>' + t('mode_usb_dongle') + '</strong>: ' + t('mode_dongle_hint') + ' <span style="color:#ff7b7b;">🔒 下方硬件配置控件已锁定。</span>';
         } else {
           badge.innerText = '● ' + t('mode_not_present_badge');
           badge.className = 'status-badge error';
-          if (desc) desc.innerHTML = '<strong>' + t('mode_not_present') + '</strong>: ' + t('mode_not_present_hint');
+          let descHtml = '<strong>' + t('mode_not_present') + '</strong>: ';
+          if (data.dongle_status === 'plugged_unlinked') {
+            descHtml += t('mode_dongle_unlinked_hint');
+          } else {
+            descHtml += t('mode_not_present_hint');
+          }
+          descHtml += ' <span style="color:#ff7b7b;">🔒 下方硬件配置控件已锁定。</span>';
+          if (desc) desc.innerHTML = descHtml;
         }
       } catch (e) {}
     }
@@ -2300,17 +2405,14 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({
-                "mode": info["mode"],
-                "mode_name": info["mode_name"],
-                "connected": info["connected"],
-                "can_configure": info["can_configure"],
-                "device_name": info.get("device_name"),
+            status_data = dict(info)
+            status_data.update({
                 "usb_dev": info.get("path") if info["mode"] == "usb_cable" else find_lt104_usb(),
                 "lcd_dev": info.get("lcd_path") if info["mode"] == "usb_cable" else find_lt104_lcd_hidraw(),
-                "dongle_dev": info.get("path") if info["mode"] == "usb_dongle" else find_lt104_dongle(),
+                "dongle_dev": find_lt104_dongle(),
                 "bt_dev": info.get("path") if info["mode"] == "bluetooth" else None,
-            }).encode())
+            })
+            self.wfile.write(json.dumps(status_data).encode())
 
         elif self.path == "/api/hud-status":
             global HUD_PROC, HUD_INTERVAL

@@ -248,25 +248,52 @@ def main():
     elif args.cmd == "status":
         info = get_lt104_connection_status()
         mode = info["mode"]
+        cable_connected = info.get("cable_connected", False)
+        bt_connected = info.get("bt_connected", False)
+        dongle_status = info.get("dongle_status", "not_plugged")
+        battery = info.get("battery")
+
+        print("=== LangTu LT-104 Keyboard Status ===")
         if mode == "usb_cable":
-            print("MODE: USB_CABLE (USB Type-C 有线模式)")
-            print("STATUS: Connected via USB Cable (0c45:8009)")
-            print(f"DEVICE: {info.get('path')} | LCD: {info.get('lcd_path') or 'N/A'}")
-            print("FEATURES: Full hardware control active (RGB lighting, clock sync, LCD GIF uploader, HUD telemetry, typing)")
-        elif mode == "usb_dongle":
-            print("MODE: USB_DONGLE (2.4G 无线接收器模式)")
-            print("STATUS: Connected via 2.4G Wireless USB Dongle (05ac:024f)")
-            print(f"DEVICE: {info.get('path')}")
-            print("FEATURES: Keyboard typing active. (Note: USB cable connection is required for RGB/clock/LCD settings)")
+            print("PRIMARY MODE:      🔌 USB_CABLE (USB Type-C 有线模式)")
+            print("HARDWARE CONFIG:   🔓 UNLOCKED (RGB EEPROM, RTC Clock, LCD GIF, HUD telemetry ready)")
         elif mode == "bluetooth":
-            print("MODE: BLUETOOTH (蓝牙无线模式)")
-            print(f"STATUS: Connected via Bluetooth ({info.get('device_name')})")
-            print(f"DEVICE: {info.get('path')}")
-            print("FEATURES: Keyboard typing active. (Note: USB cable connection is required for RGB/clock/LCD settings)")
+            batt_info = f" (Battery: {battery}%)" if battery is not None else ""
+            print(f"PRIMARY MODE:      📶 BLUETOOTH (蓝牙无线模式: {info.get('device_name')}{batt_info})")
+            print("HARDWARE CONFIG:   🔒 LOCKED (USB Type-C cable connection required)")
+        elif mode == "usb_dongle":
+            print("PRIMARY MODE:      📡 USB_DONGLE (2.4G 无线接收器模式 · 键盘已连通)")
+            print("HARDWARE CONFIG:   🔒 LOCKED (USB Type-C cable connection required)")
         else:
-            print("MODE: NOT_PRESENT (未检测到键盘 / 未连接)")
-            print("STATUS: Keyboard is not connected in any mode.")
-            print("SUPPORTED MODES: 1) USB Cable  2) 2.4G USB Dongle  3) Bluetooth")
+            print("PRIMARY MODE:      ❌ NOT_PRESENT (未检测到键盘通信)")
+            print("HARDWARE CONFIG:   🔒 LOCKED (USB Type-C cable connection required)")
+
+        print("--- Interface Breakdown ---")
+        # 1. USB Cable
+        cable_str = f"Connected ({info.get('path')} | LCD: {info.get('lcd_path') or 'N/A'})" if cable_connected else "Disconnected (未连接)"
+        print(f"1. USB Cable:      {cable_str}")
+
+        # 2. 2.4G Dongle
+        if dongle_status == "plugged_linked":
+            dongle_str = f"Plugged In & Keyboard Connected ({info.get('path')})"
+        elif dongle_status == "plugged_unlinked":
+            dongle_str = f"Plugged In, but Keyboard Unlinked (In {mode} mode)"
+        else:
+            dongle_str = "Not Plugged In (未插入电脑)"
+        print(f"2. 2.4G Dongle:    {dongle_str}")
+
+        # 3. Bluetooth
+        if bt_connected:
+            bt_str = f"Connected ({info.get('device_name')}, Battery: {battery}%)"
+        else:
+            bt_str = "Disconnected (未连接)"
+        print(f"3. Bluetooth:      {bt_str}")
+
+        # Remap / typing note
+        if mode != "disconnected":
+            print("TYPING & REMAP:    ✓ Key Remapping active (Left Alt=125, Left Win=56, Right Alt=125, Menu=127)")
+        else:
+            print("TYPING & REMAP:    ✗ No active keyboard connected")
         return
 
     elif args.cmd == "remap-keys":
