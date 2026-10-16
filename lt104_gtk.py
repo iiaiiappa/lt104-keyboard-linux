@@ -99,16 +99,16 @@ class LT104Window(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_title("LT-104 键盘控制中心")
-        # Calculate optimal size based on screen monitor work area
-        target_w = 1240
-        target_h = 1240
+        # Calculate optimal size based on screen monitor work area to fit all controls without scrollbars
+        target_w = 1180
+        target_h = 930
         display = Gdk.Display.get_default()
         if display:
             monitors = display.get_monitors()
             if monitors and monitors.get_n_items() > 0:
                 geom = monitors.get_item(0).get_geometry()
                 target_w = min(target_w, max(960, geom.width - 40))
-                target_h = min(target_h, max(720, geom.height - 70))
+                target_h = min(940, max(720, geom.height - 70))
 
         self.set_default_size(target_w, target_h)
         self.set_resizable(True)
@@ -157,25 +157,24 @@ class LT104Window(Adw.ApplicationWindow):
         self._main_scroll = scroll
 
         clamp = Adw.Clamp()
-        clamp.set_maximum_size(1160)
-        clamp.set_margin_top(6)
-        clamp.set_margin_bottom(8)
-        clamp.set_margin_start(14)
-        clamp.set_margin_end(14)
+        clamp.set_maximum_size(1180)
+        clamp.set_margin_top(4)
+        clamp.set_margin_bottom(4)
+        clamp.set_margin_start(10)
+        clamp.set_margin_end(10)
         scroll.set_child(clamp)
 
-
         # Main vertical container: Top Preview Card + 2-Column Setting Cards below
-        main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         clamp.set_child(main_vbox)
 
         # 2-Column responsive container below the preview
-        two_col_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
+        two_col_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         two_col_box.set_homogeneous(True)
         self._two_col_box = two_col_box
 
-        col_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        col_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        col_left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        col_right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         two_col_box.append(col_left)
         two_col_box.append(col_right)
 
@@ -217,11 +216,10 @@ class LT104Window(Adw.ApplicationWindow):
         # ---- Below: 2-Column Setting Cards ---- #
         main_vbox.append(two_col_box)
 
-        # ---- Left Column: RGB Card & Clock Sync Card ---- #
+        # ---- Left Column: RGB Card ---- #
         col_left.append(self._build_rgb_card())
-        col_left.append(self._build_clock_card())
 
-        # ---- Right Column: Real-time HUD Card & LCD Uploader Card ---- #
+        # ---- Right Column: Real-time HUD Card & TFT Screen Management Card ---- #
         col_right.append(self._build_hud_card())
         col_right.append(self._build_lcd_card())
 
@@ -276,10 +274,10 @@ class LT104Window(Adw.ApplicationWindow):
     # ------------------------------------------------------------------ #
 
     def _build_preview_card(self):
-        """Top-middle full-width preview card with 200% larger keyboard visualizer (284px height)."""
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        """Top-middle full-width preview card with keyboard visualizer (165px height)."""
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         card.add_css_class("card")
-        card.set_margin_bottom(4)
+        card.set_margin_bottom(2)
 
         cfg = load_config()
         current_mode_id = int(cfg.get("mode", 1))
@@ -289,9 +287,10 @@ class LT104Window(Adw.ApplicationWindow):
                 initial_mode_idx = idx
                 break
 
-        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         header_box.set_margin_start(4)
         header_box.set_margin_end(4)
+        header_box.set_margin_top(2)
 
         dot = Gtk.Label(label="●")
         dot.add_css_class("accent")
@@ -316,9 +315,9 @@ class LT104Window(Adw.ApplicationWindow):
 
         card.append(header_box)
 
-        # Drawing Area (Height: 284px — 200% larger than original 142px)
+        # Drawing Area (Height: 148px - perfectly scaled to fit screen without scrollbars)
         self._preview_area = Gtk.DrawingArea()
-        self._preview_area.set_content_height(284)
+        self._preview_area.set_content_height(148)
         self._preview_area.set_hexpand(True)
         self._preview_area.set_draw_func(self._on_draw_keyboard_preview)
 
@@ -360,28 +359,14 @@ class LT104Window(Adw.ApplicationWindow):
         self._mode_row.connect("notify::selected", self._on_mode_changed)
         group.add(self._mode_row)
 
-        # Colour button row
+        # Combined Colour & Quick Presets row
         self._color_row = Adw.ActionRow()
-        self._color_row.set_title("自订颜色")
-        self._color_row.set_subtitle("点击色块选择")
-        self._color_btn = Gtk.ColorDialogButton()
-        self._color_btn.set_valign(Gtk.Align.CENTER)
-        dialog = Gtk.ColorDialog()
-        dialog.set_title("选择键盘背光颜色")
-        dialog.set_with_alpha(False)
-        self._color_btn.set_dialog(dialog)
-        # Set saved or default color
-        rgba = Gdk.RGBA()
-        rgba.parse(cfg.get("color", "#00e5ff"))
-        self._color_btn.set_rgba(rgba)
-        self._color_row.add_suffix(self._color_btn)
-        group.add(self._color_row)
+        self._color_row.set_title("背光颜色与预设")
+        self._color_row.set_subtitle("选择色块或点击调色盘")
 
-        # Colour presets
-        self._presets_row = Adw.ActionRow()
-        self._presets_row.set_title("快速颜色")
-        preset_box = Gtk.Box(spacing=8)
-        preset_box.set_valign(Gtk.Align.CENTER)
+        color_combo_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        color_combo_box.set_valign(Gtk.Align.CENTER)
+
         preset_colors = [
             ("#ff0055", "品红"), ("#00e5ff", "青蓝"), ("#00e676", "翠绿"),
             ("#ffd600", "亮黄"), ("#d500f9", "紫色"), ("#ff3d00", "橙红"),
@@ -392,7 +377,7 @@ class LT104Window(Adw.ApplicationWindow):
             "popover, popover.menu { min-width: 340px; }",
             "popover listview { min-width: 320px; }",
             "popover listview row { min-width: 320px; }",
-            ".conn-pill { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 600; background: rgba(255, 255, 255, 0.05); color: #888888; border: 1px solid rgba(255,255,255,0.08); }",
+            ".conn-pill { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: rgba(255, 255, 255, 0.05); color: #888888; border: 1px solid rgba(255,255,255,0.08); }",
             ".conn-pill-active-cable { background: rgba(46, 194, 126, 0.2); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.6); }",
             ".conn-pill-active-dongle { background: rgba(246, 185, 59, 0.2); color: #f5a623; border: 1px solid rgba(246, 185, 59, 0.6); }",
             ".conn-pill-active-bluetooth { background: rgba(53, 132, 228, 0.2); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.6); }",
@@ -404,26 +389,39 @@ class LT104Window(Adw.ApplicationWindow):
         for idx, (hex_c, name) in enumerate(preset_colors):
             btn = Gtk.Button()
             btn.set_tooltip_text(name)
-            btn.set_size_request(28, 28)
+            btn.set_size_request(24, 24)
             btn.add_css_class(f"preset-btn-{idx}")
-            css_rules.append(f".preset-btn-{idx} {{ background: {hex_c}; border-radius: 50%; min-width: 28px; min-height: 28px; padding: 0; }}")
+            css_rules.append(f".preset-btn-{idx} {{ background: {hex_c}; border-radius: 50%; min-width: 24px; min-height: 24px; padding: 0; }}")
             btn.connect("clicked", self._on_preset_clicked, hex_c)
-            preset_box.append(btn)
+            color_combo_box.append(btn)
 
         css.load_from_string("\n".join(css_rules))
         display = Gdk.Display.get_default()
         if display:
             Gtk.StyleContext.add_provider_for_display(display, css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-        self._presets_row.add_suffix(preset_box)
-        group.add(self._presets_row)
+        # Color dialog button
+        self._color_btn = Gtk.ColorDialogButton()
+        self._color_btn.set_valign(Gtk.Align.CENTER)
+        dialog = Gtk.ColorDialog()
+        dialog.set_title("选择键盘背光颜色")
+        dialog.set_with_alpha(False)
+        self._color_btn.set_dialog(dialog)
+        rgba = Gdk.RGBA()
+        rgba.parse(cfg.get("color", "#00e5ff"))
+        self._color_btn.set_rgba(rgba)
+        color_combo_box.append(self._color_btn)
+
+        self._color_row.add_suffix(color_combo_box)
+        self._presets_row = self._color_row
+        group.add(self._color_row)
 
         # Brightness
         bright_row = Adw.ActionRow()
         bright_row.set_title("亮度")
         bright_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         bright_box.set_valign(Gtk.Align.CENTER)
-        bright_box.set_size_request(200, -1)
+        bright_box.set_size_request(160, -1)
         self._brightness_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 4, 1)
         self._brightness_scale.set_value(int(cfg.get("brightness", 4)))
         self._brightness_scale.set_draw_value(True)
@@ -438,7 +436,7 @@ class LT104Window(Adw.ApplicationWindow):
         speed_row.set_title("动态速度")
         speed_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         speed_box.set_valign(Gtk.Align.CENTER)
-        speed_box.set_size_request(200, -1)
+        speed_box.set_size_request(160, -1)
         self._speed_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 4, 1)
         self._speed_scale.set_value(int(cfg.get("speed", 3)))
         self._speed_scale.set_draw_value(True)
@@ -450,12 +448,11 @@ class LT104Window(Adw.ApplicationWindow):
 
         # ---- Side Edge Backlight Controls (侧翼双侧灯带 - 硬件快捷键控制) ---- #
         self._side_mode_row = Adw.ComboRow()
-        self._side_mode_row.set_title("两侧边缘背光 (侧翼灯带 - 状态预览)")
-        self._side_mode_row.set_subtitle("💡 纯硬件按键控制：请直接在键盘上按 Fn + Insert 切换模式与颜色（仅供预览，不可软件修改）")
+        self._side_mode_row.set_title("两侧边缘背光 (侧翼灯带)")
+        self._side_mode_row.set_subtitle("硬件按键 Fn+Ins 切换，此处同步预览")
         side_mode_strings = Gtk.StringList.new([m["name"] for m in SIDE_LIGHT_MODES])
         self._side_mode_row.set_model(side_mode_strings)
         self._side_mode_row.set_list_factory(make_wide_list_factory())
-        # Enabled to allow viewing all options; selection updates local preview only without configuring hardware
         self._side_mode_row.set_sensitive(True)
         current_side_mode = int(cfg.get("side_mode", 1))
         initial_side_idx = 1
@@ -468,8 +465,8 @@ class LT104Window(Adw.ApplicationWindow):
         group.add(self._side_mode_row)
 
         self._side_color_row = Adw.ActionRow()
-        self._side_color_row.set_title("两侧边缘背光颜色预览 (Side Light Color Preview)")
-        self._side_color_row.set_subtitle("当前硬件档位预设颜色（仅供预览）")
+        self._side_color_row.set_title("侧翼灯带当前颜色预览")
+        self._side_color_row.set_subtitle("硬件档位对应颜色（仅供预览）")
         self._side_color_btn = Gtk.ColorDialogButton()
         self._side_color_btn.set_valign(Gtk.Align.CENTER)
         self._side_color_btn.set_sensitive(False)  # Read-only non-editable
@@ -481,15 +478,13 @@ class LT104Window(Adw.ApplicationWindow):
         side_rgba.parse(cfg.get("side_color", "#00e5ff"))
         self._side_color_btn.set_rgba(side_rgba)
         self._side_color_row.add_suffix(self._side_color_btn)
-        # Mode 0: Off, 1: Breathing, 2: Spectrum Cycle -> NO Side Light Color Preview (hide)
-        # Modes 3-10 (Preset colors) -> show preview
         self._side_color_row.set_visible(current_side_mode >= 3)
         group.add(self._side_color_row)
 
         # ---- Inactivity Sleep Timeout Row (无活动自动熄灭背光) ---- #
         self._sleep_timer_row = Adw.ComboRow()
-        self._sleep_timer_row.set_title("背光无活动休眠时间 (自动熄灭)")
-        self._sleep_timer_row.set_subtitle("无键盘活动时自动熄灭背光以节省电量并保护硬件")
+        self._sleep_timer_row.set_title("背光自动休眠 (省电)")
+        self._sleep_timer_row.set_subtitle("无键盘活动时自动熄灭背光")
         sleep_timer_strings = Gtk.StringList.new([m["name"] for m in SLEEP_TIMER_MODES])
         self._sleep_timer_row.set_model(sleep_timer_strings)
         self._sleep_timer_row.set_list_factory(make_wide_list_factory())
@@ -506,7 +501,7 @@ class LT104Window(Adw.ApplicationWindow):
         # Auto Apply Switch Row
         self._auto_apply_row = Adw.SwitchRow()
         self._auto_apply_row.set_title("即时生效 (调整时自动应用)")
-        self._auto_apply_row.set_subtitle("开启后调整模式、颜色、亮度、速度或侧边灯立即应用，无需手动点击应用按钮")
+        self._auto_apply_row.set_subtitle("修改参数立即写入键盘，无需手动保存")
         auto_apply_val = cfg.get("light_auto_apply", True)
         self._auto_apply_row.set_active(bool(auto_apply_val))
         self._auto_apply_row.connect("notify::active", self._on_auto_apply_toggled)
@@ -516,7 +511,7 @@ class LT104Window(Adw.ApplicationWindow):
         self._apply_btn = Gtk.Button(label="✨  即时应用并保存灯效")
         self._apply_btn.add_css_class("suggested-action")
         self._apply_btn.add_css_class("pill")
-        self._apply_btn.set_margin_top(8)
+        self._apply_btn.set_margin_top(4)
         self._apply_btn.connect("clicked", self._on_apply_light)
         self._apply_btn.set_visible(not bool(auto_apply_val))
         group.add(self._apply_btn)
@@ -530,40 +525,21 @@ class LT104Window(Adw.ApplicationWindow):
 
 
     def _build_clock_card(self):
-        group = Adw.PreferencesGroup()
-        group.set_title("🕒  TFT 时钟校准与定时同步")
-        group.set_description("即时同步系统时间到键盘屏幕，或启用后台 12 小时自动校准服务")
-
-        # 12-Hour Schedule Auto-Sync Row
-        self._sched_row = Adw.SwitchRow()
-        self._sched_row.set_title("定时同步小屏幕时钟 (每 12 小时)")
-        self._sched_row.set_subtitle("基于系统服务在后台自动校准键盘时间")
-        timer_path = os.path.expanduser("~/.config/systemd/user/timers.target.wants/lt104-clock-sync.timer")
-        self._sched_row.set_active(os.path.exists(timer_path))
-        self._sched_row.connect("notify::active", self._on_schedule_toggled)
-        group.add(self._sched_row)
-
-        # Clock sync action button
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.set_margin_top(4)
-        self._clock_btn = Gtk.Button(label="🕒  立即同步电脑时钟到键盘小屏幕")
-        self._clock_btn.add_css_class("pill")
-        self._clock_btn.connect("clicked", self._on_sync_clock)
-        box.append(self._clock_btn)
-        group.add(box)
-
-        return group
+        # Merged into _build_lcd_card for optimal balanced 2-column layout
+        box = Gtk.Box()
+        box.set_visible(False)
+        return box
 
     def _build_hud_card(self):
         group = Adw.PreferencesGroup()
         group.set_title("📊  系统监控 HUD (CPU / 内存 / 磁盘)")
-        group.set_description("在键盘 LCD 上实时轮播电脑硬件遥测，直接写 RAM，零 Flash 磨损")
+        group.set_description("在键盘 LCD 上实时轮播硬件遥测，直接写 RAM 零磨损")
 
         # Interval selector row
         self._interval_intervals = [2, 5, 10, 20, 30, 60, 120, 300]
         self._interval_row = Adw.ComboRow()
         self._interval_row.set_title("HUD 刷新间隔")
-        self._interval_row.set_subtitle("设定 CPU / 内存 / 时钟 轮播更新频率")
+        self._interval_row.set_subtitle("设定遥测轮播更新频率")
         model = Gtk.StringList.new([
             "2 秒 (高频)",
             "5 秒 (快速)",
@@ -591,7 +567,7 @@ class LT104Window(Adw.ApplicationWindow):
         self._restore_presets = ["lt104_sample.gif", "0_perfect36.gif", "none"]
         self._restore_row = Adw.ComboRow()
         self._restore_row.set_title("停止 HUD 恢复动画")
-        self._restore_row.set_subtitle("停止监控后恢复出厂或预设动画，避免画面停留在最后静态遥测")
+        self._restore_row.set_subtitle("停止监控后恢复预设动画，避免停留在静态遥测")
         restore_model = Gtk.StringList.new([
             "lt104_sample.gif (出厂小循环预设 - 默认)",
             "0_perfect36.gif (动态预设动画)",
@@ -607,11 +583,11 @@ class LT104Window(Adw.ApplicationWindow):
         self._restore_row.connect("notify::selected", self._on_restore_changed)
         group.add(self._restore_row)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        box.set_margin_top(4)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        box.set_margin_top(2)
 
         # Buttons: Row 1 (Toggle HUD) + Row 2 (Single-shot Once & Restore Anim)
-        btn_box1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self._hud_btn = Gtk.Button(label=f"📊  开启即时系统 HUD (每{int(initial_inv)}秒更新)")
         self._hud_btn.add_css_class("pill")
         self._hud_btn.set_hexpand(True)
@@ -619,7 +595,7 @@ class LT104Window(Adw.ApplicationWindow):
         btn_box1.append(self._hud_btn)
         box.append(btn_box1)
 
-        btn_box2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         self._hud_once_btn = Gtk.Button(label="⚡  立即单次刷新")
         self._hud_once_btn.add_css_class("pill")
         self._hud_once_btn.set_hexpand(True)
@@ -633,34 +609,37 @@ class LT104Window(Adw.ApplicationWindow):
         btn_box2.append(self._hud_restore_btn)
         box.append(btn_box2)
 
-
-        # HUD status note
-        self._hud_note = Gtk.Label(label="直接写 RAM 缓存，零 Flash 磨损，打字 100% 流畅")
+        # Compact HUD note with technical details in tooltip
+        self._hud_note = Gtk.Label(label="💡 写 RAM 缓存零 Flash 磨损 · 刷新占用 SPI 约 0.5s，推荐间隔 2~5 分钟或单次刷新")
         self._hud_note.add_css_class("caption")
         self._hud_note.add_css_class("dim-label")
+        self._hud_note.set_tooltip_text("键盘内置 48MHz 单核 MCU，写 RAM 缓存零 Flash 磨损。向屏幕传输 28KB 画面时占用全部 SPI 总线带宽，会短暂停顿软件 PWM 调光约 0.5 秒。")
+        self._hud_note.set_xalign(0.0)
+        self._hud_note.set_margin_top(2)
         box.append(self._hud_note)
 
-        # Hardware technical note banner
-        self._hw_note = Gtk.Label(
-            label="💡 说明：键盘内置 48MHz 单核 MCU，每次向屏幕传输 28KB 画面时占用全部 SPI 总线带宽，会短暂停顿软件 PWM 调光约 0.5 秒。推荐将刷新间隔设为 2 至 5 分钟，或使用「⚡ 立即单次刷新」。"
-        )
-        self._hw_note.set_wrap(True)
-        self._hw_note.set_xalign(0.0)
-        self._hw_note.add_css_class("caption")
-        self._hw_note.set_margin_top(4)
-        box.append(self._hw_note)
+        self._hw_note = Gtk.Box()
 
         group.add(box)
         return group
 
     def _build_lcd_card(self):
         group = Adw.PreferencesGroup()
-        group.set_title("📺  LCD 图片 / GIF 上传")
-        group.set_description("自动缩放为 160 × 80 像素 RGB565，支持多帧 GIF 动画")
+        group.set_title("📺  TFT 屏幕管理 (时钟校准 · GIF 上传)")
+        group.set_description("校准系统时钟或上传 160 × 80 像素 RGB565 动画")
+
+        # 12-Hour Schedule Auto-Sync Row
+        self._sched_row = Adw.SwitchRow()
+        self._sched_row.set_title("定时同步小屏幕时钟 (每 12 小时)")
+        self._sched_row.set_subtitle("基于系统服务在后台自动校准键盘时间")
+        timer_path = os.path.expanduser("~/.config/systemd/user/timers.target.wants/lt104-clock-sync.timer")
+        self._sched_row.set_active(os.path.exists(timer_path))
+        self._sched_row.connect("notify::active", self._on_schedule_toggled)
+        group.add(self._sched_row)
 
         # File chooser row
         file_row = Adw.ActionRow()
-        file_row.set_title("选择图片")
+        file_row.set_title("选择图片 / GIF 动画")
         self._file_label = Gtk.Label(label="未选择文件")
         self._file_label.add_css_class("dim-label")
         self._file_label.add_css_class("caption")
@@ -682,11 +661,23 @@ class LT104Window(Adw.ApplicationWindow):
         prog_row.add_suffix(self._progress_bar)
         group.add(prog_row)
 
-        upload_btn = Gtk.Button(label="🚀  上传到键盘屏幕")
-        upload_btn.add_css_class("pill")
-        upload_btn.set_margin_top(4)
-        upload_btn.connect("clicked", self._on_upload_lcd)
-        group.add(upload_btn)
+        # Dual action buttons: Clock Sync + Upload
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box.set_margin_top(4)
+
+        self._clock_btn = Gtk.Button(label="🕒  立即同步时钟")
+        self._clock_btn.add_css_class("pill")
+        self._clock_btn.set_hexpand(True)
+        self._clock_btn.connect("clicked", self._on_sync_clock)
+        btn_box.append(self._clock_btn)
+
+        self._upload_btn = Gtk.Button(label="🚀  上传到键盘屏幕")
+        self._upload_btn.add_css_class("pill")
+        self._upload_btn.set_hexpand(True)
+        self._upload_btn.connect("clicked", self._on_upload_lcd)
+        btn_box.append(self._upload_btn)
+
+        group.add(btn_box)
 
         self._selected_file = None
         self._lcd_group = group
@@ -695,20 +686,20 @@ class LT104Window(Adw.ApplicationWindow):
     # ------------------------------------------------------------------ #
     #  Status                                                               #
     def _build_connection_status_card(self):
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         card.add_css_class("card")
-        card.set_margin_top(2)
+        card.set_margin_top(0)
         card.set_margin_bottom(2)
 
-        pad_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        pad_box.set_margin_top(10)
-        pad_box.set_margin_bottom(10)
-        pad_box.set_margin_start(14)
-        pad_box.set_margin_end(14)
+        pad_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        pad_box.set_margin_top(5)
+        pad_box.set_margin_bottom(5)
+        pad_box.set_margin_start(10)
+        pad_box.set_margin_end(10)
         card.append(pad_box)
 
         # Top row: Left (Icon + Title), Right (3-Mode Segment Pills)
-        top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         top_row.set_hexpand(True)
         pad_box.append(top_row)
 
