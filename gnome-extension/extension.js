@@ -39,13 +39,38 @@ function findAppPath() {
     return 'lt104';
 }
 
-function setItemVisible(item, visible) {
+function setItemEnabledAndVisible(item, enabled) {
     if (!item) return;
-    item.visible = visible;
+    item.visible = enabled;
+    item.reactive = enabled;
+    item.can_focus = enabled;
     if (item.actor) {
-        item.actor.visible = visible;
+        item.actor.visible = enabled;
+        item.actor.reactive = enabled;
+        item.actor.can_focus = enabled;
+    }
+    if (item.menu) {
+        if (item.menu.actor) {
+            item.menu.actor.visible = enabled;
+            item.menu.actor.reactive = enabled;
+        }
+        if (item.menu.box) {
+            item.menu.box.visible = enabled;
+            item.menu.box.reactive = enabled;
+        }
+        if (item.menu._getMenuItems) {
+            item.menu._getMenuItems().forEach(sub => {
+                sub.reactive = enabled;
+                sub.can_focus = enabled;
+                if (sub.actor) {
+                    sub.actor.reactive = enabled;
+                    sub.actor.can_focus = enabled;
+                }
+            });
+        }
     }
 }
+const setItemVisible = setItemEnabledAndVisible;
 
 // Internationalization dictionary for all major Ubuntu languages
 const EXT_I18N = {
@@ -542,6 +567,10 @@ class LT104Indicator extends PanelMenu.Button {
         // Quick Clock Sync
         this._syncItem = new PopupMenu.PopupMenuItem('🕒 ' + t('sync_clock'));
         this._syncItem.connect('activate', () => {
+            if (!this._isCableMode) {
+                Main.notify('LT-104', t('locked_banner'));
+                return;
+            }
             runCliAsync(['sync-clock'], t('clock_synced'));
         });
         this.menu.addMenuItem(this._syncItem);
@@ -549,6 +578,10 @@ class LT104Indicator extends PanelMenu.Button {
         // 12-Hour Schedule Clock Auto-Sync
         this._schedItem = new PopupMenu.PopupMenuItem('⏱️ ' + t('sched_clock'));
         this._schedItem.connect('activate', () => {
+            if (!this._isCableMode) {
+                Main.notify('LT-104', t('locked_banner'));
+                return;
+            }
             try {
                 let cliPath = findCliPath();
                 let cmd = ['/usr/bin/python3', cliPath, 'clock-schedule-status'];
@@ -569,6 +602,10 @@ class LT104Indicator extends PanelMenu.Button {
         let currentInterval = 120;
         this._hudItem = new PopupMenu.PopupMenuItem('📊 ' + t('hud_toggle', {sec: currentInterval}));
         this._hudItem.connect('activate', () => {
+            if (!this._isCableMode) {
+                Main.notify('LT-104', t('locked_banner'));
+                return;
+            }
             try {
                 let cliPath = findCliPath();
                 let cmd = ['/usr/bin/python3', cliPath, 'hud-status'];
@@ -588,6 +625,10 @@ class LT104Indicator extends PanelMenu.Button {
         // Update HUD Once (single-shot)
         this._hudOnceItem = new PopupMenu.PopupMenuItem('⚡ ' + (t('hud_once') || 'Update HUD Once'));
         this._hudOnceItem.connect('activate', () => {
+            if (!this._isCableMode) {
+                Main.notify('LT-104', t('locked_banner'));
+                return;
+            }
             runCliAsync(['hud-once'], t('hud_once_success') || 'HUD updated once successfully');
         });
         this.menu.addMenuItem(this._hudOnceItem);
@@ -609,6 +650,10 @@ class LT104Indicator extends PanelMenu.Button {
         intervals.forEach(inv => {
             let item = new PopupMenu.PopupMenuItem(inv.label);
             item.connect('activate', () => {
+                if (!this._isCableMode) {
+                    Main.notify('LT-104', t('locked_banner'));
+                    return;
+                }
                 currentInterval = inv.val;
                 this._hudItem.label.set_text('📊 ' + t('hud_toggle', {sec: currentInterval}));
                 try {
@@ -649,6 +694,10 @@ class LT104Indicator extends PanelMenu.Button {
             let localizedName = tPreset(p.key, p.fallback);
             let item = new PopupMenu.PopupMenuItem(localizedName);
             item.connect('activate', () => {
+                if (!this._isCableMode) {
+                    Main.notify('LT-104', t('locked_banner'));
+                    return;
+                }
                 runCliAsync(['preset', p.id], '🌈 ' + localizedName);
             });
             this._lightSubMenu.menu.addMenuItem(item);
@@ -658,7 +707,7 @@ class LT104Indicator extends PanelMenu.Button {
         this._cableSep2 = new PopupMenu.PopupSeparatorMenuItem();
         this.menu.addMenuItem(this._cableSep2);
 
-        // Group cable-only items together for toggling
+        // Group cable-only items together for toggling & disabling
         this._cableItems = [
             this._cableSep1,
             this._syncItem,
@@ -669,6 +718,12 @@ class LT104Indicator extends PanelMenu.Button {
             this._lightSubMenu,
             this._cableSep2,
         ];
+
+        // Safely initialize with all cable items disabled and hidden until status-json confirms USB cable mode
+        this._isCableMode = false;
+        this._cableItems.forEach(item => {
+            setItemEnabledAndVisible(item, false);
+        });
 
         // --- USB CABLE ONLY ITEMS END ---
 
@@ -774,7 +829,8 @@ class LT104Indicator extends PanelMenu.Button {
         if (!info) return;
 
         let mode = info.mode || 'disconnected';
-        let isCable = (mode === 'usb_cable');
+        let isCable = (mode === 'usb_cable' && info.can_configure !== false);
+        this._isCableMode = isCable;
 
         // 1. Update Connection Mode Label
         if (isCable) {
@@ -806,10 +862,10 @@ class LT104Indicator extends PanelMenu.Button {
         // 3. Toggle Locked Banner (shown when NOT in USB cable mode)
         setItemVisible(this._lockedBannerItem, !isCable);
 
-        // 4. Toggle USB Cable Only Items (Clock Sync, Sched, HUD, Light Presets)
+        // 4. Toggle & Disable USB Cable Only Items (Clock Sync, Sched, HUD, Light Presets)
         if (this._cableItems) {
             this._cableItems.forEach(item => {
-                setItemVisible(item, isCable);
+                setItemEnabledAndVisible(item, isCable);
             });
         }
     }
