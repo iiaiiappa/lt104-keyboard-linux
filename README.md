@@ -24,13 +24,138 @@ Reverse-engineered from the official Windows `DeviceDriver.exe` and USB protocol
 <br/><br/>
 
 ### Hardware Shortcuts Reference & TFT LCD Streaming
-| Shortcuts & Key Combinations | 160×80 LCD Frame Stream Sample |
+| Official High-Resolution Shortcuts & Functions Reference Chart | 160×80 LCD Frame Stream Sample |
 | :---: | :---: |
-| <img src="screenshots/shortcuts_reference_card.jpg" alt="Shortcuts Reference Card" width="450" /> | <img src="screenshots/lcd_sample_stream.gif" alt="LCD Sample Stream" width="300" /> |
+| <a href="screenshots/shortcuts_reference_chart.jpg" target="_blank"><img src="screenshots/shortcuts_reference_chart.jpg" alt="Official Hardware Shortcuts Reference Chart" width="450" style="border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" /></a> | <img src="screenshots/lcd_sample_stream.gif" alt="LCD Sample Stream" width="300" style="border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" /> |
 
 </div>
 
 ---
+
+## 📖 Hardware Shortcuts Reference & TFT LCD Streaming Full Manual
+
+### 1. 📡 Three-Mode Connectivity & Wireless Pairing (三模连接)
+
+The LangTu LT-104 supports 3 independent connection interfaces. You can switch modes either via hardware key shortcuts or using the physical rotary knob on the TFT LCD display menu:
+
+| Connection Mode | Shortcut | Rotary Knob / TFT Screen Navigation | Device Name / Notes |
+| :--- | :--- | :--- | :--- |
+| **Type-C Wired** | `Fn + T` | Rotate knob to `[Wired/USB]` icon → Short press to confirm | Connect USB-C cable to PC (`USB ID 0c45:8009`). Immediate plug-and-play. |
+| **2.4G Wireless** | `Fn + Q` | Rotate knob to `[2.4G]` icon → Short press to confirm | Plug 2.4G wireless dongle into PC (`USB ID 05ac:024f`). Hold `Fn + Q` for 3–5s to enter fast pairing mode if reconnecting. |
+| **Bluetooth 1 (BT1)** | `Fn + W` | Rotate knob to `[BT1]` icon → Short press (reconnect) / Long press (pairing) | Broadcasts as `LT84 BT5.1-1` / `LT104 BT5.1`. Long-press 3–5s until screen icon flashes rapidly to pair. |
+| **Bluetooth 2 (BT2)** | `Fn + E` | Rotate knob to `[BT2]` icon → Short press (reconnect) / Long press (pairing) | Broadcasts as `LT84 BT5.1-2` / `LT104 BT5.1`. Multi-host pairing with phone/tablet/laptop. |
+| **Bluetooth 3 (BT3)** | `Fn + R` | Rotate knob to `[BT3]` icon → Short press (reconnect) / Long press (pairing) | Broadcasts as `LT84 BT5.1-3` / `LT104 BT5.1`. Instant 1-key switching across up to 3 paired BT devices. |
+
+> **Pairing & Reconnection Tip:**
+> - **Reconnect (回连)**: Short press knob on Bluetooth icon or short press `Fn + W / E / R`.
+> - **New Pairing (配对)**: Long press knob (3–5s) on Bluetooth icon or long press `Fn + W / E / R` (3–5s) until the screen displays the pairing animation.
+
+---
+
+### 2. 🎛️ Rotary Knob & TFT LCD Screen Controls (旋钮与屏幕调控)
+
+The physical rotary knob next to the TFT display operates in two distinct modes:
+
+- **Mode Toggle**:
+  - **Press and hold knob for 3 seconds** OR press **`Fn + Knob Press`** to toggle between **Volume Adjustment Mode** and **Display Menu Mode**.
+- **Default Mode (Volume Control)**:
+  - **Rotate Clockwise**: Volume Up
+  - **Rotate Counter-Clockwise**: Volume Down
+  - **Short Press Knob**: Mute / Unmute
+- **Display Menu Mode (Screen Navigation)**:
+  - **Rotate Knob**: Scroll through menu options (up / down)
+  - **Short Press Knob**: Confirm / enter submenu or save setting
+  - **Menu Options Available on Screen**:
+    1. **Lighting Effect (灯光效果)**: Rotate to switch between 19/20 dynamic backlight effects.
+    2. **Light Color (灯光颜色)**: 9 solid color presets (RGB, Red, Orange, Yellow, Green, Cyan, Blue, Purple, White).
+    3. **Light Brightness (灯光亮度)**: Stepwise backlight brightness adjustment.
+    4. **Light Speed (灯光速率)**: Dynamic animation playback speed.
+    5. **Language (语言切换)**: Toggle between 中文 and English.
+    6. **System Mode (系统切换)**: Toggle between `Win` and `Mac` layouts.
+    7. **Custom GIF Animation (动画切换)**: Display internal uploaded 160×80 GIF/Image.
+
+---
+
+### 3. ⌨️ Complete Hardware Shortcuts Reference (功能按键与快捷键对照表)
+
+#### 🛠️ General / System Combinations (通用快捷键)
+
+| Shortcut | Function Description (功能说明) |
+| :--- | :--- |
+| **`Fn + Esc` (Hold 3s)** | **Factory Reset**: Restores keyboard EEPROM, lighting, and pairing configurations to factory defaults (长按3秒恢复出厂设置) |
+| **`Fn + Ins`** | **Side Light Bar**: Cycles through side edge lighting modes and 9 preset colors (侧边灯效与单色切换) |
+| **`Fn + Win`** | **Win Lock**: Toggles Windows key lock on/off to prevent accidental presses during gaming (锁定/解锁 WIN 键) |
+| **`Fn + Knob Press`** | **Knob Mode Toggle**: Alternates between Volume control and TFT screen menu navigation (切换旋钮音量/屏幕菜单调控) |
+| **`Fn + Q`** | **Switch to 2.4G Wireless Mode** (切换 2.4G 模式，长按配对) |
+| **`Fn + W`** | **Switch to Bluetooth 1 (BT1)** (切换 蓝牙 1 模式，长按配对) |
+| **`Fn + E`** | **Switch to Bluetooth 2 (BT2)** (切换 蓝牙 2 模式，长按配对) |
+| **`Fn + R`** | **Switch to Bluetooth 3 (BT3)** (切换 蓝牙 3 模式，长按配对) |
+| **`Fn + T`** | **Switch to USB Wired Mode** (切换 Type-C 有线模式) |
+
+#### 🪟 Windows Mode Shortcuts (`Fn + F1` – `Fn + F12`)
+
+| Key Combination | Windows Action | Linux Equivalent / Function |
+| :--- | :--- | :--- |
+| **`Fn + F1`** | Default Media Player (播放器) | `XF86AudioMedia` / Launches default music player |
+| **`Fn + F2`** | Calculator (计算器) | `XF86Calculator` / Launches GNOME Calculator |
+| **`Fn + F3`** | Task View (`Win + Tab`) | Opens GNOME Shell Overview / Workspace switcher |
+| **`Fn + F4`** | File Explorer (`Win + E`) | Opens Nautilus File Manager (`XF86Explorer`) |
+| **`Fn + F5`** | Backlight Brightness - (背光亮度-) | Decreases keyboard RGB backlight intensity |
+| **`Fn + F6`** | Backlight Brightness + (背光亮度+) | Increases keyboard RGB backlight intensity |
+| **`Fn + F7`** | Previous Track (上一首) | `XF86AudioPrev` |
+| **`Fn + F8`** | Play / Pause (播放/暂停) | `XF86AudioPlay` / `XF86AudioPause` |
+| **`Fn + F9`** | Next Track (下一首) | `XF86AudioNext` |
+| **`Fn + F10`** | Mute Audio (静音) | `XF86AudioMute` |
+| **`Fn + F11`** | Volume - (音量-) | `XF86AudioLowerVolume` |
+| **`Fn + F12`** | Volume + (音量+) | `XF86AudioRaiseVolume` |
+
+#### 🍎 Mac Mode Shortcuts (Direct `F1` – `F12` Function Keys)
+
+When switched to Mac Mode (via on-screen menu `System -> Mac`):
+
+| Key | macOS Action | Linux / Desktop Mapping |
+| :--- | :--- | :--- |
+| **`F1`** | Screen Brightness - (屏幕亮度-) | `XF86MonBrightnessDown` |
+| **`F2`** | Screen Brightness + (屏幕亮度+) | `XF86MonBrightnessUp` |
+| **`F3`** | Mission Control / Split Screen (分屏) | GNOME Activities / Multi-window view |
+| **`F4`** | Call up Siri (唤出 Siri) | Voice assistant / Custom shortcut |
+| **`F5`** | Keyboard Backlight - (键盘背光-) | `XF86KbdBrightnessDown` |
+| **`F6`** | Keyboard Backlight + (键盘背光+) | `XF86KbdBrightnessUp` |
+| **`F7`** | Previous Track (上一首) | `XF86AudioPrev` |
+| **`F8`** | Play / Pause (播放/暂停) | `XF86AudioPlay` |
+| **`F9`** | Next Track (下一首) | `XF86AudioNext` |
+| **`F10`** | Mute Audio (静音) | `XF86AudioMute` |
+| **`F11`** | Volume - (音量-) | `XF86AudioLowerVolume` |
+| **`F12`** | Volume + (音量+) | `XF86AudioRaiseVolume` |
+
+---
+
+### 4. 📺 Official Manual & High-Resolution Scan Reference
+
+<div align="center">
+
+| Official User Manual & Connectivity Guide | Hardware Shortcuts & Function Reference Chart |
+| :---: | :---: |
+| <a href="screenshots/lt104_manual_overview.jpg" target="_blank"><img src="screenshots/lt104_manual_overview.jpg" alt="LT104 Manual Overview" width="380" style="border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" /></a> | <a href="screenshots/shortcuts_reference_chart.jpg" target="_blank"><img src="screenshots/shortcuts_reference_chart.jpg" alt="LT104 Shortcuts Chart" width="380" style="border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" /></a> |
+
+</div>
+
+---
+
+### 5. 🐧 Automatic Linux Kernel Keymap Correction (Dongle Mode `05ac:024f`)
+
+In 2.4G wireless dongle mode, the keyboard reports as `USB VID:PID = 05ac:024f` ("USB Dongle"). Because this matches Apple's vendor ID, the Linux kernel binds `hid_apple`. With `hid_apple fnmode=2`, the modifier keys are automatically corrected at the kernel level without breaking F1–F12:
+
+| Physical Key | HID Scan Code | Default Kernel Key | Desired Corrected Key |
+| :--- | :--- | :--- | :--- |
+| **Left Win** | `0x700e3` | `KEY_LEFTALT` | **`KEY_LEFTMETA`** |
+| **Left Alt** | `0x700e2` | `KEY_LEFTMETA` | **`KEY_LEFTALT`** |
+| **Right Alt** | `0x700e6` | `KEY_RIGHTMETA` | **`KEY_RIGHTALT`** |
+| **Menu / App** | `0x70065` | `KEY_COMPOSE` | **`KEY_COMPOSE`** |
+
+This repository includes:
+1. `/etc/udev/hwdb.d/99-lt104-win.hwdb` for kernel-level hwdb keycode remapping.
+2. `/etc/udev/rules.d/99-lt104-win-remap.rules` & `/usr/local/bin/lt104-remap-keys.py` utilizing `EVIOCSKEYCODE_V2` ioctl on device connection to ensure modifier correction across all TTYs, desktop environments, and raw evdev applications.
 
 ## 🌟 Key Features
 
