@@ -1,0 +1,12 @@
+[Unit]
+Description=LangTu LT-104 Keyboard Scancode Remapping Service
+After=systemd-udev-settle.service udev.service
+Wants=udev.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/lt104-remap-keys
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

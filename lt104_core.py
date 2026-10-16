@@ -76,7 +76,7 @@ def supports_single_color(mode):
     return int(mode) in SINGLE_COLOR_MODES
 
 def find_lt104_usb():
-    """Find the raw USB devfs path for 0c45:8009 (SONiX LT104)."""
+    """Find the raw USB devfs path for 0c45:8009 (SONiX LT104 Wired Mode)."""
     for dev_path in glob.glob('/sys/bus/usb/devices/*'):
         id_vendor  = os.path.join(dev_path, 'idVendor')
         id_product = os.path.join(dev_path, 'idProduct')
@@ -88,6 +88,21 @@ def find_lt104_usb():
                     busnum = int(open(os.path.join(dev_path, 'busnum')).read().strip())
                     devnum = int(open(os.path.join(dev_path, 'devnum')).read().strip())
                     return f'/dev/bus/usb/{busnum:03d}/{devnum:03d}'
+            except Exception:
+                pass
+    return None
+
+def find_lt104_dongle():
+    """Find if LT-104 2.4G Wireless USB Dongle (05ac:024f) is connected."""
+    for dev_path in glob.glob('/sys/bus/usb/devices/*'):
+        id_vendor  = os.path.join(dev_path, 'idVendor')
+        id_product = os.path.join(dev_path, 'idProduct')
+        if os.path.exists(id_vendor) and os.path.exists(id_product):
+            try:
+                vid = open(id_vendor).read().strip().lower()
+                pid = open(id_product).read().strip().lower()
+                if vid == '05ac' and pid == '024f':
+                    return dev_path
             except Exception:
                 pass
     return None
@@ -107,6 +122,11 @@ class LT104Controller:
     def __init__(self, usb_path=None, lcd_path=None):
         self.usb_path = usb_path or find_lt104_usb()
         if not self.usb_path:
+            if find_lt104_dongle():
+                raise RuntimeError(
+                    "已检测到 LT-104 (2.4G 无线接收器模式)。"
+                    "配置背光灯效、时钟校准与屏幕动画需连接 USB 有线数据线 (USB Cable Mode)。"
+                )
             raise RuntimeError("未检测到 狼途 LT-104 键盘 (VID 0C45, PID 8009)。请确认 USB 连线已插好！")
         self.fd = None
         for attempt in range(5):

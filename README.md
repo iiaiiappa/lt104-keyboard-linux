@@ -204,10 +204,19 @@ wget https://github.com/iiaiiappa/lt104-keyboard-linux/releases/download/v1.0.0/
 sudo apt install ./lt104-keyboard-linux_1.0.0_all.deb
 
 # 3. Launch from terminal or Application menu
-lt104        # Launches GTK4 Desktop application
-lt104-web    # Starts Web Control Panel on http://127.0.0.1:8989
-lt104-cli    # Access CLI utility
+lt104             # Launches GTK4 Desktop application
+lt104-web         # Starts Web Control Panel on http://127.0.0.1:8989
+lt104-cli status  # Check keyboard connection status
+lt104-remap-keys  # Manually trigger key remapping (runs automatically in background)
 ```
+
+> **✨ Automatic & Persistent Key Remapping Included**:
+> Installing the `.deb` package or running `./setup.sh install` automatically configures systemd-hwdb, udev hotplug rules, and a systemd boot service (`lt104-remap.service`) ensuring expected keyboard shortcuts on Ubuntu / GNOME:
+> - **Left Alt + Tab** → One horizontal row window switcher (no workspaces)
+> - **Right Alt + Tab** → Exactly identical: one horizontal row window switcher (no workspaces)
+> - **Left Win + Tab** → Switcher with workspaces
+> - **Left Win (alone)** → Opens GNOME Menu / ArcMenu
+> - **Menu Key** → Context Menu / Compose key
 
 ### 🔴 Fedora / RHEL / openSUSE (`.rpm`)
 Build and install via rpmbuild:
@@ -279,18 +288,18 @@ sudo apt install -y python3 python3-pip python3-pil python3-psutil \
                     libadwaita-1-0 gir1.2-adw-1 gir1.2-gtk-4.0
 ```
 
-### 2. Configure USB Permissions (udev Rule)
-Allow non-root user access to the keyboard's raw HID interface:
+### 2. 1-Click Setup & Key Remapping (Recommended)
+Clone the repository and run the setup utility:
 ```bash
-echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="8009", MODE="0666"' | sudo tee /etc/udev/rules.d/99-lt104.rules
-sudo udevadm control --reload-rules && sudo udevadm trigger
-```
-
-### 3. Clone Repository
-```bash
-git clone https://github.com/your-username/lt104-keyboard-linux.git
+git clone https://github.com/iiaiiappa/lt104-keyboard-linux.git
 cd lt104-keyboard-linux
+sudo ./setup.sh install
 ```
+This single command automatically configures:
+- USB HID non-root permissions for wired mode (`0c45:8009`)
+- Persistent scancode remappings for Left Alt, Right Alt, Left Win, and Menu on 2.4G dongle (`05ac:024f`) & cable
+- Systemd boot service (`lt104-remap.service`) and udev hotplug triggers
+- Installs `/usr/bin/lt104-remap-keys` system binary
 
 ---
 

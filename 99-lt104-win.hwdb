@@ -1,0 +1,8 @@
+# LangTu LT-104 Keyboard Scancode Remapping for Linux (Ubuntu / GNOME)
+# Ensures Left Alt, Right Alt, Left Win, and Menu key map to expected keys
+evdev:input:b0003v05ACp024F*
+ KEYBOARD_KEY_700e2=leftmeta
+ KEYBOARD_KEY_700e3=leftalt
+ KEYBOARD_KEY_700e6=leftmeta
+ KEYBOARD_KEY_700e7=leftmeta
+ KEYBOARD_KEY_70065=compose

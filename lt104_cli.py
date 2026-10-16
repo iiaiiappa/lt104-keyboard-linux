@@ -14,7 +14,7 @@ import subprocess
 import signal
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from lt104_core import LT104Controller
+from lt104_core import LT104Controller, find_lt104_usb, find_lt104_dongle, find_lt104_lcd_hidraw
 from config import save_config, load_config
 
 PRESETS = {
@@ -78,6 +78,10 @@ def main():
     subparsers.add_parser("clock-schedule-status")
     subparsers.add_parser("clock-schedule-enable")
     subparsers.add_parser("clock-schedule-disable")
+
+    # status and remap-keys
+    subparsers.add_parser("status")
+    subparsers.add_parser("remap-keys")
 
     args = parser.parse_args()
 
@@ -241,7 +245,33 @@ def main():
         print("OK: Clock schedule disabled")
         return
 
-    ctl = LT104Controller()
+    elif args.cmd == "status":
+        usb = find_lt104_usb()
+        dongle = find_lt104_dongle()
+        lcd = find_lt104_lcd_hidraw()
+        if usb:
+            print(f"CONNECTED (Wired Mode: 0c45:8009 | Sysfs: {usb} | LCD: {lcd or 'N/A'})")
+        elif dongle:
+            print(f"DONGLE (2.4G Wireless Dongle Mode: 05ac:024f | Sysfs: {dongle})")
+            print("Note: Typing is active. USB cable connection is required for RGB/clock/LCD settings.")
+        else:
+            print("DISCONNECTED (No LT-104 USB cable or 2.4G dongle detected)")
+        return
+
+    elif args.cmd == "remap-keys":
+        import lt104_remap
+        count = lt104_remap.remap_all(verbose=True)
+        if count == 0:
+            print("No LT-104 input interfaces found to remap.")
+        else:
+            print(f"Applied LT-104 scancode remap to {count} device interface(s).")
+        return
+
+    try:
+        ctl = LT104Controller()
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     try:
         if args.cmd == "sync-clock":
             ctl.sync_clock()

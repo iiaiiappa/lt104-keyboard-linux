@@ -15,7 +15,7 @@ import subprocess
 import signal
 import time
 
-from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, KB_KEYS, find_lt104_usb, find_lt104_dongle, find_lt104_lcd_hidraw
 
 import i18n
 from config import load_config, save_config
@@ -143,6 +143,9 @@ HTML_PAGE = """<!DOCTYPE html>
     .lang-select:focus { border-color: var(--accent); }
     .status-badge { background: rgba(46, 194, 126, 0.15); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.35); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
     .status-badge.error { background: rgba(224, 27, 36, 0.15); color: #e01b24; border-color: rgba(224, 27, 36, 0.35); }
+    .status-badge.dongle { background: rgba(246, 185, 59, 0.15); color: #f5a623; border: 1px solid rgba(246, 185, 59, 0.4); }
+    .dongle-banner { display: none; background: rgba(246, 185, 59, 0.10); border: 1px solid rgba(246, 185, 59, 0.35); border-radius: 12px; padding: 12px 18px; margin: 0 auto 16px auto; max-width: 954px; font-size: 13px; line-height: 1.6; color: #ffbe46; text-align: left; box-sizing: border-box; }
+    .dongle-banner strong { color: #fff; }
     .update-badge { background: rgba(53, 132, 228, 0.15); color: #78aeed; border: 1px solid rgba(53, 132, 228, 0.4); padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; text-decoration: none; display: none; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
     .update-badge:hover { background: rgba(53, 132, 228, 0.25); transform: translateY(-1px); }
     .icon-btn { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13); border-radius: 20px; color: #ccc; padding: 5px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; transition: all 0.2s; }
@@ -241,6 +244,9 @@ HTML_PAGE = """<!DOCTYPE html>
         <div id="device-badge" class="status-badge">● LT-104 Connected</div>
       </div>
     </div>
+
+    <!-- 2.4G Wireless Dongle Mode Notice Banner -->
+    <div id="dongle-banner" class="dongle-banner"></div>
 
     <!-- Top Middle: Standalone Keyboard Animation Visualizer Preview Card (Full Width) -->
     <div class="kb-top-card">
@@ -658,6 +664,7 @@ HTML_PAGE = """<!DOCTYPE html>
         if (txt) txt.innerText = t('update_available', { ver });
       }
       updateHudUI();
+      checkDeviceStatus();
     }
 
     function showToast(msg) {
@@ -1018,7 +1025,7 @@ HTML_PAGE = """<!DOCTYPE html>
         if (data.success) {
           showToast('✅ ' + t('settings_applied'));
         } else {
-          alert(t('clock_sync_fail') + ': ' + data.error);
+          alert((data.error && data.error.length > 0) ? data.error : (t('clock_sync_fail') + ': ' + data.error));
         }
       } catch (e) {
         alert('Network Error: ' + e);
@@ -1281,12 +1288,22 @@ HTML_PAGE = """<!DOCTYPE html>
         const res = await fetch('/api/status');
         const data = await res.json();
         const badge = document.getElementById('device-badge');
-        if (data.connected) {
+        const dongleBanner = document.getElementById('dongle-banner');
+        if (data.mode === 'wired' || (!data.mode && data.connected)) {
           badge.innerText = '● ' + t('connected');
           badge.className = 'status-badge';
+          if (dongleBanner) dongleBanner.style.display = 'none';
+        } else if (data.mode === 'dongle' || data.dongle_connected) {
+          badge.innerText = '● ' + t('dongle_status_badge');
+          badge.className = 'status-badge dongle';
+          if (dongleBanner) {
+            dongleBanner.style.display = 'block';
+            dongleBanner.innerHTML = '📡 <strong>' + t('dongle_connected') + '</strong>: ' + t('dongle_mode_hint');
+          }
         } else {
           badge.innerText = '● ' + t('disconnected');
           badge.className = 'status-badge error';
+          if (dongleBanner) dongleBanner.style.display = 'none';
         }
       } catch (e) {}
     }
@@ -2243,13 +2260,18 @@ class LT104Handler(http.server.BaseHTTPRequestHandler):
         elif self.path == "/api/status":
             usb_dev = find_lt104_usb()
             lcd_dev = find_lt104_lcd_hidraw()
+            dongle_dev = find_lt104_dongle()
+            mode = "wired" if usb_dev else ("dongle" if dongle_dev else "disconnected")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({
                 "connected": bool(usb_dev),
+                "dongle_connected": bool(dongle_dev),
+                "mode": mode,
                 "usb_dev": usb_dev,
-                "lcd_dev": lcd_dev
+                "lcd_dev": lcd_dev,
+                "dongle_dev": dongle_dev
             }).encode())
 
         elif self.path == "/api/hud-status":

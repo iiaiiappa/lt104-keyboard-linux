@@ -22,7 +22,7 @@ gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gtk, Adw, Gdk, GLib, Gio, GdkPixbuf, Pango
 
-from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_lcd_hidraw
+from lt104_core import LT104Controller, LIGHT_MODES, SIDE_LIGHT_MODES, SLEEP_TIMER_MODES, MULTI_COLOR_MODES, KB_KEYS, find_lt104_usb, find_lt104_dongle, find_lt104_lcd_hidraw
 
 from config import load_config, save_config
 from PIL import Image, ImageSequence
@@ -682,8 +682,11 @@ class LT104Window(Adw.ApplicationWindow):
     def _refresh_status(self):
         usb = find_lt104_usb()
         lcd = find_lt104_lcd_hidraw()
+        dongle = find_lt104_dongle()
         if usb:
             self._status_label.set_text(f"⌨️  LT-104 已连接  |  LCD: {lcd or '未找到'}")
+        elif dongle:
+            self._status_label.set_text("📡  LT-104 (2.4G 接收器模式 · 配置背光/时钟/屏幕需插有线)")
         else:
             self._status_label.set_text("❌  未检测到 LT-104 键盘")
 
