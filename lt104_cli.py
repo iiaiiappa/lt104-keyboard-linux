@@ -81,6 +81,7 @@ def main():
 
     # status and remap-keys
     subparsers.add_parser("status")
+    subparsers.add_parser("status-json")
     subparsers.add_parser("remap-keys")
 
     args = parser.parse_args()
@@ -243,6 +244,12 @@ def main():
     elif args.cmd == "clock-schedule-disable":
         subprocess.run(["systemctl", "--user", "disable", "--now", "lt104-clock-sync.timer"], check=False)
         print("OK: Clock schedule disabled")
+        return
+
+    elif args.cmd == "status-json":
+        import json
+        info = get_lt104_connection_status()
+        print(json.dumps(info, ensure_ascii=False))
         return
 
     elif args.cmd == "status":

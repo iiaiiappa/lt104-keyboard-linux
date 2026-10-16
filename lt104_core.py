@@ -174,6 +174,19 @@ def get_lt104_battery():
     except Exception:
         pass
     try:
+        out_devs = subprocess.check_output(['bluetoothctl', 'devices'], timeout=1, stderr=subprocess.DEVNULL).decode()
+        for line in out_devs.splitlines():
+            if any(k in line.lower() for k in ['lt104', 'lt84', 'langtu']):
+                parts = line.strip().split(maxsplit=2)
+                if len(parts) >= 2:
+                    mac = parts[1]
+                    info = subprocess.check_output(['bluetoothctl', 'info', mac], timeout=1, stderr=subprocess.DEVNULL).decode()
+                    m = re.search(r'Battery Percentage:\s*(?:0x[0-9a-fA-F]+\s*)?\(?(\d+)\)?', info)
+                    if m:
+                        return int(m.group(1))
+    except Exception:
+        pass
+    try:
         out = subprocess.check_output(['bluetoothctl', 'info', 'E7:01:23:C3:16:0A'], timeout=1, stderr=subprocess.DEVNULL).decode()
         m = re.search(r'Battery Percentage:.*?\((\d+)\)', out)
         if m:

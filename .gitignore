@@ -25,4 +25,5 @@ local_test/
 Thumbs.db
 
 packaging/build/
+packaging/tools/
 dist/

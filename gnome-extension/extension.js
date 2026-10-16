@@ -9,13 +9,56 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-const CLI_PATH = '/home/iiaiiappa/PatProject/lt104-keyboard-linux/lt104_cli.py';
-const APP_PATH = '/home/iiaiiappa/PatProject/lt104-keyboard-linux/lt104_gtk.py';
+function findCliPath() {
+    let candidates = [
+        '/home/iiaiiappa/PatProject/lt104-keyboard-linux/lt104_cli.py',
+        '/usr/bin/lt104-cli',
+        '/usr/local/bin/lt104-cli',
+        '/opt/lt104-keyboard-linux/lt104_cli.py',
+    ];
+    for (let p of candidates) {
+        if (GLib.file_test(p, GLib.FileTest.EXISTS)) {
+            return p;
+        }
+    }
+    return 'lt104-cli';
+}
+
+function findAppPath() {
+    let candidates = [
+        '/home/iiaiiappa/PatProject/lt104-keyboard-linux/lt104_gtk.py',
+        '/usr/bin/lt104',
+        '/usr/local/bin/lt104',
+        '/opt/lt104-keyboard-linux/lt104_gtk.py',
+    ];
+    for (let p of candidates) {
+        if (GLib.file_test(p, GLib.FileTest.EXISTS)) {
+            return p;
+        }
+    }
+    return 'lt104';
+}
+
+function setItemVisible(item, visible) {
+    if (!item) return;
+    item.visible = visible;
+    if (item.actor) {
+        item.actor.visible = visible;
+    }
+}
 
 // Internationalization dictionary for all major Ubuntu languages
 const EXT_I18N = {
     "en": {
         "header": "LangTu LT-104 Control",
+        "mode_cable": "🔌 Mode: USB Cable (Connected)",
+        "mode_bt": "📶 Mode: Bluetooth ({name})",
+        "mode_dongle": "📡 Mode: 2.4G Wireless Dongle",
+        "mode_disconnected": "❌ Mode: Keyboard Disconnected",
+        "battery_label": "🔋 Battery: {pct}%",
+        "battery_cable_power": "⚡ Power: USB Cable Powered",
+        "battery_reading": "🔋 Battery: Reading…",
+        "locked_banner": "🔒 Hardware controls locked (Requires USB Cable)",
         "sync_clock": "Sync Clock to Keyboard LCD",
         "clock_synced": "Keyboard LCD clock synchronized accurately!",
         "sched_clock": "Auto-Sync Clock Every 12 Hours",
@@ -47,6 +90,14 @@ const EXT_I18N = {
     },
     "zh-CN": {
         "header": "狼途 LT-104 控制",
+        "mode_cable": "🔌 连接模式: USB 有线模式 (已连通)",
+        "mode_bt": "📶 连接模式: 蓝牙无线模式 ({name})",
+        "mode_dongle": "📡 连接模式: 2.4G 无线接收器模式",
+        "mode_disconnected": "❌ 连接模式: 键盘未连接",
+        "battery_label": "🔋 键盘电量: {pct}%",
+        "battery_cable_power": "⚡ 供电状态: USB 有线供电",
+        "battery_reading": "🔋 键盘电量: 读取中…",
+        "locked_banner": "🔒 硬件配置已锁定 (需连接 USB 数据线)",
         "sync_clock": "立即同步电脑时钟到键盘小屏幕",
         "clock_synced": "键盘小屏幕时钟已精准同步！",
         "sched_clock": "定时同步小屏幕时钟 (每 12 小时)",
@@ -78,6 +129,14 @@ const EXT_I18N = {
     },
     "zh-TW": {
         "header": "狼途 LT-104 控制",
+        "mode_cable": "🔌 連線模式: USB 有線模式 (已連線)",
+        "mode_bt": "📶 連線模式: 藍牙無線模式 ({name})",
+        "mode_dongle": "📡 連線模式: 2.4G 無線接收器模式",
+        "mode_disconnected": "❌ 連線模式: 鍵盤未連線",
+        "battery_label": "🔋 鍵盤電量: {pct}%",
+        "battery_cable_power": "⚡ 供電狀態: USB 有線供電",
+        "battery_reading": "🔋 鍵盤電量: 讀取中…",
+        "locked_banner": "🔒 硬體設定已鎖定 (需連接 USB 傳輸線)",
         "sync_clock": "立即同步電腦時鐘到鍵盤小螢幕",
         "clock_synced": "鍵盤小螢幕時鐘已精準同步！",
         "sched_clock": "排程同步小螢幕時鐘 (每 12 小時)",
@@ -109,6 +168,14 @@ const EXT_I18N = {
     },
     "ja": {
         "header": "LangTu LT-104 操作",
+        "mode_cable": "🔌 接続モード: USB 有線 (接続済み)",
+        "mode_bt": "📶 接続モード: Bluetooth ({name})",
+        "mode_dongle": "📡 接続モード: 2.4G ドングル",
+        "mode_disconnected": "❌ 接続モード: キーボード未接続",
+        "battery_label": "🔋 バッテリー残量: {pct}%",
+        "battery_cable_power": "⚡ 給電: USB 有線給電",
+        "battery_reading": "🔋 バッテリー残量: 読込中…",
+        "locked_banner": "🔒 設定ロック中 (USB ケーブル接続が必要)",
         "sync_clock": "PC の時計をキーボード液晶に同期",
         "clock_synced": "キーボード液晶の時計が正確に同期されました！",
         "sched_clock": "12時間ごとの自動時計同期",
@@ -138,6 +205,14 @@ const EXT_I18N = {
     },
     "ko": {
         "header": "LangTu LT-104 제어",
+        "mode_cable": "🔌 연결 모드: USB 유선 (연결됨)",
+        "mode_bt": "📶 연결 모드: 블루투스 ({name})",
+        "mode_dongle": "📡 연결 모드: 2.4G 무선 동글",
+        "mode_disconnected": "❌ 연결 모드: 키보드 연결 안 됨",
+        "battery_label": "🔋 배터리 잔량: {pct}%",
+        "battery_cable_power": "⚡ 전원: USB 유선 전원",
+        "battery_reading": "🔋 배터리 잔량: 읽는 중…",
+        "locked_banner": "🔒 설정 잠김 (USB 케이블 연결 필요)",
         "sync_clock": "컴퓨터 시계를 키보드 화면에 동기화",
         "clock_synced": "키보드 시계가 정확하게 동기화되었습니다!",
         "sched_clock": "12시간마다 시계 자동 동기화",
@@ -167,6 +242,14 @@ const EXT_I18N = {
     },
     "de": {
         "header": "LangTu LT-104 Steuerung",
+        "mode_cable": "🔌 Modus: USB-Kabel (Verbunden)",
+        "mode_bt": "📶 Modus: Bluetooth ({name})",
+        "mode_dongle": "📡 Modus: 2.4G Funkadapter",
+        "mode_disconnected": "❌ Modus: Tastatur getrennt",
+        "battery_label": "🔋 Akkustand: {pct}%",
+        "battery_cable_power": "⚡ Strom: Über USB-Kabel versorgt",
+        "battery_reading": "🔋 Akkustand: Wird gelesen…",
+        "locked_banner": "🔒 Hardware-Einstellungen gesperrt (USB-Kabel erforderlich)",
         "sync_clock": "Uhrzeit mit Tastatur synchronisieren",
         "clock_synced": "Tastaturuhr erfolgreich synchronisiert!",
         "sched_clock": "Automatische Zeitsynchronisation alle 12 Stunden",
@@ -196,6 +279,14 @@ const EXT_I18N = {
     },
     "fr": {
         "header": "Contrôle LangTu LT-104",
+        "mode_cable": "🔌 Mode: Câble USB (Connecté)",
+        "mode_bt": "📶 Mode: Bluetooth ({name})",
+        "mode_dongle": "📡 Mode: Sans fil 2.4G",
+        "mode_disconnected": "❌ Mode: Clavier déconnecté",
+        "battery_label": "🔋 Batterie: {pct}%",
+        "battery_cable_power": "⚡ Alimentation: Câble USB",
+        "battery_reading": "🔋 Batterie: Lecture…",
+        "locked_banner": "🔒 Paramètres verrouillés (Câble USB requis)",
         "sync_clock": "Synchroniser l'horloge avec le clavier",
         "clock_synced": "Horloge du clavier synchronisée avec succès !",
         "sched_clock": "Synchronisation automatique toutes les 12h",
@@ -225,6 +316,14 @@ const EXT_I18N = {
     },
     "es": {
         "header": "Control LangTu LT-104",
+        "mode_cable": "🔌 Modo: Cable USB (Conectado)",
+        "mode_bt": "📶 Modo: Bluetooth ({name})",
+        "mode_dongle": "📡 Modo: Receptor 2.4G",
+        "mode_disconnected": "❌ Modo: Teclado desconectado",
+        "battery_label": "🔋 Batería: {pct}%",
+        "battery_cable_power": "⚡ Alimentación: Cable USB",
+        "battery_reading": "🔋 Batería: Leyendo…",
+        "locked_banner": "🔒 Ajustes bloqueados (Requiere cable USB)",
         "sync_clock": "Sincronizar reloj con el teclado",
         "clock_synced": "¡Reloj del teclado sincronizado correctamente!",
         "sched_clock": "Sincronización automática cada 12 horas",
@@ -254,6 +353,14 @@ const EXT_I18N = {
     },
     "ru": {
         "header": "Управление LangTu LT-104",
+        "mode_cable": "🔌 Режим: USB-кабель (Подключено)",
+        "mode_bt": "📶 Режим: Bluetooth ({name})",
+        "mode_dongle": "📡 Режим: 2.4G адаптер",
+        "mode_disconnected": "❌ Режим: Клавиатура не подключена",
+        "battery_label": "🔋 Заряд батареи: {pct}%",
+        "battery_cable_power": "⚡ Питание: От USB-кабеля",
+        "battery_reading": "🔋 Заряд батареи: Чтение…",
+        "locked_banner": "🔒 Настройки заблокированы (Требуется USB-кабель)",
         "sync_clock": "Синхронизировать часы с клавиатурой",
         "clock_synced": "Часы клавиатуры успешно синхронизированы!",
         "sched_clock": "Автосинхронизация часов каждые 12 часов",
@@ -317,7 +424,8 @@ function tPreset(presetKey, fallback) {
 
 function runCliAsync(args, successNotifyMsg = null) {
     try {
-        let cmd = ['/usr/bin/python3', CLI_PATH, ...args];
+        let cliPath = findCliPath();
+        let cmd = ['/usr/bin/python3', cliPath, ...args];
         let proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
         proc.communicate_utf8_async(null, null, (p, res) => {
             try {
@@ -345,9 +453,10 @@ function launchApp() {
         console.warn('[LT104-Indicator] DesktopAppInfo launch warning: ' + e);
     }
 
+    let appPath = findAppPath();
     try {
         let proc = Gio.Subprocess.new(
-            ['/usr/bin/python3', APP_PATH],
+            ['/usr/bin/python3', appPath],
             Gio.SubprocessFlags.NONE
         );
         proc.wait_async(null, null);
@@ -355,7 +464,7 @@ function launchApp() {
         console.error('[LT104-Indicator] Subprocess launch failed: ' + e);
         try {
             let appInfo = Gio.AppInfo.create_from_commandline(
-                '/usr/bin/python3 ' + APP_PATH,
+                '/usr/bin/python3 ' + appPath,
                 'LT-104 Keyboard',
                 Gio.AppInfoCreateFlags.NONE
             );
@@ -377,27 +486,72 @@ class LT104Indicator extends PanelMenu.Button {
         });
         this.add_child(icon);
 
+        if (this.menu && this.menu.box) {
+            this.menu.box.add_style_class_name('lt104-menu-box');
+            this.menu.box.set_style('min-width: 330px; max-height: 980px;');
+        }
+        if (this.menu && this.menu.actor) {
+            this.menu.actor.add_style_class_name('lt104-menu-box');
+            this.menu.actor.set_style('max-height: 980px;');
+        }
+
         this._buildMenu();
+        this._refreshStatusAsync();
+
+        // Refresh dynamic status and hide/show controls whenever the menu is clicked open
+        this._openStateId = this.menu.connect('open-state-changed', (m, open) => {
+            if (open) {
+                this._refreshStatusAsync();
+            }
+        });
+
+        // Periodic background poll every 6s to reflect hotplugged / switched state
+        this._timerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 6, () => {
+            this._refreshStatusAsync();
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
     _buildMenu() {
         // Title
         let headerItem = new PopupMenu.PopupMenuItem('⌨️ ' + t('header'), {reactive: false});
         this.menu.addMenuItem(headerItem);
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // Connection Mode Status
+        this._modeItem = new PopupMenu.PopupMenuItem(t('mode_cable'), {reactive: false});
+        this._modeItem.add_style_class_name('lt104-status-mode');
+        this.menu.addMenuItem(this._modeItem);
+
+        // Bluetooth Battery % / Power state
+        this._batteryItem = new PopupMenu.PopupMenuItem(t('battery_cable_power'), {reactive: false});
+        this._batteryItem.add_style_class_name('lt104-status-battery');
+        this.menu.addMenuItem(this._batteryItem);
+
+        // Locked Banner (visible only when not in USB cable mode)
+        this._lockedBannerItem = new PopupMenu.PopupMenuItem(t('locked_banner'), {reactive: false});
+        this._lockedBannerItem.add_style_class_name('lt104-locked-banner');
+        setItemVisible(this._lockedBannerItem, false);
+        this.menu.addMenuItem(this._lockedBannerItem);
+
+        // Separator between status and cable-only items
+        this._cableSep1 = new PopupMenu.PopupSeparatorMenuItem();
+        this.menu.addMenuItem(this._cableSep1);
+
+        // --- USB CABLE ONLY ITEMS START ---
 
         // Quick Clock Sync
-        let syncItem = new PopupMenu.PopupMenuItem('🕒 ' + t('sync_clock'));
-        syncItem.connect('activate', () => {
+        this._syncItem = new PopupMenu.PopupMenuItem('🕒 ' + t('sync_clock'));
+        this._syncItem.connect('activate', () => {
             runCliAsync(['sync-clock'], t('clock_synced'));
         });
-        this.menu.addMenuItem(syncItem);
+        this.menu.addMenuItem(this._syncItem);
 
         // 12-Hour Schedule Clock Auto-Sync
-        let schedItem = new PopupMenu.PopupMenuItem('⏱️ ' + t('sched_clock'));
-        schedItem.connect('activate', () => {
+        this._schedItem = new PopupMenu.PopupMenuItem('⏱️ ' + t('sched_clock'));
+        this._schedItem.connect('activate', () => {
             try {
-                let cmd = ['/usr/bin/python3', CLI_PATH, 'clock-schedule-status'];
+                let cliPath = findCliPath();
+                let cmd = ['/usr/bin/python3', cliPath, 'clock-schedule-status'];
                 let [ok, out] = GLib.spawn_command_line_sync(cmd.join(' '));
                 let statusStr = new TextDecoder().decode(out);
                 if (statusStr.includes('ENABLED')) {
@@ -409,15 +563,15 @@ class LT104Indicator extends PanelMenu.Button {
                 console.error('[LT104-Indicator] Clock schedule toggle failed: ' + e);
             }
         });
-        this.menu.addMenuItem(schedItem);
+        this.menu.addMenuItem(this._schedItem);
 
         // Toggle Real-time System HUD
         let currentInterval = 120;
-        let hudItem = new PopupMenu.PopupMenuItem('📊 ' + t('hud_toggle', {sec: currentInterval}));
-
-        hudItem.connect('activate', () => {
+        this._hudItem = new PopupMenu.PopupMenuItem('📊 ' + t('hud_toggle', {sec: currentInterval}));
+        this._hudItem.connect('activate', () => {
             try {
-                let cmd = ['/usr/bin/python3', CLI_PATH, 'hud-status'];
+                let cliPath = findCliPath();
+                let cmd = ['/usr/bin/python3', cliPath, 'hud-status'];
                 let [ok, out] = GLib.spawn_command_line_sync(cmd.join(' '));
                 let statusStr = new TextDecoder().decode(out);
                 if (statusStr.includes('RUNNING')) {
@@ -429,18 +583,18 @@ class LT104Indicator extends PanelMenu.Button {
                 console.error('[LT104-Indicator] HUD toggle failed: ' + e);
             }
         });
-        this.menu.addMenuItem(hudItem);
+        this.menu.addMenuItem(this._hudItem);
 
         // Update HUD Once (single-shot)
-        let hudOnceItem = new PopupMenu.PopupMenuItem('⚡ ' + (t('hud_once') || 'Update HUD Once'));
-        hudOnceItem.connect('activate', () => {
+        this._hudOnceItem = new PopupMenu.PopupMenuItem('⚡ ' + (t('hud_once') || 'Update HUD Once'));
+        this._hudOnceItem.connect('activate', () => {
             runCliAsync(['hud-once'], t('hud_once_success') || 'HUD updated once successfully');
         });
-        this.menu.addMenuItem(hudOnceItem);
+        this.menu.addMenuItem(this._hudOnceItem);
 
         // Submenu: HUD Interval
-        let hudIntervalSubMenu = new PopupMenu.PopupSubMenuMenuItem('⏱️ ' + t('hud_interval_sub'));
-        this.menu.addMenuItem(hudIntervalSubMenu);
+        this._hudIntervalSubMenu = new PopupMenu.PopupSubMenuMenuItem('⏱️ ' + t('hud_interval_sub'));
+        this.menu.addMenuItem(this._hudIntervalSubMenu);
 
         const intervals = [
             {label: '5s', val: 5},
@@ -456,9 +610,10 @@ class LT104Indicator extends PanelMenu.Button {
             let item = new PopupMenu.PopupMenuItem(inv.label);
             item.connect('activate', () => {
                 currentInterval = inv.val;
-                hudItem.label.set_text('📊 ' + t('hud_toggle', {sec: currentInterval}));
+                this._hudItem.label.set_text('📊 ' + t('hud_toggle', {sec: currentInterval}));
                 try {
-                    let cmd = ['/usr/bin/python3', CLI_PATH, 'hud-status'];
+                    let cliPath = findCliPath();
+                    let cmd = ['/usr/bin/python3', cliPath, 'hud-status'];
                     let [ok, out] = GLib.spawn_command_line_sync(cmd.join(' '));
                     let statusStr = new TextDecoder().decode(out);
                     if (statusStr.includes('RUNNING')) {
@@ -471,12 +626,12 @@ class LT104Indicator extends PanelMenu.Button {
                     console.error('[LT104-Indicator] HUD interval switch failed: ' + e);
                 }
             });
-            hudIntervalSubMenu.menu.addMenuItem(item);
+            this._hudIntervalSubMenu.menu.addMenuItem(item);
         });
 
         // Submenu: Light Presets
-        let lightSubMenu = new PopupMenu.PopupSubMenuMenuItem('🌈 ' + t('presets_sub'));
-        this.menu.addMenuItem(lightSubMenu);
+        this._lightSubMenu = new PopupMenu.PopupSubMenuMenuItem('🌈 ' + t('presets_sub'));
+        this.menu.addMenuItem(this._lightSubMenu);
 
         const presets = [
             {key: 'breathing_cyan', id: 'breathing-cyan', fallback: 'Breathing Cyan'},
@@ -496,14 +651,30 @@ class LT104Indicator extends PanelMenu.Button {
             item.connect('activate', () => {
                 runCliAsync(['preset', p.id], '🌈 ' + localizedName);
             });
-            lightSubMenu.menu.addMenuItem(item);
+            this._lightSubMenu.menu.addMenuItem(item);
         });
 
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        // Separator after cable-only items
+        this._cableSep2 = new PopupMenu.PopupSeparatorMenuItem();
+        this.menu.addMenuItem(this._cableSep2);
 
-        // Shortcuts Reference submenu
-        let scSubMenu = new PopupMenu.PopupSubMenuMenuItem('⌨️ ' + (t('shortcuts_ref') || 'Shortcuts Reference'));
-        this.menu.addMenuItem(scSubMenu);
+        // Group cable-only items together for toggling
+        this._cableItems = [
+            this._cableSep1,
+            this._syncItem,
+            this._schedItem,
+            this._hudItem,
+            this._hudOnceItem,
+            this._hudIntervalSubMenu,
+            this._lightSubMenu,
+            this._cableSep2,
+        ];
+
+        // --- USB CABLE ONLY ITEMS END ---
+
+        // Shortcuts Reference submenu (Always visible)
+        this._scSubMenu = new PopupMenu.PopupSubMenuMenuItem('⌨️ ' + (t('shortcuts_ref') || 'Shortcuts Reference'));
+        this.menu.addMenuItem(this._scSubMenu);
 
         const SHORTCUTS = [
             ['🐧 Ubuntu Linux', 'Suggest to use Win mode (建议使用 Win 模式)'],
@@ -545,18 +716,18 @@ class LT104Indicator extends PanelMenu.Button {
 
         SHORTCUTS.forEach(([key, action]) => {
             if (!action) {
-                scSubMenu.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+                this._scSubMenu.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
                 return;
             }
             let labelText = (key.startsWith('🐧') ? key + ' (' + action + ')' : key + '  →  ' + action);
             let item = new PopupMenu.PopupMenuItem(labelText, {reactive: false});
             item.label.get_clutter_text().set_use_markup(false);
-            scSubMenu.menu.addMenuItem(item);
+            this._scSubMenu.menu.addMenuItem(item);
         });
 
-        // Product page link
-        let productItem = new PopupMenu.PopupMenuItem('🛍️ ' + (t('open_product_page') || 'Open LT-104 Product Page'));
-        productItem.connect('activate', () => {
+        // Product page link (Always visible)
+        this._productItem = new PopupMenu.PopupMenuItem('🛍️ ' + (t('open_product_page') || 'Open LT-104 Product Page'));
+        this._productItem.connect('activate', () => {
             try {
                 Gio.AppInfo.launch_default_for_uri(
                     'https://langtustore.com/collections/mechanical-keyboards/products/langtu-lt-104-rgb-tri-mode-mechanical-gaming-keyboard',
@@ -566,16 +737,93 @@ class LT104Indicator extends PanelMenu.Button {
                 console.error('[LT104-Indicator] Failed to open product URL: ' + e);
             }
         });
-        this.menu.addMenuItem(productItem);
+        this.menu.addMenuItem(this._productItem);
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        // Launch full GUI
-        let openAppItem = new PopupMenu.PopupMenuItem('⚙️ ' + t('open_app'));
-        openAppItem.connect('activate', () => {
+        // Launch full GUI (Always visible)
+        this._openAppItem = new PopupMenu.PopupMenuItem('⚙️ ' + t('open_app'));
+        this._openAppItem.connect('activate', () => {
             launchApp();
         });
-        this.menu.addMenuItem(openAppItem);
+        this.menu.addMenuItem(this._openAppItem);
+    }
+
+    _refreshStatusAsync() {
+        try {
+            let cliPath = findCliPath();
+            let cmd = ['/usr/bin/python3', cliPath, 'status-json'];
+            let proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+            proc.communicate_utf8_async(null, null, (p, res) => {
+                try {
+                    let [, stdout, stderr] = p.communicate_utf8_finish(res);
+                    if (stdout && stdout.trim()) {
+                        let info = JSON.parse(stdout.trim());
+                        this._updateStatus(info);
+                    }
+                } catch (e) {
+                    console.error('[LT104-Indicator] Status JSON parse error: ' + e);
+                }
+            });
+        } catch (e) {
+            console.error('[LT104-Indicator] Failed to query status: ' + e);
+        }
+    }
+
+    _updateStatus(info) {
+        if (!info) return;
+
+        let mode = info.mode || 'disconnected';
+        let isCable = (mode === 'usb_cable');
+
+        // 1. Update Connection Mode Label
+        if (isCable) {
+            this._modeItem.label.set_text(t('mode_cable'));
+        } else if (mode === 'bluetooth') {
+            let name = info.device_name || 'LT104 BT5.1_2';
+            this._modeItem.label.set_text(t('mode_bt', {name: name}));
+        } else if (mode === 'usb_dongle') {
+            let desc = (info.dongle_status === 'plugged_unlinked') ? ' (未配对)' : '';
+            this._modeItem.label.set_text(t('mode_dongle') + desc);
+        } else {
+            this._modeItem.label.set_text(t('mode_disconnected'));
+        }
+
+        // 2. Update Battery % / Power State
+        if (info.battery !== null && info.battery !== undefined) {
+            this._batteryItem.label.set_text(t('battery_label', {pct: String(info.battery)}));
+            setItemVisible(this._batteryItem, true);
+        } else if (mode === 'bluetooth') {
+            this._batteryItem.label.set_text(t('battery_reading'));
+            setItemVisible(this._batteryItem, true);
+        } else if (isCable) {
+            this._batteryItem.label.set_text(t('battery_cable_power'));
+            setItemVisible(this._batteryItem, true);
+        } else {
+            setItemVisible(this._batteryItem, false);
+        }
+
+        // 3. Toggle Locked Banner (shown when NOT in USB cable mode)
+        setItemVisible(this._lockedBannerItem, !isCable);
+
+        // 4. Toggle USB Cable Only Items (Clock Sync, Sched, HUD, Light Presets)
+        if (this._cableItems) {
+            this._cableItems.forEach(item => {
+                setItemVisible(item, isCable);
+            });
+        }
+    }
+
+    destroy() {
+        if (this._timerId) {
+            GLib.source_remove(this._timerId);
+            this._timerId = null;
+        }
+        if (this._openStateId) {
+            this.menu.disconnect(this._openStateId);
+            this._openStateId = null;
+        }
+        super.destroy();
     }
 });
 

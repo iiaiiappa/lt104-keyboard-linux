@@ -1,19 +1,34 @@
 #!/bin/bash
 set -e
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="1.0.0"
-APP_DIR="packaging/build/AppDir"
+APP_DIR="$DIR/packaging/build/AppDir"
+DIST_DIR="$DIR/dist"
+OUTPUT_FILE="$DIST_DIR/LT104-Keyboard-Center-${VERSION}-x86_64.AppImage"
 
+mkdir -p "$DIST_DIR"
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/usr/bin"
 mkdir -p "$APP_DIR/usr/share/lt104"
 mkdir -p "$APP_DIR/usr/share/applications"
 mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
 
-# Copy files
-cp -r config.py i18n.py lt104_cli.py lt104_core.py lt104_gtk.py lt104_indicator.py web_app.py static gnome-extension "$APP_DIR/usr/share/lt104/"
-cp static/keyboard_skin_lit.png "$APP_DIR/usr/share/icons/hicolor/256x256/apps/lt104.png"
-cp static/keyboard_skin_lit.png "$APP_DIR/lt104.png"
+# Copy application files
+cp -r "$DIR"/config.py "$DIR"/i18n.py "$DIR"/lt104_cli.py "$DIR"/lt104_core.py \
+      "$DIR"/lt104_remap.py "$DIR"/lt104_gtk.py "$DIR"/lt104_indicator.py \
+      "$DIR"/web_app.py "$DIR"/static "$DIR"/gnome-extension \
+      "$DIR"/99-lt104.rules "$DIR"/99-lt104-win.hwdb "$DIR"/lt104-remap.service \
+      "$APP_DIR/usr/share/lt104/"
+
+# Icons
+if [ -f "/usr/share/icons/Yaru/256x256@2x/devices/input-keyboard.png" ]; then
+    cp "/usr/share/icons/Yaru/256x256@2x/devices/input-keyboard.png" "$APP_DIR/usr/share/icons/hicolor/256x256/apps/lt104.png"
+    cp "/usr/share/icons/Yaru/256x256@2x/devices/input-keyboard.png" "$APP_DIR/lt104.png"
+else
+    cp "$DIR/static/current_hud.png" "$APP_DIR/usr/share/icons/hicolor/256x256/apps/lt104.png"
+    cp "$DIR/static/current_hud.png" "$APP_DIR/lt104.png"
+fi
 
 # AppRun script
 cat << 'APPRUN' > "$APP_DIR/AppRun"
@@ -27,6 +42,9 @@ if [ "$1" = "web" ]; then
 elif [ "$1" = "cli" ]; then
     shift
     exec python3 "${HERE}/usr/share/lt104/lt104_cli.py" "$@"
+elif [ "$1" = "remap" ]; then
+    shift
+    exec python3 "${HERE}/usr/share/lt104/lt104_remap.py" "$@"
 else
     exec python3 "${HERE}/usr/share/lt104/lt104_gtk.py" "$@"
 fi
@@ -49,4 +67,15 @@ StartupNotify=true
 DESK
 cp "$APP_DIR/lt104.desktop" "$APP_DIR/usr/share/applications/lt104.desktop"
 
-echo "✅ AppDir prepared at $APP_DIR"
+echo "Building AppImage package..."
+TOOL="$DIR/packaging/tools/appimagetool"
+if [ ! -f "$TOOL" ]; then
+    mkdir -p "$DIR/packaging/tools"
+    wget -qO "$TOOL" "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+    chmod +x "$TOOL"
+fi
+
+ARCH=x86_64 "$TOOL" --appimage-extract-and-run "$APP_DIR" "$OUTPUT_FILE"
+chmod +x "$OUTPUT_FILE"
+
+echo "✅ Successfully built AppImage: $OUTPUT_FILE"

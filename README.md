@@ -255,7 +255,7 @@ makepkg -si
 |---|---|---|
 | **Web Console** | Modern dark-mode web dashboard running on port `8989` | `python3 web_app.py 8989` (or `lt104-web`) |
 | **Desktop App** | Native GNOME GTK4 + Libadwaita application with toast notifications | `python3 lt104_gtk.py` (or `lt104`) |
-| **GNOME Extension** | Top bar system tray menu for quick clock sync, presets, and HUD | `gnome-extensions enable lt104-indicator@theforwardway.com` |
+| **GNOME Extension** | Top bar tray menu with dynamic connection mode status, Bluetooth battery %, auto-hiding cable-only items, clock sync, RGB presets, and HUD | `gnome-extensions enable lt104-indicator@theforwardway.com` |
 | **CLI Tool** | Command-line interface for scripts, crontabs, and shortcuts | `python3 lt104_cli.py --help` (or `lt104-cli`) |
 
 ---
@@ -279,7 +279,19 @@ The LangTu LT-104 is driven by a cost-effective single-core 48MHz ARM Cortex-M0 
 
 ---
 
-## 📦 Installation & Setup
+## 📦 Installation & Release Packages
+
+Pre-built binary packages and standalone bundles are available in the [`dist/`](dist/) folder and Releases page:
+
+| Package Format | Target Operating Systems | Installation Command |
+|---|---|---|
+| **AppImage** (`.AppImage`) | Universal Linux (Ubuntu, Fedora, Arch, Debian, openSUSE) | `chmod +x LT104-Keyboard-Center-1.0.0-x86_64.AppImage`<br>`./LT104-Keyboard-Center-1.0.0-x86_64.AppImage` |
+| **Debian / Ubuntu** (`.deb`) | Ubuntu 22.04+, Debian 12+, Linux Mint, Pop!_OS | `sudo apt install ./lt104-keyboard-linux_1.0.0_all.deb` |
+| **Red Hat / Fedora** (`.rpm`) | Fedora 38+, RHEL 9+, CentOS Stream, Rocky, Alma, openSUSE | `sudo dnf install ./lt104-keyboard-linux-1.0.0-1.noarch.rpm` |
+| **Arch Linux** (`.pkg.tar.zst`) | Arch Linux, Manjaro, EndeavourOS | `sudo pacman -U lt104-keyboard-linux-1.0.0-1-any.pkg.tar.zst` |
+| **AUR PKGBUILD** | Arch User Repository | `cd dist && makepkg -si` |
+| **Portable Bundle** (`.tar.gz`) | Any Linux distribution with Python 3 | `tar -xzf lt104-keyboard-linux-1.0.0-linux-portable.tar.gz`<br>`cd lt104-keyboard-linux-1.0.0 && sudo ./install.sh` |
+| **GNOME Extension** (`.zip`) | GNOME Shell 45, 46, 47, 48, 49, 50 | `gnome-extensions install lt104-indicator@theforwardway.com.v1.0.0.shell-extension.zip` |
 
 ### 1. Prerequisites (Ubuntu / Debian)
 ```bash
@@ -288,7 +300,7 @@ sudo apt install -y python3 python3-pip python3-pil python3-psutil \
                     libadwaita-1-0 gir1.2-adw-1 gir1.2-gtk-4.0
 ```
 
-### 2. 1-Click Setup & Key Remapping (Recommended)
+### 2. 1-Click Setup from Source (Recommended for Developers)
 Clone the repository and run the setup utility:
 ```bash
 git clone https://github.com/iiaiiappa/lt104-keyboard-linux.git

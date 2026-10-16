@@ -1,0 +1,18 @@
+/* LangTu LT-104 GNOME Shell Extension Styles */
+.lt104-menu-box {
+    min-width: 320px;
+    max-height: 980px;
+}
+
+.lt104-status-mode {
+    font-weight: bold;
+}
+
+.lt104-status-battery {
+    font-weight: 500;
+}
+
+.lt104-locked-banner {
+    color: #e67e22;
+    font-size: 0.9em;
+}

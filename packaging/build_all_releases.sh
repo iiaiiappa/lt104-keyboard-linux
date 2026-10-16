@@ -1,19 +1,34 @@
 #!/bin/bash
 set -e
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="1.0.0"
 PKG_NAME="lt104-keyboard-linux"
-rm -rf dist
-mkdir -p dist
+
+rm -rf "$DIR/dist"
+mkdir -p "$DIR/dist"
 
 echo "=== 1. Building Debian package (.deb) ==="
-./packaging/build_deb.sh
+"$DIR/packaging/build_deb.sh"
 
-echo "=== 2. Building Portable Linux Standalone Bundle (.tar.gz) ==="
-TAR_DIR="packaging/build/portable/${PKG_NAME}-${VERSION}"
-rm -rf packaging/build/portable
+echo "=== 2. Building Red Hat / Fedora package (.rpm) ==="
+"$DIR/packaging/build_rpm.sh"
+
+echo "=== 3. Building Universal Linux AppImage (.AppImage) ==="
+"$DIR/packaging/build_appimage.sh"
+
+echo "=== 4. Building Arch Linux Package (.pkg.tar.zst) and PKGBUILD ==="
+"$DIR/packaging/build_arch.sh"
+
+echo "=== 5. Building Portable Linux Standalone Bundle (.tar.gz) ==="
+TAR_DIR="$DIR/packaging/build/portable/${PKG_NAME}-${VERSION}"
+rm -rf "$DIR/packaging/build/portable"
 mkdir -p "$TAR_DIR"
-cp -r config.py i18n.py lt104_cli.py lt104_core.py lt104_remap.py lt104_gtk.py lt104_indicator.py web_app.py lt104.sh static gnome-extension 99-lt104.rules 99-lt104-win.hwdb lt104-remap.service LICENSE README.md "$TAR_DIR/"
+cp -r "$DIR"/config.py "$DIR"/i18n.py "$DIR"/lt104_cli.py "$DIR"/lt104_core.py \
+      "$DIR"/lt104_remap.py "$DIR"/lt104_gtk.py "$DIR"/lt104_indicator.py \
+      "$DIR"/web_app.py "$DIR"/lt104.sh "$DIR"/static "$DIR"/gnome-extension \
+      "$DIR"/99-lt104.rules "$DIR"/99-lt104-win.hwdb "$DIR"/lt104-remap.service \
+      "$DIR"/LICENSE "$DIR"/README.md "$TAR_DIR/"
 
 cat << 'INS' > "$TAR_DIR/install.sh"
 #!/bin/bash
@@ -86,13 +101,13 @@ echo "   lt104-cli status          # Check keyboard status"
 INS
 chmod +x "$TAR_DIR/install.sh"
 
-tar -czf "dist/${PKG_NAME}-${VERSION}-linux-portable.tar.gz" -C "packaging/build/portable" "${PKG_NAME}-${VERSION}"
+tar -czf "$DIR/dist/${PKG_NAME}-${VERSION}-linux-portable.tar.gz" -C "$DIR/packaging/build/portable" "${PKG_NAME}-${VERSION}"
 
-echo "=== 3. Packaging GNOME Shell Extension bundle (.zip) ==="
-(cd gnome-extension && zip -r "../dist/lt104-indicator@theforwardway.com.v${VERSION}.shell-extension.zip" . -x "*.git*")
+echo "=== 6. Packaging GNOME Shell Extension bundle (.zip) ==="
+(cd "$DIR/gnome-extension" && zip -r "../dist/lt104-indicator@theforwardway.com.v${VERSION}.shell-extension.zip" . -x "*.git*")
 
-echo "=== 4. Generating SHA256 Checksums ==="
-(cd dist && sha256sum -- *.deb *.tar.gz *.zip > SHA256SUMS.txt)
+echo "=== 7. Generating SHA256 Checksums ==="
+(cd "$DIR/dist" && sha256sum -- *.deb *.rpm *.AppImage *.pkg.tar.zst *.tar.gz *.zip PKGBUILD > SHA256SUMS.txt)
 
-echo "=== Build Complete! Artifacts in dist/ ==="
-ls -lh dist/
+echo "=== Build Complete! All Release Artifacts in dist/ ==="
+ls -lh "$DIR/dist/"
