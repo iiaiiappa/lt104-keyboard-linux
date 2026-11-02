@@ -23,6 +23,14 @@ case "$ACTION" in
         sudo systemd-hwdb update 2>/dev/null || true
         sudo udevadm trigger 2>/dev/null || true
 
+        # 2b. Install keyd mapping for wired and wireless
+        if [ -d /etc/keyd ] || command -v keyd >/dev/null 2>&1 || command -v keyd.rvaiya >/dev/null 2>&1; then
+            echo "[2b/5] Installing keyd configuration to /etc/keyd/default.conf..."
+            sudo mkdir -p /etc/keyd
+            sudo cp "$DIR/keyd_default.conf" /etc/keyd/default.conf
+            sudo keyd.rvaiya reload 2>/dev/null || sudo systemctl restart keyd 2>/dev/null || true
+        fi
+
         # 3. Install binary into /usr/bin and legacy /usr/local/bin
         echo "[3/5] Installing /usr/bin/lt104-remap-keys..."
         sudo install -m 755 "$DIR/lt104_remap.py" /usr/bin/lt104-remap-keys
