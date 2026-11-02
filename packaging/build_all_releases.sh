@@ -27,7 +27,7 @@ mkdir -p "$TAR_DIR"
 cp -r "$DIR"/config.py "$DIR"/i18n.py "$DIR"/lt104_cli.py "$DIR"/lt104_core.py \
       "$DIR"/lt104_remap.py "$DIR"/lt104_gtk.py "$DIR"/lt104_indicator.py \
       "$DIR"/web_app.py "$DIR"/lt104.sh "$DIR"/static "$DIR"/gnome-extension \
-      "$DIR"/99-lt104.rules "$DIR"/99-lt104-win.hwdb "$DIR"/lt104-remap.service \
+      "$DIR"/99-lt104.rules "$DIR"/99-lt104-win.hwdb "$DIR"/keyd_default.conf "$DIR"/lt104-remap.service \
       "$DIR"/LICENSE "$DIR"/README.md "$TAR_DIR/"
 
 cat << 'INS' > "$TAR_DIR/install.sh"
@@ -51,6 +51,14 @@ if [ -d "/etc/udev/hwdb.d" ]; then
     sudo cp "$DIR/99-lt104-win.hwdb" /etc/udev/hwdb.d/99-lt104-win.hwdb
     sudo systemd-hwdb update 2>/dev/null || true
     sudo udevadm trigger 2>/dev/null || true
+fi
+
+# 2b. Install keyd mapping
+if [ -d "/etc/keyd" ] || command -v keyd >/dev/null 2>&1 || command -v keyd.rvaiya >/dev/null 2>&1; then
+    echo "Installing keyd configuration to /etc/keyd/default.conf..."
+    sudo mkdir -p /etc/keyd
+    sudo cp "$DIR/keyd_default.conf" /etc/keyd/default.conf
+    sudo keyd.rvaiya reload 2>/dev/null || sudo systemctl restart keyd 2>/dev/null || true
 fi
 
 # 3. Install CLI binaries & remap script

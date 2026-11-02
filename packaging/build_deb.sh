@@ -1,10 +1,13 @@
 #!/bin/bash
 set -e
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$DIR"
+
 VERSION="1.0.0"
 PKG_NAME="lt104-keyboard-linux"
 ARCH="all"
-BUILD_DIR="packaging/build/deb/${PKG_NAME}_${VERSION}_${ARCH}"
+BUILD_DIR="$DIR/packaging/build/deb/${PKG_NAME}_${VERSION}_${ARCH}"
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR/DEBIAN"
@@ -41,6 +44,13 @@ set -e
 if [ "$1" = "configure" ]; then
     # Compile hwdb mappings
     systemd-hwdb update 2>/dev/null || true
+
+    # Install keyd configuration if keyd is present
+    if [ -d /etc/keyd ] || command -v keyd >/dev/null 2>&1 || command -v keyd.rvaiya >/dev/null 2>&1; then
+        mkdir -p /etc/keyd
+        cp -u /usr/share/lt104/keyd_default.conf /etc/keyd/default.conf 2>/dev/null || true
+        keyd.rvaiya reload 2>/dev/null || systemctl restart keyd 2>/dev/null || true
+    fi
 
     # Reload and trigger udev rules
     udevadm control --reload-rules 2>/dev/null || true
@@ -82,7 +92,7 @@ POSTRM
 chmod 755 "$BUILD_DIR/DEBIAN/postrm"
 
 # 3. Application files
-cp -r config.py i18n.py lt104_cli.py lt104_core.py lt104_remap.py lt104_gtk.py lt104_indicator.py web_app.py static "$BUILD_DIR/usr/share/lt104/"
+cp -r config.py i18n.py lt104_cli.py lt104_core.py lt104_remap.py lt104_gtk.py lt104_indicator.py web_app.py keyd_default.conf static "$BUILD_DIR/usr/share/lt104/"
 cp -r gnome-extension "$BUILD_DIR/usr/share/lt104/"
 
 # 4. CLI / Wrapper scripts in /usr/bin

@@ -26,7 +26,7 @@ mkdir -p "$STAGING/lib/systemd/system"
 # 1. Copy Application files
 cp -r "$DIR"/config.py "$DIR"/i18n.py "$DIR"/lt104_cli.py "$DIR"/lt104_core.py \
       "$DIR"/lt104_remap.py "$DIR"/lt104_gtk.py "$DIR"/lt104_indicator.py \
-      "$DIR"/web_app.py "$DIR"/static "$STAGING/usr/share/lt104/"
+      "$DIR"/web_app.py "$DIR"/keyd_default.conf "$DIR"/static "$STAGING/usr/share/lt104/"
 cp -r "$DIR"/gnome-extension "$STAGING/usr/share/lt104/"
 
 # 2. Wrapper scripts in /usr/bin

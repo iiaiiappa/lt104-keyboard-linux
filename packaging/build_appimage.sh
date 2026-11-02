@@ -18,7 +18,7 @@ mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
 cp -r "$DIR"/config.py "$DIR"/i18n.py "$DIR"/lt104_cli.py "$DIR"/lt104_core.py \
       "$DIR"/lt104_remap.py "$DIR"/lt104_gtk.py "$DIR"/lt104_indicator.py \
       "$DIR"/web_app.py "$DIR"/static "$DIR"/gnome-extension \
-      "$DIR"/99-lt104.rules "$DIR"/99-lt104-win.hwdb "$DIR"/lt104-remap.service \
+      "$DIR"/99-lt104.rules "$DIR"/99-lt104-win.hwdb "$DIR"/keyd_default.conf "$DIR"/lt104-remap.service \
       "$APP_DIR/usr/share/lt104/"
 
 # Icons
